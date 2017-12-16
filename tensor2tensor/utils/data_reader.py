@@ -113,9 +113,10 @@ def input_pipeline(problem,
             min_length=batching_scheme["min_length"],
             max_length=batching_scheme["max_length"],
         ))
-    if is_training:
-      dataset = dataset.shuffle(capacity)
-      dataset = dataset.repeat(None)
+    # TEMP since val doesn't get shuffled
+    #if is_training:
+    dataset = dataset.shuffle(capacity)
+    dataset = dataset.repeat(None)
 
     bucket_id_fn = _example_length
     if len(batching_scheme["boundaries"]) == 1:

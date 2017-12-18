@@ -32,7 +32,7 @@ from __future__ import print_function
 
 import fathomt2t
 import fathomairflow.dags.dag_management.xcom_manipulation as xcom
-from fathomtf.services.model_management import upload_model_to_gcs
+# from fathomtf.services.model_management import upload_model_to_gcs
 
 import os
 
@@ -127,12 +127,12 @@ def main(_):
 
   if FLAGS.eval_early_stopping_steps is not None: 
     _pick_optimal_model()
-  dir_path, model_name = upload_model_to_gcs(FLAGS=FLAGS)
+  # dir_path, model_name = upload_model_to_gcs(FLAGS=FLAGS)
 
   # NOTE: this must run LAST in the process, to make sure STDOUT is
   # appropriately populated.
-  xcom.echo_yaml_for_xcom_ingest({'output_dir': dir_path,
-                                  'gcs_subpath': model_name})
+  xcom.echo_yaml_for_xcom_ingest({'output_dir': output_dir,
+                                  'gcs_subpath': os.path.basename(output_dir)})
 
 
 def _pick_optimal_model() -> None:

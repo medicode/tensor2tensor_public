@@ -44,6 +44,7 @@ from tensor2tensor.utils import usr_dir
 
 import tensorflow as tf
 from tensorflow.python.training import saver
+from tensorflow.python.lib.io import file_io
 
 flags = tf.flags
 FLAGS = flags.FLAGS
@@ -96,13 +97,13 @@ def main(_):
     tf.logging.info("!!!!!!!")
     tf.logging.info("checkpoint_dir={}".format(checkpoint_dir))
     tf.logging.info("latest_filename={}".format(latest_filename))
-    ckpt = get_checkpoint_state(checkpoint_dir, latest_filename)
+    ckpt = saver.get_checkpoint_state(checkpoint_dir, latest_filename)
     tf.logging.info("model_checkpoint_path={}".format(ckpt.model_checkpoint_path))
     if ckpt and ckpt.model_checkpoint_path:
       # Look for either a V2 path or a V1 path, with priority for V2.
-      v2_path = _prefix_to_checkpoint_path(ckpt.model_checkpoint_path,
+      v2_path = saver._prefix_to_checkpoint_path(ckpt.model_checkpoint_path,
                                            saver_pb2.SaverDef.V2)
-      v1_path = _prefix_to_checkpoint_path(ckpt.model_checkpoint_path,
+      v1_path = saver._prefix_to_checkpoint_path(ckpt.model_checkpoint_path,
                                            saver_pb2.SaverDef.V1)
       if file_io.get_matching_files(v2_path) or file_io.get_matching_files(
           v1_path):

@@ -46,6 +46,8 @@ import tensorflow as tf
 from tensorflow.python.training import saver
 from tensorflow.python.lib.io import file_io
 from tensorflow.core.protobuf import saver_pb2
+from google.protobuf import text_format
+from tensorflow.python.training.checkpoint_state_pb2 import CheckpointState
 
 flags = tf.flags
 FLAGS = flags.FLAGS
@@ -116,6 +118,64 @@ def main(_):
     return None
 
   saver.latest_checkpoint = latest_checkpoint
+
+
+  def get_checkpoint_state(checkpoint_dir, latest_filename=None):
+    """Returns CheckpointState proto from the "checkpoint" file.
+    If the "checkpoint" file contains a valid CheckpointState
+    proto, returns it.
+    Args:
+      checkpoint_dir: The directory of checkpoints.
+      latest_filename: Optional name of the checkpoint file.  Default to
+        'checkpoint'.
+    Returns:
+      A CheckpointState if the state was available, None
+      otherwise.
+    Raises:
+      ValueError: if the checkpoint read doesn't have model_checkpoint_path set.
+    """
+    ckpt = None
+    coord_checkpoint_filename = saver._GetCheckpointFilename(checkpoint_dir,
+                                                       latest_filename)
+    f = None
+    try:
+      # Check that the file exists before opening it to avoid
+      # many lines of errors from colossus in the logs.
+      if file_io.file_exists(coord_checkpoint_filename):
+        file_content = file_io.read_file_to_string(
+            coord_checkpoint_filename)
+        tf.logging.info(file_content)
+        ckpt = CheckpointState()
+        text_format.Merge(file_content, ckpt)
+        if not ckpt.model_checkpoint_path:
+          raise ValueError("Invalid checkpoint state loaded from %s",
+                           checkpoint_dir)
+        # For relative model_checkpoint_path and all_model_checkpoint_paths,
+        # prepend checkpoint_dir.
+        if not os.path.isabs(ckpt.model_checkpoint_path):
+          ckpt.model_checkpoint_path = os.path.join(checkpoint_dir,
+                                                    ckpt.model_checkpoint_path)
+        for i in range(len(ckpt.all_model_checkpoint_paths)):
+          p = ckpt.all_model_checkpoint_paths[i]
+          if not os.path.isabs(p):
+            ckpt.all_model_checkpoint_paths[i] = os.path.join(checkpoint_dir, p)
+    except errors.OpError as e:
+      # It's ok if the file cannot be read
+      tf.logging.warning("%s: %s", type(e).__name__, e)
+      tf.logging.warning("%s: Checkpoint ignored", coord_checkpoint_filename)
+      return None
+    except text_format.ParseError as e:
+      tf.logging.warning("%s: %s", type(e).__name__, e)
+      tf.logging.warning("%s: Checkpoint ignored", coord_checkpoint_filename)
+      return None
+    finally:
+      if f:
+        f.close()
+    return ckpt
+  
+  saver.get_checkpoint_state = get_checkpoint_state
+
+
   usr_dir.import_usr_dir(FLAGS.t2t_usr_dir)
   trainer_utils.log_registry()
   trainer_utils.validate_flags()

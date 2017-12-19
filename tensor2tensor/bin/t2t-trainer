@@ -81,6 +81,7 @@ flags.DEFINE_string("description", "",
 def main(_):
   tf.logging.set_verbosity(tf.logging.INFO)
   tf.logging.info("!$!$!$!$!!")
+  saver.latest_checkpoint = latest_checkpoint
   usr_dir.import_usr_dir(FLAGS.t2t_usr_dir)
   trainer_utils.log_registry()
   trainer_utils.validate_flags()
@@ -235,19 +236,3 @@ def latest_checkpoint(checkpoint_dir, latest_filename=None):
                     ckpt.model_checkpoint_path)
   return None
 
-saver.latest_checkpoint = latest_checkpoint
-
-
-def test(self,
-         input_fn,
-         name,
-         delay_secs,
-         throttle_delay_secs,
-         evaluate_checkpoint_only_once=True,
-         continuous_eval_predicate_fn=None,
-         export=True):
-  print("TEST!!!!")
-  tf.logging.info("TEST!!!!!!")
-  logging.info("TEST!!!!!!!!!!!")
-
-tensorflow.contrib.learn.python.learn.experiment._continuous_eval = test

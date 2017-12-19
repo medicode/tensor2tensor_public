@@ -94,7 +94,6 @@ def main(_):
     """
     # Pick the latest checkpoint based on checkpoint state.
     tf.logging.info("!!!!!!!")
-    logging.info("!!!!!!!")
     tf.logging.info("checkpoint_dir={}".format(checkpoint_dir))
     tf.logging.info("latest_filename={}".format(latest_filename))
     ckpt = get_checkpoint_state(checkpoint_dir, latest_filename)

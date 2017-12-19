@@ -45,6 +45,7 @@ from tensor2tensor.utils import usr_dir
 import tensorflow as tf
 from tensorflow.python.training import saver
 from tensorflow.python.lib.io import file_io
+from tensorflow.core.protobuf import saver_pb2
 
 flags = tf.flags
 FLAGS = flags.FLAGS

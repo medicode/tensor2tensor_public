@@ -79,6 +79,7 @@ flags.DEFINE_string("description", "",
 
 def main(_):
   tf.logging.set_verbosity(tf.logging.INFO)
+  tf.logging.info("!$!$!$!$!!")
   usr_dir.import_usr_dir(FLAGS.t2t_usr_dir)
   trainer_utils.log_registry()
   trainer_utils.validate_flags()

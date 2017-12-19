@@ -236,3 +236,18 @@ def latest_checkpoint(checkpoint_dir, latest_filename=None):
   return None
 
 saver.latest_checkpoint = latest_checkpoint
+
+
+def test(self,
+         input_fn,
+         name,
+         delay_secs,
+         throttle_delay_secs,
+         evaluate_checkpoint_only_once=True,
+         continuous_eval_predicate_fn=None,
+         export=True):
+  print("TEST!!!!")
+  tf.logging.info("TEST!!!!!!")
+  logging.info("TEST!!!!!!!!!!!")
+
+tensorflow.contrib.learn.python.learn.experiment._continuous_eval = test

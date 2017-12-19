@@ -214,6 +214,7 @@ def my_latest_checkpoint(checkpoint_dir, latest_filename=None):
   """
   # Pick the latest checkpoint based on checkpoint state.
   tf.logging.info("!!!!!!!")
+  logging.info("!!!!!!!")
   tf.logging.info("checkpoint_dir={}".format(checkpoint_dir))
   tf.logging.info("latest_filename={}".format(latest_filename))
   ckpt = get_checkpoint_state(checkpoint_dir, latest_filename)
@@ -233,4 +234,4 @@ def my_latest_checkpoint(checkpoint_dir, latest_filename=None):
                     ckpt.model_checkpoint_path)
   return None
 
-tf.python.training.saver.latest_checkpoint = my_latest_checkpoint
+tensorflow.python.training.saver.latest_checkpoint = my_latest_checkpoint

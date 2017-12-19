@@ -122,7 +122,7 @@ flags.DEFINE_string(
     "Comma-separated list of name=value pairs to control decode behavior. "
     "See decoding.decode_hparams for defaults.")
 
-   
+
 def make_experiment_fn(data_dir, model_name, train_steps, eval_steps):
   """Returns experiment_fn for learn_runner. Wraps create_experiment."""
 
@@ -163,7 +163,7 @@ def create_experiment(data_dir, model_name, train_steps, eval_steps, hparams,
             show_dataflow=True,
             show_memory=True,
         ))
-  if FLAGS.schedule == "train_and_evaluate":
+  if FLAGS.schedule in ["train_and_evaluate", "continuous_eval"]:
     if FLAGS.local_eval_frequency:
       train_monitors.append(
           tf.contrib.learn.monitors.ValidationMonitor(

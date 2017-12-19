@@ -43,6 +43,7 @@ from tensor2tensor.utils import trainer_utils
 from tensor2tensor.utils import usr_dir
 
 import tensorflow as tf
+from tensorflow.python.training import saver
 
 flags = tf.flags
 FLAGS = flags.FLAGS
@@ -202,7 +203,7 @@ if __name__ == "__main__":
   tf.app.run(main)
 
 
-def my_latest_checkpoint(checkpoint_dir, latest_filename=None):
+def latest_checkpoint(checkpoint_dir, latest_filename=None):
   """Finds the filename of latest saved checkpoint file.
   Args:
     checkpoint_dir: Directory where the variables were saved.
@@ -234,4 +235,4 @@ def my_latest_checkpoint(checkpoint_dir, latest_filename=None):
                     ckpt.model_checkpoint_path)
   return None
 
-tensorflow.python.training.saver.latest_checkpoint = my_latest_checkpoint
+saver.latest_checkpoint = latest_checkpoint

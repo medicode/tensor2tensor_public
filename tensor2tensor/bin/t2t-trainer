@@ -48,6 +48,7 @@ from tensorflow.python.lib.io import file_io
 from tensorflow.core.protobuf import saver_pb2
 from google.protobuf import text_format
 from tensorflow.python.training.checkpoint_state_pb2 import CheckpointState
+from gcloud.download_data import maybe_download_from_gcs
 
 flags = tf.flags
 FLAGS = flags.FLAGS

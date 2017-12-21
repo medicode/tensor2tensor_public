@@ -184,6 +184,11 @@ def maybe_download(directory, filename, url):
   if not tf.gfile.Exists(filepath):
     tf.logging.info("Downloading %s to %s" % (url, filepath))
     inprogress_filepath = filepath + ".incomplete"
+
+    import ssl
+    context = ssl._create_unverified_context()
+    ssl._create_default_https_context = ssl._create_unverified_context
+    urllib.urlopen(url, context=context)
     inprogress_filepath, _ = urllib.urlretrieve(
         url, inprogress_filepath, reporthook=download_report_hook)
     # Print newline to clear the carriage return from the download progress

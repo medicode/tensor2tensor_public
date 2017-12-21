@@ -146,7 +146,7 @@ def main(_):
         f.close()
     return ckpt
   
-  saver.get_checkpoint_state = get_checkpoint_state
+  #saver.get_checkpoint_state = get_checkpoint_state
 
 
   usr_dir.import_usr_dir(FLAGS.t2t_usr_dir)

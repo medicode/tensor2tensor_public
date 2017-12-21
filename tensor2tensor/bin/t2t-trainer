@@ -8,9 +8,36 @@ from tensor2tensor.bin import t2t_trainer
 
 import tensorflow as tf
 
+# Fathom
+import fh_platform.laika as laika
+
 def main(argv):
   t2t_trainer.main(argv)
 
 
 if __name__ == "__main__":
-  tf.app.run()
+  # Fathom
+  tf.flags.mark_flag_as_required('airflow_pipeline_yaml')
+  tf.flags.mark_flag_as_required('timestamp')
+
+  # Fathom
+  try:
+    tf.app.run(main)
+  except SystemExit:
+    pass
+  except:
+    if FLAGS.debug_laika or not FLAGS.debug_mode:
+      laika_model = TrainedModelMetadata(
+        shortname=FLAGS.description,
+        hypothesis=FLAGS.hypothesis,
+        gcs_model_path=None,
+        debug=FLAGS.debug_mode,
+        results_dir=FLAGS.output_dir)
+
+      laika.training_crashed(
+        model=laika_model,
+        airflow_ip=FLAGS.airflow_ip,
+        airflow_url=FLAGS.airflow_url)
+      
+    raise
+

@@ -163,7 +163,7 @@ def create_experiment(data_dir, model_name, train_steps, eval_steps, hparams,
             show_dataflow=True,
             show_memory=True,
         ))
-  if FLAGS.schedule in ["train_and_evaluate", "continuous_eval"]:
+  if FLAGS.schedule == "train_and_evaluate":
     if FLAGS.local_eval_frequency:
       train_monitors.append(
           tf.contrib.learn.monitors.ValidationMonitor(

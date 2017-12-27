@@ -129,8 +129,9 @@ def main(_):
 
   # NOTE: this must run LAST in the process, to make sure STDOUT is
   # appropriately populated.
-  xcom.echo_yaml_for_xcom_ingest({'output_dir': output_dir,
-                                  'gcs_subpath': os.path.basename(output_dir)})
+  xcom.echo_yaml_for_xcom_ingest(
+      {'output_dir': output_dir,
+       'gcs_subpath': '/'.join(path.split('/')[-2:])})
 
 
 def _pick_optimal_model() -> None:

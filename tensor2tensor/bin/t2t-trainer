@@ -131,7 +131,7 @@ def main(_):
   # appropriately populated.
   xcom.echo_yaml_for_xcom_ingest(
       {'output_dir': output_dir,
-       'gcs_subpath': '/'.join(path.split('/')[-2:])})
+       'gcs_subpath': '/'.join(output_dir.split('/')[-2:])})
 
 
 def _pick_optimal_model() -> None:

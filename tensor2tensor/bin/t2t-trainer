@@ -130,7 +130,7 @@ def main(_):
   # NOTE: this must run LAST in the process, to make sure STDOUT is
   # appropriately populated.
   model_name = '/'.join(output_dir.split('/')[-2:])
-  local_output_dir = os.join('/usr/',model_name)
+  local_output_dir = os.path.join('/usr/',model_name)
   xcom.echo_yaml_for_xcom_ingest(
       {'output_dir': local_output_dir,
         'gcs_subpath':model_name})

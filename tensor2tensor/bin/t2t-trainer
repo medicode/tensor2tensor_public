@@ -32,7 +32,7 @@ from __future__ import print_function
 
 import fathomt2t
 import fathomairflow.dags.dag_management.xcom_manipulation as xcom
-from fathomtf.services.model_management import _get_model_savepath, get_flags_for_export
+from fathomtf.services.model_management import _get_model_savepath, get_flags_for_export, _do_auxiliary_exports, _save_model_metadata
 
 import os
 
@@ -137,6 +137,10 @@ def main(_):
         description='')
   print("!!!!!!!!!!!!!")
   print(get_flags_for_export(FLAGS.problems))
+  _do_auxiliary_exports(FLAGS=FLAGS,
+                        model_name=model_name)
+  _save_model_metadata(FLAGS=FLAGS, model_name=model_name)
+
 
 
   local_output_dir = os.path.join('/usr/',model_name, '/')

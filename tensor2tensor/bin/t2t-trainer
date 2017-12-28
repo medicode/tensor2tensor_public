@@ -32,6 +32,7 @@ from __future__ import print_function
 
 import fathomt2t
 import fathomairflow.dags.dag_management.xcom_manipulation as xcom
+from fathomairflow.dags.dag_management import _get_model_savepath
 
 import os
 
@@ -129,7 +130,13 @@ def main(_):
 
   # NOTE: this must run LAST in the process, to make sure STDOUT is
   # appropriately populated.
-  model_name = '/'.join(output_dir.split('/')[-2:])
+  model_name = _get_model_savepath(
+        model_type=FLAGS.model,
+        problem=FLAGS.problems,
+        output_dir=FLAGS.output_dir,
+        description=FLAGS.description,
+        debug_mode=FLAGS.debug_mode)
+
   local_output_dir = os.path.join('/usr/',model_name, '/')
   xcom.echo_yaml_for_xcom_ingest(
       {'output_dir': local_output_dir,

@@ -134,8 +134,7 @@ def main(_):
         model_type=FLAGS.model,
         problem=FLAGS.problems,
         output_dir=FLAGS.output_dir,
-        description=FLAGS.description,
-        debug_mode=FLAGS.debug_mode)
+        description='')
 
   local_output_dir = os.path.join('/usr/',model_name, '/')
   xcom.echo_yaml_for_xcom_ingest(

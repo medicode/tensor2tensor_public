@@ -32,7 +32,7 @@ from __future__ import print_function
 
 import fathomt2t
 import fathomairflow.dags.dag_management.xcom_manipulation as xcom
-from fathomairflow.dags.dag_management import _get_model_savepath
+from fathomtf.services.model_management import _get_model_savepath
 
 import os
 

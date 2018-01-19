@@ -188,6 +188,8 @@ class T2TModel(base.Layer):
                               "and set use_body_sharded to True.")
 
   def model_fn_sharded(self, sharded_features):
+    tf.get_variable_scope().set_initializer(
+        optimize.get_variable_initializer(self.hparams))
     dp = self._data_parallelism
     summarize_features(sharded_features, num_shards=dp.n)
     datashard_to_features = self._to_features_per_datashard(sharded_features)
@@ -825,6 +827,9 @@ class T2TModel(base.Layer):
     _create_dummy_vars()
     hparams = copy.deepcopy(hparams)
     hparams.use_tpu = use_tpu
+
+    tf.get_variable_scope().set_initializer(
+      optimize.get_variable_initializer(hparams))
 
     # Instantiate model
     data_parallelism = None

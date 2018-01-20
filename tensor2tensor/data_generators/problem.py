@@ -664,7 +664,7 @@ class Problem(object):
             "Shapes are not fully defined. Assuming batch_size means tokens. "
             "You should probably override batch_size_means_tokens() "
             "in your problem subclass")
-        batch_size_means_tokens = True
+        batch_size_means_tokens = False
 
     # Batching
     if not batch_size_means_tokens:

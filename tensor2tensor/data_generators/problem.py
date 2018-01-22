@@ -490,20 +490,20 @@ class Problem(object):
     dataset = interleave(dataset, _load_records)
 
     # debugging stuff
-    try:
-      iter = dataset.make_one_shot_iterator()
-      thing_maker = iter.get_next()
-      session = tf.Session()
-      session.run(tf.global_variables_initializer())
-    except Exception as e:
-      print('STUFF FAILED', e)
-    while True:
-      try:
-        thing = session.run(thing_maker)
-        print('THING', thing)
-      except Exception as e:
-        print('/THINGS', e)
-        break
+    # try:
+    #   iter = dataset.make_one_shot_iterator()
+    #   thing_maker = iter.get_next()
+    #   session = tf.Session()
+    #   session.run(tf.global_variables_initializer())
+    # except Exception as e:
+    #   print('STUFF FAILED', e)
+    # while True:
+    #   try:
+    #     thing = session.run(thing_maker)
+    #     print('THING', thing)
+    #   except Exception as e:
+    #     print('/THINGS', e)
+    #     break
     
     if repeat:
       dataset = dataset.repeat()
@@ -682,7 +682,7 @@ class Problem(object):
             "Shapes are not fully defined. Assuming batch_size means tokens. "
             "You should probably override batch_size_means_tokens() "
             "in your problem subclass")
-        batch_size_means_tokens = False
+        batch_size_means_tokens = True
 
     # Batching
     if not batch_size_means_tokens:
@@ -695,7 +695,7 @@ class Problem(object):
             tf.contrib.data.batch_and_drop_remainder(tpu_batch_size))
       else:
         num_shards = (config and config.data_parallelism.n) or 1
-        # dataset = dataset.batch(hparams.batch_size * num_shards)
+        dataset = dataset.batch(hparams.batch_size * num_shards)
     else:
       # batch_size means tokens per datashard
       if config and config.use_tpu:

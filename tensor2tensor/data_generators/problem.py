@@ -473,11 +473,15 @@ class Problem(object):
     dataset = tf.data.Dataset.list_files(data_filepattern)
 
     print('DATASET', dataset)
-    
-    iter = dataset.make_one_shot_iterator()
-    thing_maker = iter.get_next()
-    session = tf.Session()
-    session.run(tf.initialize_global_variables())
+
+    try:
+      iter = dataset.make_one_shot_iterator()
+      thing_maker = iter.get_next()
+      session = tf.Session()
+      session.run(tf.initialize_global_variables())
+    except Exception as e:
+      print('STUFF FAILED', e)
+      
     while True:
       try:
         thing = session.run(thing_maker)

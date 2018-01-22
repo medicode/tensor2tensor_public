@@ -473,9 +473,12 @@ class Problem(object):
     dataset = tf.data.Dataset.list_files(data_filepattern)
 
     iter = dataset.make_one_shot_iterator()
+    thing_maker = iter.get_next()
+    session = tf.Session()
+    session.run(tf.initialize_global_variables())
     while True:
       try:
-        thing = iter.get_next()
+        thing = session.run(thing_maker)
         print('THING', thing)
       except StopIteration:
         print('/THINGS')

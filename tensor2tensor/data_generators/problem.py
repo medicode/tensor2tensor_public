@@ -472,8 +472,6 @@ class Problem(object):
     tf.logging.info("Reading data files from %s", data_filepattern)
     dataset = tf.data.Dataset.list_files(data_filepattern)
 
-    print('DATASET', dataset)
-    
     if shuffle_files:
       dataset = dataset.shuffle(buffer_size=1024)
 
@@ -489,22 +487,6 @@ class Problem(object):
 
     dataset = interleave(dataset, _load_records)
 
-    # debugging stuff
-    # try:
-    #   iter = dataset.make_one_shot_iterator()
-    #   thing_maker = iter.get_next()
-    #   session = tf.Session()
-    #   session.run(tf.global_variables_initializer())
-    # except Exception as e:
-    #   print('STUFF FAILED', e)
-    # while True:
-    #   try:
-    #     thing = session.run(thing_maker)
-    #     print('THING', thing)
-    #   except Exception as e:
-    #     print('/THINGS', e)
-    #     break
-    
     if repeat:
       dataset = dataset.repeat()
 
@@ -753,8 +735,6 @@ class Problem(object):
       tf.add_to_collection(tf.GraphKeys.QUEUE_RUNNERS,
                            data_reader.DummyQueueRunner())
 
-    features['inputs'] = tf.Print(features['inputs'], [features['inputs']], message='the_features')
-      
     return features, features["targets"]
 
   def serving_input_fn(self, hparams):

@@ -472,6 +472,8 @@ class Problem(object):
     tf.logging.info("Reading data files from %s", data_filepattern)
     dataset = tf.data.Dataset.list_files(data_filepattern)
 
+    print('DATASET', dataset)
+    
     iter = dataset.make_one_shot_iterator()
     thing_maker = iter.get_next()
     session = tf.Session()

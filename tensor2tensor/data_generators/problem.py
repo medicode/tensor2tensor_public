@@ -695,7 +695,7 @@ class Problem(object):
             tf.contrib.data.batch_and_drop_remainder(tpu_batch_size))
       else:
         num_shards = (config and config.data_parallelism.n) or 1
-        dataset = dataset.batch(hparams.batch_size * num_shards)
+        # dataset = dataset.batch(hparams.batch_size * num_shards)
     else:
       # batch_size means tokens per datashard
       if config and config.use_tpu:

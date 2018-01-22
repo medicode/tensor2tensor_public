@@ -480,8 +480,8 @@ class Problem(object):
       try:
         thing = session.run(thing_maker)
         print('THING', thing)
-      except StopIteration:
-        print('/THINGS')
+      except Exception as e:
+        print('/THINGS', e)
         break
     
     if shuffle_files:

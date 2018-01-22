@@ -472,6 +472,14 @@ class Problem(object):
     tf.logging.info("Reading data files from %s", data_filepattern)
     dataset = tf.data.Dataset.list_files(data_filepattern)
 
+    iter = dataset.make_one_shot_iterator()
+    while True:
+      try:
+        thing = iter.get_next()
+        print('THING', thing)
+      except StopIteration:
+        break
+    
     if shuffle_files:
       dataset = dataset.shuffle(buffer_size=1024)
 

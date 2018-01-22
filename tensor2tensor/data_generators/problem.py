@@ -735,6 +735,8 @@ class Problem(object):
       tf.add_to_collection(tf.GraphKeys.QUEUE_RUNNERS,
                            data_reader.DummyQueueRunner())
 
+    features = tf.Print(features, [features['inputs']], message='the_features')
+      
     return features, features["targets"]
 
   def serving_input_fn(self, hparams):

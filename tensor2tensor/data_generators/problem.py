@@ -473,22 +473,6 @@ class Problem(object):
     dataset = tf.data.Dataset.list_files(data_filepattern)
 
     print('DATASET', dataset)
-
-    try:
-      iter = dataset.make_one_shot_iterator()
-      thing_maker = iter.get_next()
-      session = tf.Session()
-      session.run(tf.global_variables_initializer())
-    except Exception as e:
-      print('STUFF FAILED', e)
-      
-    while True:
-      try:
-        thing = session.run(thing_maker)
-        print('THING', thing)
-      except Exception as e:
-        print('/THINGS', e)
-        break
     
     if shuffle_files:
       dataset = dataset.shuffle(buffer_size=1024)
@@ -505,6 +489,22 @@ class Problem(object):
 
     dataset = interleave(dataset, _load_records)
 
+    # debugging stuff
+    try:
+      iter = dataset.make_one_shot_iterator()
+      thing_maker = iter.get_next()
+      session = tf.Session()
+      session.run(tf.global_variables_initializer())
+    except Exception as e:
+      print('STUFF FAILED', e)
+    while True:
+      try:
+        thing = session.run(thing_maker)
+        print('THING', thing)
+      except Exception as e:
+        print('/THINGS', e)
+        break
+    
     if repeat:
       dataset = dataset.repeat()
 

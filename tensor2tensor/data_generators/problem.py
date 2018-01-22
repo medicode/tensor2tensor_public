@@ -478,7 +478,7 @@ class Problem(object):
       iter = dataset.make_one_shot_iterator()
       thing_maker = iter.get_next()
       session = tf.Session()
-      session.run(tf.initialize_global_variables())
+      session.run(tf.global_variables_initializer())
     except Exception as e:
       print('STUFF FAILED', e)
       

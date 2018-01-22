@@ -478,6 +478,7 @@ class Problem(object):
         thing = iter.get_next()
         print('THING', thing)
       except StopIteration:
+        print('/THINGS')
         break
     
     if shuffle_files:

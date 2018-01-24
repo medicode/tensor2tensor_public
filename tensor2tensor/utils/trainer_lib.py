@@ -37,6 +37,18 @@ from tensorflow.core.protobuf import rewriter_config_pb2
 from tensorflow.python import debug
 
 
+# Fathom
+class AdaptiveTaskChoiceHook(tf.train.SessionRunHook):
+  def __init__(self, choice_var):
+    self.choice_var = choice_var
+    
+  def after_run(self, run_context, run_values):  # pylint: disable=unused-argument
+    if run_values:
+      pass
+
+
+
+      
 def create_session_config(log_device_placement=False,
                           enable_graph_rewriter=False,
                           gpu_mem_fraction=0.95,
@@ -216,6 +228,9 @@ def create_hooks(use_tfdbg=False, use_dbgprofile=False, dbgprofile_kwargs=None,
         tf.contrib.learn.monitors.ValidationMonitor(
             hooks=eval_hooks, **validation_monitor_kwargs))
 
+  train_monitors.append(
+    AdaptiveTaskChoiceHook())
+    
   if use_early_stopping:
     hook = metrics_hook.EarlyStoppingHook(**early_stopping_kwargs)
     # Adding to both training and eval so that eval aborts as well
@@ -302,6 +317,11 @@ def create_experiment(run_config,
         dbgprofile_kwargs=dbgprofile_kwargs,
         use_validation_monitor=use_validation_monitor,
         use_early_stopping=use_early_stopping,
+
+        # Fathom
+        task_choice_handles=problem.task_choice_handles,
+        task_choice_handle=problem.task_choice_handle,
+      
         validation_monitor_kwargs=validation_monitor_kwargs,
         early_stopping_kwargs=early_stopping_kwargs)
     hooks_kwargs = {"train_monitors": train_monitors, "eval_hooks": eval_hooks}

@@ -39,8 +39,9 @@ from tensorflow.python import debug
 
 # Fathom
 class AdaptiveTaskChoiceHook(tf.train.SessionRunHook):
-  def __init__(self, choice_var):
+  def __init__(self, choice_var, possible_values):
     self.choice_var = choice_var
+    self.possible_values = possible_values
     
   def after_run(self, run_context, run_values):  # pylint: disable=unused-argument
     if run_values:
@@ -234,7 +235,8 @@ def create_hooks(use_tfdbg=False, use_dbgprofile=False, dbgprofile_kwargs=None,
 
   # Fathom
   train_monitors.append(
-    AdaptiveTaskChoiceHook())
+    AdaptiveTaskChoiceHook(choice_var=task_choice_var,
+                           possible_values=task_choices))
     
   if use_early_stopping:
     hook = metrics_hook.EarlyStoppingHook(**early_stopping_kwargs)

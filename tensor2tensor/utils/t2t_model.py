@@ -823,7 +823,7 @@ class T2TModel(base.Layer):
       TPUEstimatorSpec if use tpu else EstimatorSpec
     """
     _create_dummy_vars()
-    hparams = copy.deepcopy(hparams)
+    #hparams = copy.deepcopy(hparams)
     hparams.use_tpu = use_tpu
 
     # Instantiate model

@@ -199,6 +199,10 @@ def create_estimator(model_name,
 
 
 def create_hooks(use_tfdbg=False, use_dbgprofile=False, dbgprofile_kwargs=None,
+
+                 # Fathom
+                 task_choices=None, task_choice_var=None,
+
                  use_validation_monitor=False, validation_monitor_kwargs=None,
                  use_early_stopping=False, early_stopping_kwargs=None):
   """Create train and eval hooks for Experiment."""
@@ -228,6 +232,7 @@ def create_hooks(use_tfdbg=False, use_dbgprofile=False, dbgprofile_kwargs=None,
         tf.contrib.learn.monitors.ValidationMonitor(
             hooks=eval_hooks, **validation_monitor_kwargs))
 
+  # Fathom
   train_monitors.append(
     AdaptiveTaskChoiceHook())
     
@@ -319,8 +324,8 @@ def create_experiment(run_config,
         use_early_stopping=use_early_stopping,
 
         # Fathom
-        task_choice_handles=problem.task_choice_handles,
-        task_choice_handle=problem.task_choice_handle,
+        task_choices=problem.tasks.keys(),
+        task_choice_var=problem.task_choice,
       
         validation_monitor_kwargs=validation_monitor_kwargs,
         early_stopping_kwargs=early_stopping_kwargs)

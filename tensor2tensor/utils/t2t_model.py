@@ -54,6 +54,22 @@ _no_problem_err = (
 
 
 # Fathom
+def crawl(x):
+  if isinstance(x, dict):
+    for k in x:
+      print(k)
+      crawl(k[x])
+      print('/', k)
+  elif hasattr(x, '__dict__'):
+    for k in x.__dict__:
+      print(k)
+      crawl(x.__dict__[k])
+      print('/', k)
+  else:
+    print(x)
+
+
+# Fathom
 def combine_shards(sharded_top_outputs: List[Dict[str, tf.Tensor]]) -> Dict[str, tf.Tensor]:
   """(Fathom) Combine the dicts that our modality tops emit, rather than
   the tensors that standard T2T modality tops emit.
@@ -827,6 +843,7 @@ class T2TModel(base.Layer):
     # Fathom (needed for multitask for some reason?)
     # hparams = copy.deepcopy(hparams)
     # hparams = tf.contrib.training.HParams.from_proto(hparams.to_proto())
+    crawl(hparams)
     
     hparams.use_tpu = use_tpu
 

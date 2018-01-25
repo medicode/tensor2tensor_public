@@ -55,18 +55,17 @@ _no_problem_err = (
 
 # Fathom
 def crawl(x):
+  print(x)
   if isinstance(x, dict):
     for k in x:
       print(k)
-      crawl(k[x])
+      crawl(x[k])
       print('/', k)
   elif hasattr(x, '__dict__'):
     for k in x.__dict__:
       print(k)
       crawl(x.__dict__[k])
       print('/', k)
-  else:
-    print(x)
 
 
 # Fathom

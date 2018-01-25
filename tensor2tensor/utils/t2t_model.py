@@ -54,22 +54,29 @@ _no_problem_err = (
 
 
 # Fathom
-def crawl(x):
+def crawl(x, seen=None):
+  if seen is None:
+    seen = dict()
+  if id(x) in seen:
+    return
+  seen[id(x)] = 1
+
   print(x)
+
   if isinstance(x, dict):
     for k in x:
       print(k)
-      crawl(x[k])
+      crawl(x[k], seen)
       print('/', k)
   elif isinstance(x, list) or isinstance(x, tuple):
     for y in x:
       print('listel')
-      crawl(y)
+      crawl(y, seen)
       print('/listel')
   elif hasattr(x, '__dict__'):
     for k in x.__dict__:
       print(k)
-      crawl(x.__dict__[k])
+      crawl(x.__dict__[k], seen)
       print('/', k)
 
 

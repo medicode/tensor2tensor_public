@@ -845,10 +845,10 @@ class T2TModel(base.Layer):
     _create_dummy_vars()
 
     # Fathom (needed for multitask for some reason?)
-    # hparams = copy.deepcopy(hparams)
     # hparams = tf.contrib.training.HParams.from_proto(hparams.to_proto())
     crawl(hparams)
-    
+    hparams = copy.deepcopy(hparams)
+
     hparams.use_tpu = use_tpu
 
     # Instantiate model

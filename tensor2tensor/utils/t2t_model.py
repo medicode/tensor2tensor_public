@@ -61,6 +61,11 @@ def crawl(x):
       print(k)
       crawl(x[k])
       print('/', k)
+  elif isinstance(x, list) or isinstance(x, tuple):
+    for y in x:
+      print('listel')
+      crawl(y)
+      print('/listel')
   elif hasattr(x, '__dict__'):
     for k in x.__dict__:
       print(k)

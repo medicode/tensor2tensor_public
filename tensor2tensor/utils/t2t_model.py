@@ -64,6 +64,9 @@ def crawl(x, seen=None):
   print(type(x))
 
   if isinstance(x, dict):
+    if len(x) > 1000:
+      print('long dict, skipping')
+      return
     for k in x:
       print(k)
       crawl(x[k], seen)
@@ -74,9 +77,6 @@ def crawl(x, seen=None):
       crawl(y, seen)
       print('/listel')
   elif hasattr(x, '__dict__'):
-    if len(x) > 1000:
-      print('long dict, skipping')
-      return
     for k in x.__dict__:
       print(k)
       crawl(x.__dict__[k], seen)

@@ -61,7 +61,7 @@ def crawl(x, seen=None):
     return
   seen[id(x)] = 1
 
-  print(x)
+  print(type(x))
 
   if isinstance(x, dict):
     for k in x:

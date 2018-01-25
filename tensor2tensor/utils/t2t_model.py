@@ -74,6 +74,9 @@ def crawl(x, seen=None):
       crawl(y, seen)
       print('/listel')
   elif hasattr(x, '__dict__'):
+    if len(x) > 1000:
+      print('long dict, skipping')
+      return
     for k in x.__dict__:
       print(k)
       crawl(x.__dict__[k], seen)

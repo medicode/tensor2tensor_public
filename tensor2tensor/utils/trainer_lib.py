@@ -314,7 +314,7 @@ def create_experiment(run_config,
     # Fathom
     if hasattr(problem, 'tasks'):
       task_choices = problem.tasks.keys()
-      with tf.variable_scope('task_choice', reuse=True):
+      with tf.variable_scope('task_choice', reuse=tf.AUTO_REUSE):
         task_choice_var = tf.get_variable(
           'task_choice',
           dtype=tf.string,

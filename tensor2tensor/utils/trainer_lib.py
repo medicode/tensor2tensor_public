@@ -318,7 +318,7 @@ def create_experiment(run_config,
         task_choice_var = tf.get_variable(
           'task_choice',
           dtype=tf.string,
-          shape=(),
+          initializer=tf.constant(sorted(task_choices)[0]),
           trainable=False)
     else:
       task_choices = None

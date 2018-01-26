@@ -311,6 +311,14 @@ def create_experiment(run_config,
         plateau_delta=eval_early_stopping_metric_delta,
         every_n_steps=min_eval_frequency)
 
+    # Fathom
+    if hasattr(problem, 'tasks'):
+      task_choices = problem.tasks.keys()
+      task_choice_var = problem.task_choice
+    else:
+      task_choices = None
+      task_choice_var = None
+      
     # In-process eval (and possible early stopping)
     local_schedules = ["train_and_evaluate", "continuous_train_and_eval"]
     use_validation_monitor = (
@@ -326,8 +334,8 @@ def create_experiment(run_config,
         use_early_stopping=use_early_stopping,
 
         # Fathom
-        task_choices=problem.tasks.keys(),
-        task_choice_var=problem.task_choice,
+        task_choices=task_choices,
+        task_choice_var=task_choice_var,
       
         validation_monitor_kwargs=validation_monitor_kwargs,
         early_stopping_kwargs=early_stopping_kwargs)

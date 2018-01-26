@@ -866,7 +866,7 @@ class T2TModel(base.Layer):
       problem_instances = hparams.problem_instances
       del hparams.problem_instances
     else:
-      problems_instances = None
+      problem_instances = None
     hparams = copy.deepcopy(hparams)
     if problems is not None:
       hparams.problems = problems

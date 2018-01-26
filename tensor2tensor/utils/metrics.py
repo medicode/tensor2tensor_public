@@ -460,7 +460,7 @@ def create_evaluation_metrics_multitask(problems, model_hparams):
     return problem_metric_fn
 
   eval_metrics = dict()
-  for problem_idx, problem_instance in enumerate(problems):
+  for task_name, problem_instance in problems.items():
     problem_name = problem_instance.name
     metrics = problem_instance.eval_metrics()
     if not all([m in METRICS_FNS for m in metrics]):
@@ -488,7 +488,7 @@ def create_evaluation_metrics_multitask(problems, model_hparams):
         eval_metrics[metric_name] = image_wrapped_metric_fn
       else:
         problem_metric_fn = make_problem_specific_metric_fn(
-            metric_fn, problem_idx, weights_fn)
+            metric_fn, task_name, weights_fn)
         eval_metrics[metric_name] = problem_metric_fn
 
   return eval_metrics

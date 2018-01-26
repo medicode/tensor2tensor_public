@@ -319,8 +319,7 @@ def create_experiment(run_config,
           'task_choice',
           dtype=tf.string,
           shape=(),
-          trainable=False,
-          reuse=True)
+          trainable=False)
     else:
       task_choices = None
       task_choice_var = None

@@ -965,8 +965,9 @@ class T2TModel(base.Layer):
           eval_metrics=(eval_metrics_fn, [logits, labels]), loss=loss)
     else:
       if hasattr(problem, 'tasks'):
-        eval_metrics_fns = metrics.create_evaluation_metrics(sorted(problem.tasks.values()),
-                                                             hparams)
+        eval_metrics_fns = metrics.create_evaluation_metrics_multitask(
+          sorted(problem.tasks.values()),
+          hparams)
       else:
         eval_metrics_fns = metrics.create_evaluation_metrics([problem], hparams)
       eval_metrics = {}

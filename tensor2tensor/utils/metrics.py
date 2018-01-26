@@ -428,7 +428,7 @@ def create_evaluation_metrics_multitask(problems, model_hparams):
     def problem_metric_fn(predictions, features):
       """Metric fn."""
       labels = features.get("targets", None)
-      task_choice = features.get("task_choice", 0)
+      task_choice = features['task_choice'][0]
 
       # Send along the entire features dict if the metric fn has the kwarg
       # "features".

@@ -314,7 +314,12 @@ def create_experiment(run_config,
     # Fathom
     if hasattr(problem, 'tasks'):
       task_choices = problem.tasks.keys()
-      task_choice_var = problem.task_choice
+      task_choice_var = tf.get_variable(
+        'task_choice',
+        dtype=tf.string,
+        shape=(),
+        trainable=False,
+        reuse=True)
     else:
       task_choices = None
       task_choice_var = None

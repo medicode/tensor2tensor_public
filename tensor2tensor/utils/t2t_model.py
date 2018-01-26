@@ -856,7 +856,7 @@ class T2TModel(base.Layer):
 
     # Fathom (needed for multitask for some reason?)
     # hparams = tf.contrib.training.HParams.from_proto(hparams.to_proto())
-    crawl(hparams)
+    #crawl(hparams)
     hparams = copy.deepcopy(hparams)
 
     hparams.use_tpu = use_tpu

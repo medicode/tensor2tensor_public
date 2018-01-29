@@ -448,6 +448,14 @@ def create_evaluation_metrics_multitask(problems, model_hparams):
       else:
         logits = predictions  
 
+
+      logits = tf.cond(
+        tf.equal(task_name, task_choice),
+        lambda: logits,
+        lambda: tf.zeros(problems[task_name].top_shape, dtype=tf.float32))
+
+      logits.set_shape(problems[task_name].top_shape)                       
+        
       # Fathom
       # logits.set_shape(problems[task_name].top_shape)
       # logits = tf.reshape(logits, problems[task_name].top_shape)

@@ -449,8 +449,8 @@ def create_evaluation_metrics_multitask(problems, model_hparams):
         logits = predictions  
 
       # Fathom
-      # logits.set_shape(problems[task_name].top_shape)
-      logits = tf.reshape(logits, problems[task_name].top_shape)
+      logits.set_shape(problems[task_name].top_shape)
+      # logits = tf.reshape(logits, problems[task_name].top_shape)
         
       def wrapped_metric_fn():
         return metric_fn(logits, labels, weights_fn=weights_fn, **kwargs)

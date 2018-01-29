@@ -1529,7 +1529,12 @@ def pad_to_same_length(x, y, final_length_divisible_by=1, axis=1):
 
 def make_axis_unknown(x, rv, axis):
   x_shape = x.shape
-  shape = x_shape[:axis] + [None] + x_shape[axis + 1:]
+  shape = [None] * len(x_shape)
+  for i in range(len(x_shape)):
+    if i == axis:
+      continue
+    shape[i] = x_shape[i]
+  #shape = x_shape[:axis] + [None] + x_shape[axis + 1:]
   rv.set_shape(shape)
 
 

@@ -444,6 +444,7 @@ def create_evaluation_metrics_multitask(problems, model_hparams):
         keywords = keywords or []
         if 'outputs' in args or 'outputs' in keywords:
           kwargs['outputs'] = predictions['outputs']
+          kwargs['outputs'].set_shape(problems[task_name].outputs_shape)
         logits = predictions['logits']
       else:
         logits = predictions  

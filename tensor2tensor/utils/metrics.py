@@ -357,6 +357,8 @@ def create_evaluation_metrics(problems, model_hparams):
         logits = predictions['logits']
       else:
         logits = predictions  
+
+      logits.set_shape(problems[task_name].top_shape)
         
       def wrapped_metric_fn():
         return metric_fn(logits, labels, weights_fn=weights_fn, **kwargs)

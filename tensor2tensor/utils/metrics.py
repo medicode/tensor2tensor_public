@@ -358,8 +358,6 @@ def create_evaluation_metrics(problems, model_hparams):
       else:
         logits = predictions  
 
-      logits.set_shape(problems[task_name].top_shape)
-        
       def wrapped_metric_fn():
         return metric_fn(logits, labels, weights_fn=weights_fn, **kwargs)
 
@@ -466,6 +464,7 @@ def create_evaluation_metrics_multitask(problems, model_hparams):
       # logits = tf.reshape(logits, problems[task_name].top_shape)
         
       def wrapped_metric_fn():
+        logits.set_shape(problems[task_name].top_shape)
         return metric_fn(logits, labels, weights_fn=weights_fn, **kwargs)
 
       (scores, weights) = tf.cond(

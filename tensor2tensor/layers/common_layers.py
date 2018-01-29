@@ -1513,16 +1513,12 @@ def pad_to_same_length(x, y, final_length_divisible_by=1, axis=1):
     res_y = tf.pad(y, paddings2)
     # Static shapes are the same except for axis=1.
 
-    # # Fathom
-    # make_axis_unknown(x, res_x, axis)
-    # make_axis_unknown(y, res_y, axis)
-    
-    # x_shape = x.shape.as_list()
-    x_shape = shape_list(x)
+    x_shape = x.shape.as_list()
+    # x_shape = shape_list(x)
     x_shape[axis] = None
     res_x.set_shape(x_shape)
-    # y_shape = y.shape.as_list()
-    y_shape = shape_list(y)
+    y_shape = y.shape.as_list()
+    # y_shape = shape_list(y)
     y_shape[axis] = None
     res_y.set_shape(y_shape)
 

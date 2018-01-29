@@ -1512,13 +1512,25 @@ def pad_to_same_length(x, y, final_length_divisible_by=1, axis=1):
     res_x = tf.pad(x, paddings1)
     res_y = tf.pad(y, paddings2)
     # Static shapes are the same except for axis=1.
-    x_shape = x.shape # .as_list()
-    x_shape[axis] = None
-    res_x.set_shape(x_shape)
-    y_shape = y.shape # .as_list()
-    y_shape[axis] = None
-    res_y.set_shape(y_shape)
+
+    # Fathom
+    make_axis_unknown(x, res_x, axis)
+    make_axis_unknown(y, res_y, axis)
+    
+    # x_shape = x.shape.as_list()
+    # x_shape[axis] = None
+    # res_x.set_shape(x_shape)
+    # y_shape = y.shape.as_list()
+    # y_shape[axis] = None
+    # res_y.set_shape(y_shape)
+
     return res_x, res_y
+
+
+def make_axis_unknown(x, rv, axis):
+  x_shape = x.shape
+  shape = x_shape[:axis] + [None] + x_shape[axis + 1:]
+  rv.set_shape(shape)
 
 
 def pad_with_zeros(logits, labels):

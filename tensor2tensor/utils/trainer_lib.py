@@ -47,7 +47,7 @@ class AdaptiveTaskChoiceHook(tf.train.SessionRunHook):
       task_choice_var = tf.get_variable(
         'task_choice',
         dtype=tf.string,
-        initializer=tf.constant(sorted(task_choices)[0]),
+        initializer=tf.constant(sorted(self.possible_values)[0]),
         trainable=False)
     task_choice_idx = tf.random_uniform([], maxval=len(self.possible_values), dtype=tf.int32)
     task_choices = tf.constant(sorted(self.possible_values))

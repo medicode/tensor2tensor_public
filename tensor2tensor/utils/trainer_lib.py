@@ -40,10 +40,15 @@ from tensorflow.python import debug
 # Fathom
 class AdaptiveTaskChoiceHook(tf.train.SessionRunHook):
   def __init__(self, choice_var, possible_values):
-    self.choice_var = choice_var
     self.possible_values = possible_values
 
   def begin(self):
+    with tf.variable_scope('task_choice', reuse=tf.AUTO_REUSE):
+      task_choice_var = tf.get_variable(
+        'task_choice',
+        dtype=tf.string,
+        initializer=tf.constant(sorted(task_choices)[0]),
+        trainable=False)
     task_choice_idx = tf.random_uniform([], maxval=len(self.possible_values), dtype=tf.int32)
     task_choices = tf.constant(sorted(self.possible_values))
     self.assign = tf.assign(self.choice_var, task_choices[task_choice_idx])
@@ -319,12 +324,7 @@ def create_experiment(run_config,
     # Fathom
     if hasattr(problem, 'tasks'):
       task_choices = problem.tasks.keys()
-      with tf.variable_scope('task_choice', reuse=tf.AUTO_REUSE):
-        task_choice_var = tf.get_variable(
-          'task_choice',
-          dtype=tf.string,
-          initializer=tf.constant(sorted(task_choices)[0]),
-          trainable=False)
+      task_choice_var = None
     else:
       task_choices = None
       task_choice_var = None

@@ -42,12 +42,12 @@ class AdaptiveTaskChoiceHook(tf.train.SessionRunHook):
   def __init__(self, choice_var, possible_values):
     self.choice_var = choice_var
     self.possible_values = possible_values
-    
-  def after_run(self, run_context, run_values):  # pylint: disable=unused-argument
     task_choice_idx = tf.random_uniform([], maxval=len(self.possible_values), dtype=tf.int32)
     task_choices = tf.constant(sorted(self.possible_values))
-    run_context.session.run(tf.assign(self.choice_var, task_choices[task_choice_idx]))
-
+    self.assign = tf.assign(self.choice_var, task_choices[task_choice_idx])
+    
+  def after_run(self, run_context, run_values):  # pylint: disable=unused-argument
+    run_context.session.run(self.assign)
 
       
 def create_session_config(log_device_placement=False,

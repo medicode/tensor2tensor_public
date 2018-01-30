@@ -53,8 +53,8 @@ class AdaptiveTaskChoiceHook(tf.train.SessionRunHook):
     task_choices = tf.constant(sorted(self.possible_values))
     self.assign = tf.assign(task_choice_var, task_choices[task_choice_idx])
 
-  def before_run(self, run_context):
-    return tf.train.SessionRunArgs(self.assign)
+  #def before_run(self, run_context):
+    #return tf.train.SessionRunArgs(self.assign)
   
   def after_run(self, run_context, run_values):  # pylint: disable=unused-argument
     print('RESULTS', run_values.results)

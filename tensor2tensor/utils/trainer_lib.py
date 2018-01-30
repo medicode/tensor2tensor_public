@@ -43,6 +43,9 @@ class AdaptiveTaskChoiceHook(tf.train.SessionRunHook):
     self.possible_values = possible_values
 
   def begin(self):
+    if self.possible_values is None:
+      return
+    
     with tf.variable_scope('task_choice', reuse=tf.AUTO_REUSE):
       task_choice_var = tf.get_variable(
         'task_choice',
@@ -57,7 +60,7 @@ class AdaptiveTaskChoiceHook(tf.train.SessionRunHook):
     #return tf.train.SessionRunArgs(self.assign)
   
   def after_run(self, run_context, run_values):  # pylint: disable=unused-argument
-    print('RESULTS', run_values.results)
+    pass
 
       
 def create_session_config(log_device_placement=False,

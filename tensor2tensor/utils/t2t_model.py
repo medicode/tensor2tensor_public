@@ -156,7 +156,7 @@ class T2TModel(base.Layer):
     default_name = registry.default_name(type(self))
     name = self.REGISTERED_NAME or default_name
     super(T2TModel, self).__init__(
-        trainable=mode == tf.estimator.ModeKeys.TRAIN, name='multi_blstm')
+        trainable=mode == tf.estimator.ModeKeys.TRAIN, name=name)
 
     if not problem_hparams and hasattr(hparams, "problems"):
       problem_hparams = hparams.problems[0]

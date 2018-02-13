@@ -54,36 +54,6 @@ _no_problem_err = (
 
 
 # Fathom
-def crawl(x, seen=None):
-  if seen is None:
-    seen = dict()
-  if id(x) in seen:
-    return
-  seen[id(x)] = 1
-
-  print(type(x))
-
-  if isinstance(x, dict):
-    if len(x) > 1000:
-      print('long dict, skipping')
-      return
-    for k in x:
-      print(k)
-      crawl(x[k], seen)
-      print('/', k)
-  elif isinstance(x, list) or isinstance(x, tuple):
-    for y in x:
-      print('listel')
-      crawl(y, seen)
-      print('/listel')
-  elif hasattr(x, '__dict__'):
-    for k in x.__dict__:
-      print(k)
-      crawl(x.__dict__[k], seen)
-      print('/', k)
-
-
-# Fathom
 def combine_shards(sharded_top_outputs: List[Dict[str, tf.Tensor]]) -> Dict[str, tf.Tensor]:
   """(Fathom) Combine the dicts that our modality tops emit, rather than
   the tensors that standard T2T modality tops emit.

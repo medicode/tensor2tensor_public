@@ -600,6 +600,7 @@ class Problem(object):
 
     return estimator_input_fn
 
+  # Fathom: this function's code used to be at the start of input_fn
   def make_dataset(self, mode, hparams, data_dir=None, params=None, config=None,
                dataset_kwargs=None):
     """Builds input pipeline for problem.

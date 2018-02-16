@@ -324,8 +324,8 @@ def main(_):
 
   # Fathom
   if FLAGS.debug_mode:
-    FLAGS.train_steps = 2
-    FLAGS.eval_steps = 2
+    FLAGS.train_steps = 20
+    FLAGS.eval_steps = 20
 
   hparams = create_hparams()
   run_config = create_run_config(hparams)

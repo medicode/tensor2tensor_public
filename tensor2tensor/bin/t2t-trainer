@@ -11,6 +11,10 @@ import tensorflow as tf
 # Fathom
 import fh_platform.laika as laika
 
+# Fathom
+flags = tf.flags
+FLAGS = flags.FLAGS
+
 def main(argv):
   t2t_trainer.main(argv)
 

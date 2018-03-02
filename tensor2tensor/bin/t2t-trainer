@@ -36,8 +36,7 @@ if __name__ == "__main__":
         shortname=FLAGS.description,
         hypothesis=FLAGS.hypothesis,
         gcs_model_path=None,
-        debug=FLAGS.debug_mode,
-        results_dir=FLAGS.output_dir)
+        debug=FLAGS.debug_mode)
 
       laika.training_crashed(
         model=laika_model,

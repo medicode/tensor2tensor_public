@@ -9,6 +9,7 @@ from tensor2tensor.bin import t2t_trainer
 import tensorflow as tf
 
 # Fathom
+from fh_platform.model_registry import TrainedModelMetadata
 import fh_platform.laika as laika
 
 # Fathom

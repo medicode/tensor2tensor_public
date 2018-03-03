@@ -90,6 +90,8 @@ from fathomairflow.dags.dag_management.task_builders.xcom_keys import (
     DATA_DIR, TMP_DIR)
 from fathomtf.services.model_management import (upload_model_to_gcs,
                                                 fix_paths_for_workspace)
+from fh_platform.model_registry import TrainedModelMetadata
+import fh_platform.laika as laika
 import os
 flags.DEFINE_bool("debug_mode", False, "Truncate training for debug purposes")
 # NOTE: this is set as REQUIRED, in main()
@@ -100,6 +102,11 @@ flags.DEFINE_string("description", "",
 flags.DEFINE_string("timestamp", "",
     "Timestamp for this run.  This is generally expected to be the DAG execution date,"
     " *not* the timestamp that this specific model was trained.")
+flags.DEFINE_string("airflow_url", "", "URL for looking at this task's logs in airflow")
+flags.DEFINE_string("airflow_ip", "", "External IP of airflow")
+flags.DEFINE_string("hypothesis", "I forgot to specify a hypothesis!",
+                    "Hypothesis being tested in this experiment")
+flags.DEFINE_bool("debug_laika", False, "Trigger Laika even if in debug mode")
 ##################
 #
 # END FATHOM ADDS
@@ -313,6 +320,18 @@ def _pick_optimal_model() -> None:
 
 def main(_):
   # Fathom
+  if FLAGS.debug_laika or not FLAGS.debug_mode:
+    laika_model = TrainedModelMetadata(
+      shortname=FLAGS.description,
+      hypothesis=FLAGS.hypothesis,
+      gcs_model_path=None,
+      debug=FLAGS.debug_mode)
+    laika.start_of_training(
+      model=laika_model,
+      airflow_ip=FLAGS.airflow_ip,
+      airflow_url=FLAGS.airflow_url)
+
+  # Fathom
   fix_paths_for_workspace(FLAGS, get_problem_name())
 
   tf.logging.set_verbosity(tf.logging.INFO)
@@ -345,6 +364,21 @@ def main(_):
   dir_path, model_name = upload_model_to_gcs(FLAGS=FLAGS)
 
   # Fathom
+  if FLAGS.debug_laika or not FLAGS.debug_mode:
+    laika_model = TrainedModelMetadata(
+      shortname=FLAGS.description,
+      hypothesis=FLAGS.hypothesis,
+      gcs_model_path=model_name,
+      debug=FLAGS.debug_mode,
+      results_dir=FLAGS.output_dir)
+
+    laika.training_succeeded(
+      model=laika_model,
+      airflow_ip=FLAGS.airflow_ip,
+      airflow_url=FLAGS.airflow_url,
+    )    
+  
+  # Fathom
   # NOTE: this must run LAST in the process, to make sure STDOUT is
   # appropriately populated.
   xcom.echo_yaml_for_xcom_ingest({'output_dir': dir_path,
@@ -357,4 +391,24 @@ if __name__ == "__main__":
   tf.flags.mark_flag_as_required('airflow_pipeline_yaml')
   tf.flags.mark_flag_as_required('timestamp')
 
-  tf.app.run()
+  # Fathom
+  try:
+    tf.app.run(main)
+  except SystemExit:
+    pass
+  except:
+    if FLAGS.debug_laika or not FLAGS.debug_mode:
+      laika_model = TrainedModelMetadata(
+        shortname=FLAGS.description,
+        hypothesis=FLAGS.hypothesis,
+        gcs_model_path=None,
+        debug=FLAGS.debug_mode,
+        results_dir=FLAGS.output_dir)
+
+      laika.training_crashed(
+        model=laika_model,
+        airflow_ip=FLAGS.airflow_ip,
+        airflow_url=FLAGS.airflow_url)
+      
+    raise
+  

@@ -284,7 +284,7 @@ def set_auc(predictions,
   """
   with tf.variable_scope("set_auc", values=[predictions, labels]):
     labels = tf.squeeze(labels, [2, 3])
-    labels = tf.one_hot(labels, predictions.shape[-1] + 1)
+    labels = tf.one_hot(labels, tf.shape(predictions)[-1] + 1)
     labels = tf.reduce_max(labels, axis=1)
     # gah this is so hacky, now we suppress empty sets...
     weights = tf.reduce_max(labels[:, 1:], axis=1, keep_dims=True)
@@ -362,7 +362,7 @@ def create_evaluation_metrics(problems, model_hparams):
         logits = predictions['logits']
       else:
         logits = predictions  
-        
+
       def wrapped_metric_fn():
         return metric_fn(logits, labels, weights_fn=weights_fn, **kwargs)
 
@@ -404,6 +404,108 @@ def create_evaluation_metrics(problems, model_hparams):
       else:
         problem_metric_fn = make_problem_specific_metric_fn(
             metric_fn, problem_idx, weights_fn)
+        eval_metrics[metric_name] = problem_metric_fn
+
+  return eval_metrics
+
+
+# Fathom
+def create_evaluation_metrics_multitask(problems, model_hparams):
+  """Creates the evaluation metrics for the model.
+
+  Args:
+    problems: List of Problem instances.
+    model_hparams: a set of hparams.
+
+  Returns:
+    dict<metric name, metric function>. The metric functions have signature
+    (Tensor predictions, features) -> (metric Tensor, update op), where features
+    is a dict with keys {targets, problem_choice}.
+
+  Raises:
+    ValueError: if the metrics specified by a problem are not recognized (i.e.
+      are not defined in the Metrics enum.
+  """
+
+  def make_problem_specific_metric_fn(metric_fn, task_name, weights_fn):
+    """Create a metric fn conditioned on problem_idx."""
+
+    def problem_metric_fn(predictions, features):
+      """Metric fn."""
+      labels = features.get("targets", None)
+      task_choice = features['task_choice'][0]
+
+      # Send along the entire features dict if the metric fn has the kwarg
+      # "features".
+      kwargs = {}
+      args, _, keywords, _ = inspect.getargspec(metric_fn)
+      if ("features" in args) or keywords:
+        kwargs["features"] = features
+
+      # (epurdy/fathom) see comment in model_builder.py, function
+      # combine_shards for discussion
+      if isinstance(predictions, dict):
+        args = args or []
+        keywords = keywords or []
+        if 'outputs' in args or 'outputs' in keywords:
+          kwargs['outputs'] = predictions['outputs']
+          kwargs['outputs'].set_shape(problems[task_name].outputs_shape)
+        logits = predictions['logits']
+      else:
+        logits = predictions  
+
+      zeros_shape = problems[task_name].top_shape
+      zeros_shape = [1 if v is None else v for v in zeros_shape]
+        
+      logits = tf.cond(
+        tf.equal(task_name, task_choice),
+        lambda: logits,
+        lambda: tf.zeros(zeros_shape, dtype=tf.float32))
+
+      logits.set_shape(problems[task_name].top_shape)
+
+      def wrapped_metric_fn():
+        logits.set_shape(problems[task_name].top_shape)
+        return metric_fn(logits, labels, weights_fn=weights_fn, **kwargs)
+
+      (scores, weights) = tf.cond(
+          tf.equal(task_name, task_choice), wrapped_metric_fn,
+          lambda: (tf.constant(0.0), tf.constant(0.0)))
+      # The tf.metrics.mean function assures correct aggregation.
+      return tf.metrics.mean(scores, weights)
+
+    return problem_metric_fn
+
+  eval_metrics = dict()
+  for task_name, problem_instance in problems.items():
+    problem_name = problem_instance.name
+    metrics = problem_instance.eval_metrics()
+    if not all([m in METRICS_FNS for m in metrics]):
+      error_str = ("Unrecognized metric. Problem %s specified metrics "
+                   "%s. Recognized metrics are %s.")
+      raise ValueError(error_str % (problem_name,
+                                    metrics,
+                                    list(METRICS_FNS.keys())))
+
+    def image_wrapped_metric_fn(predictions,
+                                labels,
+                                weights_fn=common_layers.weights_nonzero):
+      _, _ = labels, weights_fn
+      return metric_fn(predictions, model_hparams)
+
+    tm = problem_instance.get_hparams().target_modality
+    if isinstance(tm, tuple):
+      tm = registry.create_modality(tm, model_hparams)
+    weights_fn = tm.targets_weights_fn
+
+    for metric in metrics:
+      metric_fn = METRICS_FNS[metric]
+      metric_name = "metrics-%s/%s" % (problem_name, metric)
+      if metric == Metrics.IMAGE_SUMMARY:
+        eval_metrics[metric_name] = image_wrapped_metric_fn
+      else:
+        problem_metric_fn = make_problem_specific_metric_fn(
+            metric_fn, task_name, weights_fn)
         eval_metrics[metric_name] = problem_metric_fn
 
   return eval_metrics

@@ -85,7 +85,7 @@ def basic_params1():
       learning_rate_decay_steps=5000,
       learning_rate_decay_staircase=False,
 
-      # Fathom
+      # Fathom (forget why I needed this to happen...)
       # learning_rate_minimum=None,
       learning_rate_minimum=0.0,
 

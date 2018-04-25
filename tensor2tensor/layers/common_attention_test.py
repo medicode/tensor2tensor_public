@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2017 The Tensor2Tensor Authors.
+# Copyright 2018 The Tensor2Tensor Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -403,7 +403,7 @@ class CommonAttentionTest(tf.test.TestCase):
     self.assertEqual(res.shape, (5, 7, 12, 32))
 
   def testBiasBatchCoordinates(self):
-    """Testing the batch cooridnates mask."""
+    """Testing the batch coordinates mask."""
     q = tf.constant([0, 0, 1, 1, 1, 1, 2, 2, 2], dtype=tf.int32)
     q = tf.expand_dims(q, axis=-1)
 

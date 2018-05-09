@@ -702,17 +702,17 @@ class Problem(object):
 
   """
   """
-<<<<<<< 36584ffeeecc8bca4c524e7d439b72b32be41932
+#<<<<<<< 36584ffeeecc8bca4c524e7d439b72b32be41932
   def input_fn(self,
                mode,
                hparams,
                data_dir=None,
                params=None,
                config=None,
-=======
+#=======
   # Fathom: this function's code used to be at the start of input_fn
   def make_dataset(self, mode, hparams, data_dir=None, params=None, config=None,
->>>>>>> sanity check
+#>>>>>>> sanity check
                dataset_kwargs=None):
     partition_id, num_partitions = self._dataset_partition(mode, config)
 
@@ -844,8 +844,8 @@ class Problem(object):
 
     dataset = dataset.map(prepare_for_output, num_parallel_calls=num_threads)
     dataset = dataset.prefetch(2)
-<<<<<<< 36584ffeeecc8bca4c524e7d439b72b32be41932
-=======
+#<<<<<<< 36584ffeeecc8bca4c524e7d439b72b32be41932
+#=======
     return dataset
    
   def input_fn(self, mode, hparams, data_dir=None, params=None, config=None,
@@ -860,7 +860,7 @@ class Problem(object):
     features = dataset.make_one_shot_iterator().get_next()
     if not config or not config.use_tpu:
       _summarize_features(features, (config and config.data_parallelism.n) or 1)
->>>>>>> sanity check
+#>>>>>>> sanity check
 
     if mode == tf.estimator.ModeKeys.PREDICT:
       # This is because of a bug in the Estimator that short-circuits prediction

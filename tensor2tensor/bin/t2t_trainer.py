@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2017 The Tensor2Tensor Authors.
+# Copyright 2018 The Tensor2Tensor Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Train and evaluate."""
 from __future__ import absolute_import
 from __future__ import division
@@ -26,6 +25,8 @@ import sys
 
 from tensor2tensor import models  # pylint: disable=unused-import
 from tensor2tensor import problems as problems_lib  # pylint: disable=unused-import
+from tensor2tensor.utils import cloud_mlengine
+from tensor2tensor.utils import cloud_tpu
 from tensor2tensor.utils import decoding
 from tensor2tensor.utils import flags as t2t_flags  # pylint: disable=unused-import
 from tensor2tensor.utils import registry
@@ -58,9 +59,15 @@ flags.DEFINE_bool("generate_data", False, "Generate data before training?")
 flags.DEFINE_string("tmp_dir", "/tmp/t2t_datagen",
                     "Temporary storage directory, used if --generate_data.")
 flags.DEFINE_bool("profile", False, "Profile performance?")
+flags.DEFINE_integer("inter_op_parallelism_threads", 0,
+                     "Number of inter_op_parallelism_threads to use for CPU. "
+                     "See TensorFlow config.proto for details.")
+flags.DEFINE_integer("intra_op_parallelism_threads", 0,
+                     "Number of intra_op_parallelism_threads to use for CPU. "
+                     "See TensorFlow config.proto for details.")
 
 # To maintain compatibility with some internal libs, we guard against these flag
-# definitions possibly erroring. Apologies for the ugliness.
+# definitions possibly erring. Apologies for the ugliness.
 try:
   flags.DEFINE_string("master", "", "Address of TensorFlow master.")
   flags.DEFINE_string("output_dir", "", "Base output directory for run.")
@@ -115,16 +122,25 @@ flags.DEFINE_string("job-dir", None,
 
 
 def get_problem_name():
-  problems = FLAGS.problems.split("-")
-  assert len(problems) == 1
-  return problems[0]
+  try: 
+    problems = FLAGS.problems.split("-")
+    assert len(problems) == 1
+    return problems[0]
+  except AttributeError:
+    return FLAGS.problem
+
+##################
+#
+# END FATHOM ADDS
+#
+##################
 
 
 def create_hparams():
-  if FLAGS.use_tpu and "tpu" not in FLAGS.hparams_set:
-    tf.logging.warn("Not all hyperparameter sets work on TPU. When available "
-                    "for a given model, prefer hparams_sets with a '_tpu' "
-                    "suffix, e.g. transformer_tpu.")
+  if (FLAGS.cloud_tpu or FLAGS.use_tpu) and "tpu" not in FLAGS.hparams_set:
+    tf.logging.warn("Not all hyperparameter sets work on TPU. "
+                    "Prefer hparams_sets with a '_tpu' suffix, "
+                    "e.g. transformer_tpu, if available for your model.")
   return trainer_lib.create_hparams(FLAGS.hparams_set, FLAGS.hparams)
 
 
@@ -151,14 +167,32 @@ def create_experiment_fn():
 
 
 def create_run_config(hp):
+  """Create a run config.
+
+  Args:
+    hp: model hyperparameters
+  Returns:
+    a run config
+  """
+  save_ckpt_steps = max(FLAGS.iterations_per_loop, FLAGS.local_eval_frequency)
+  save_ckpt_secs = FLAGS.save_checkpoints_secs or None
+  if save_ckpt_secs:
+    save_ckpt_steps = None
+  assert FLAGS.output_dir or FLAGS.checkpoint_path
+  # the various custom getters we have written do not play well together yet.
+  # TODO(noam): ask rsepassi for help here.
+  daisy_chain_variables = (
+      hp.daisy_chain_variables and
+      hp.activation_dtype == "float32" and
+      hp.weight_dtype == "float32")
   return trainer_lib.create_run_config(
       model_dir=os.path.expanduser(FLAGS.output_dir),
       master=FLAGS.master,
       iterations_per_loop=FLAGS.iterations_per_loop,
       num_shards=FLAGS.tpu_num_shards,
       log_device_placement=FLAGS.log_device_placement,
-      save_checkpoints_steps=max(FLAGS.iterations_per_loop,
-                                 FLAGS.local_eval_frequency),
+      save_checkpoints_steps=save_ckpt_steps,
+      save_checkpoints_secs=save_ckpt_secs,
       keep_checkpoint_max=FLAGS.keep_checkpoint_max,
       keep_checkpoint_every_n_hours=FLAGS.keep_checkpoint_every_n_hours,
       num_gpus=FLAGS.worker_gpu,
@@ -166,11 +200,11 @@ def create_run_config(hp):
       shard_to_cpu=FLAGS.locally_shard_to_cpu,
       num_async_replicas=FLAGS.worker_replicas,
       gpu_mem_fraction=FLAGS.worker_gpu_memory_fraction,
-      enable_graph_rewriter=FLAGS.experimental_optimize_placement,
+      enable_graph_rewriter=FLAGS.enable_graph_rewriter,
       use_tpu=FLAGS.use_tpu,
       schedule=FLAGS.schedule,
       no_data_parallelism=hp.no_data_parallelism,
-      daisy_chain_variables=hp.daisy_chain_variables,
+      daisy_chain_variables=daisy_chain_variables,
       ps_replicas=FLAGS.ps_replicas,
       ps_job=FLAGS.ps_job,
       ps_gpu=FLAGS.ps_gpu,
@@ -178,7 +212,9 @@ def create_run_config(hp):
       worker_id=FLAGS.worker_id,
       worker_job=FLAGS.worker_job,
       random_seed=FLAGS.random_seed,
-      tpu_infeed_sleep_secs=FLAGS.tpu_infeed_sleep_secs)
+      tpu_infeed_sleep_secs=FLAGS.tpu_infeed_sleep_secs,
+      inter_op_parallelism_threads=FLAGS.inter_op_parallelism_threads,
+      intra_op_parallelism_threads=FLAGS.intra_op_parallelism_threads)
 
 
 def generate_data():
@@ -196,9 +232,8 @@ def generate_data():
 @contextlib.contextmanager
 def profile_context():
   if FLAGS.profile:
-    with tf.contrib.tfprof.ProfileContext("t2tprof",
-                                          trace_steps=range(100),
-                                          dump_steps=range(100)) as pctx:
+    with tf.contrib.tfprof.ProfileContext(
+        "t2tprof", trace_steps=range(100), dump_steps=range(100)) as pctx:
       opts = tf.profiler.ProfileOptionBuilder.time_and_memory()
       pctx.add_auto_profiling("op", opts, range(100))
       yield
@@ -228,8 +263,7 @@ def save_metadata(hparams):
     flags_str = FLAGS.flags_into_string()
     t2t_flags_str = "\n".join([
         "--%s=%s" % (f.name, f.value)
-        for f in FLAGS.flags_by_module_dict()[
-            "tensor2tensor.utils.flags"]
+        for f in FLAGS.flags_by_module_dict()["tensor2tensor.utils.flags"]
     ])
   else:
     flags_dict = FLAGS.__dict__["__flags"]
@@ -249,7 +283,7 @@ def save_metadata(hparams):
   # Save hparams as hparams.json
   hparams_fname = os.path.join(output_dir, "hparams.json")
   with tf.gfile.Open(hparams_fname, "w") as f:
-    f.write(hparams.to_json())
+    f.write(hparams.to_json(indent=0, sort_keys=True))
 
 
 def execute_schedule(exp):
@@ -290,9 +324,17 @@ def main(_):
   usr_dir.import_usr_dir(FLAGS.t2t_usr_dir)
   log_registry()
 
+  if FLAGS.cloud_mlengine:
+    return cloud_mlengine.launch()
+
   if FLAGS.generate_data:
     generate_data()
 
+  if cloud_mlengine.job_dir():
+    FLAGS.output_dir = cloud_mlengine.job_dir()
+    
+  if argv:
+    set_hparams_from_args(argv[1:])
   hparams = create_hparams()
 
   hparams = fathom.adjust_params_for_scaling(hparams)

@@ -75,7 +75,7 @@ try:
   # continuous_train_and_eval is broken w/ early stopping
   flags.DEFINE_string("schedule", "train_and_evaluate",
                       "Method of Experiment to run.")
-  flags.DEFINE_integer("eval_steps", 10000,
+  flags.DEFINE_integer("eval_steps", 100,
                        "Number of steps in evaluation. By default, eval will "
                        "stop after eval_steps or when it runs through the eval "
                        "dataset once in full, whichever comes first, so this "
@@ -91,8 +91,6 @@ flags.DEFINE_string("cloud_tpu_name", "%s-tpu" % os.getenv("USER"),
                     "Name of Cloud TPU instance to use or create.")
 flags.DEFINE_bool("cloud_delete_on_done", False,
                   "Whether to delete the VM and TPU instance when done.")
-flags.DEFINE_bool("cloud_skip_confirmation", False,
-                  "Whether to skip launch confirmations.")
 
 # Google Cloud ML Engine
 flags.DEFINE_bool("cloud_mlengine", False,
@@ -122,32 +120,6 @@ flags.DEFINE_string("job-dir", None,
                     "DO NOT USE. Exists only for Cloud ML Engine to pass in "
                     "during hyperparameter tuning. Overrides --output_dir.")
 
-
-def set_hparams_from_args(args):
-  """Set hparams overrides from unparsed args list."""
-  if not args:
-    return
-
-  hp_prefix = "--hp_"
-  tf.logging.info("Found unparsed command-line arguments. Checking if any "
-                  "start with %s and interpreting those as hparams "
-                  "settings.", hp_prefix)
-
-  pairs = []
-  i = 0
-  while i < len(args):
-    arg = args[i]
-    if arg.startswith(hp_prefix):
-      pairs.append((arg[len(hp_prefix):], args[i+1]))
-      i += 2
-    else:
-      tf.logging.warn("Found unknown flag: %s", arg)
-      i += 1
-
-  as_hparams = ",".join(["%s=%s" % (key, val) for key, val in pairs])
-  if FLAGS.hparams:
-    as_hparams = "," + as_hparams
-  FLAGS.hparams += as_hparams
 
 def get_problem_name():
   try: 
@@ -344,10 +316,8 @@ def maybe_cloud_tpu():
     yield
 
 
-def main(argv):
-  # Fathom
-  if FLAGS.fathom:
-      fathom.t2t_trainer_setup(get_problem_name())
+def main(_):
+  fathom.t2t_trainer_setup(get_problem_name())
 
   tf.logging.set_verbosity(tf.logging.INFO)
   trainer_lib.set_random_seed(FLAGS.random_seed)
@@ -384,4 +354,5 @@ if __name__ == "__main__":
   # Fathom
   tf.flags.mark_flag_as_required('airflow_pipeline_yaml')
   tf.flags.mark_flag_as_required('timestamp')
+
   tf.app.run()

@@ -58,8 +58,6 @@ flags = tf.flags
 FLAGS = flags.FLAGS
 
 # Fathom
-flags.DEFINE_string("gcs_subpath", None, "Subpath to the model")
-
 flags.DEFINE_string("data_dir", "", "Data directory.")
 flags.DEFINE_string("tmp_dir", "/tmp/t2t_datagen",
                     "Temporary storage directory.")
@@ -147,7 +145,7 @@ def main(_):
   usr_dir.import_usr_dir(FLAGS.t2t_usr_dir)
 
   # Fathom
-  fathom_t2t_model_setup()
+  _ = fathom_t2t_model_setup()
 
   # Calculate the list of problems to generate.
   problems = sorted(

@@ -30,6 +30,7 @@ import tensorflow as tf
 
 from tensorflow.python.eager import context
 
+
 @registry.register_symbol_modality("default")
 class SymbolModality(modality.Modality):
   """Modality for sets of discrete symbols.
@@ -236,17 +237,9 @@ class ImageModality(modality.Modality):
                                name="merge_pixel_embedded_channels")
       return merged
 
-  # FATHOM
-  # TODO: consider if we can revert to just .problem
-  def _get_num_channels(self):
-    try:
-      return self._model_hparams.problem_instances[0].num_channels
-    except AttributeError:
-      return self._model_hparams.problem.num_channels
-
   def top(self, body_output, _):
     # TODO(lukaszkaiser): is this a universal enough way to get channels?
-    num_channels = self._get_num_channels()
+    num_channels = self._model_hparams.problem_instances[0].num_channels
     with tf.variable_scope("rgb_softmax"):
       body_output_shape = common_layers.shape_list(body_output)
       reshape_shape = body_output_shape[:3]
@@ -344,7 +337,7 @@ class ImageChannelEmbeddingsBottom(modality.Modality):
     rgb_embedding_var = tf.identity(rgb_embedding_var)
     rgb_embedding_var *= float(hidden_size)**0.5
     channel_target_embs = []
-    for i in range(io_depth):
+    for i in xrange(io_depth):
       # Adding the channel offsets to get the right embedding since the
       # embedding tensor has shape 256 * io_depth, hidden_size
       target_ids = tf.squeeze(targets_split[i], axis=3) + i * 256
@@ -681,45 +674,9 @@ class SigmoidClassLabelModality(ClassLabelModality):
                                                     self._body_input_depth)
 
   def loss(self, top_out, targets):
-    # Expect inputs of size [batch-size, timesteps, 1, num-classes], where the
-    # last dimension of num-classes represents logits for binary labels
-    loss_scale = tf.losses.sigmoid_cross_entropy(
-        multi_class_labels=targets, logits=top_out)
+    loss_scale = tf.nn.sigmoid_cross_entropy_with_logits(
+        labels=targets, logits=top_out, name="SigmoidCrossEntropy")
     # Weigh all classes equally
     weights = self.targets_weights_fn(targets)
     loss_denom = tf.reduce_sum(weights)
     return loss_scale, loss_denom
-
-
-@registry.register_class_label_modality("sigmoid_max_pooling")
-class SigmoidMaxPoolingClassLabelModality(ClassLabelModality):
-  """Sigmoid cross-entropy applied on max-pooling over timesteps."""
-
-  @property
-  def name(self):
-    return "sigmoid_max_pooling_class_symbol_modality_%d_%d" % (
-        self._vocab_size, self._body_input_depth)
-
-  def top(self, body_output, _):
-    """Transform inputs from model space to target space.
-    Average over inner dims and a linear layer to logits.
-    Args:
-      body_output: A Tensor with shape [batch, timesteps, 1, body_output_size].
-    Returns:
-      a Tensors, each with shape [batch_size, 1, 1, vocab_size]
-    """
-    with tf.variable_scope(self.name):
-      x = body_output
-      x = tf.reduce_max(x, axis=1, keepdims=True)
-      return tf.layers.dense(x, self._vocab_size)
-
-  def loss(self, top_out, targets):
-    # Expect inputs of size [batch-size, 1, 1, num-classes], where the
-    # last dimension of num-classes represents binary labels for each class
-    loss_scale = tf.losses.sigmoid_cross_entropy(
-        multi_class_labels=targets, logits=top_out)
-    # Weigh all classes equally
-    weights = self.targets_weights_fn(targets)
-    loss_denom = tf.reduce_sum(weights)
-    return loss_scale, loss_denom
-

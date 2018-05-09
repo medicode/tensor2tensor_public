@@ -417,28 +417,13 @@ class T2TModel(base.Layer):
     loss_num *= self._problem_hparams.loss_multiplier
     return loss_num, loss_den
 
-  def loss(self, logits, features):
-    if isinstance(logits, dict):
-      if self._problem_hparams:
-        target_modality = self._problem_hparams.target_modality
-      else:
-        target_modality = {k: None for k in logits.keys()}
-      assert set(logits.keys()) == set(target_modality.keys()), (
-          "The keys of model_body's returned logits dict must match the keys "
-          "of problem_hparams.target_modality's dict.")
-      losses = {}
-      for k, v in six.iteritems(logits):
-        losses[k] = self._loss_single(v, target_modality[k], features[k])
-      return tf.add_n([n / d for n, d in losses.values()])
-    else:
-      if self._problem_hparams:
-        target_modality = self._problem_hparams.target_modality
-      else:
-        target_modality = None
-      assert not isinstance(target_modality, dict), (
-          "model_body must return a dictionary of logits when "
-          "problem_hparams.target_modality is a dict.")
-      return self._loss_single(logits, target_modality, features["targets"])
+  #def optimize(self, loss, num_async_replicas=1):
+  #  """Return a training op minimizing loss."""
+  #  use_tpu = self.hparams.use_tpu
+  #  lr = self.hparams.learning_rate * optimize.learning_rate_decay(self.hparams)
+  #  lr /= math.sqrt(float(num_async_replicas))
+  #  train_op = optimize.optimize(loss, lr, self.hparams, use_tpu=use_tpu)
+  #  return train_op
 
   def optimize(self, loss, num_async_replicas=1):
     """Return a training op minimizing loss."""
@@ -1070,10 +1055,11 @@ class T2TModel(base.Layer):
     if not hasattr(hparams, "problem"):
       raise NotImplementedError(_no_problem_err("estimator_spec_eval"))
     
-    problem = hparams.problem_instances[0] or hparams.problem
-    if common_layers.is_on_tpu():
+    problem = hparams.problem_instances[0]
+    if use_tpu:
       # Fathom
       assert False, 'Not supporting TPUs yet'
+      
       eval_metrics_fn = _create_tpu_eval_metrics_fn(problem, hparams)
       _remove_summaries()
       if isinstance(logits, dict):
@@ -1108,7 +1094,16 @@ class T2TModel(base.Layer):
       else:
         predictions = {"predictions": logits}
 
-      return tf.estimator.EstimatorSpec(
+      # Fathom
+      if isinstance(logits, dict):
+        return tf.estimator.EstimatorSpec(
+          tf.estimator.ModeKeys.EVAL,
+          predictions=logits,
+          eval_metric_ops=eval_metrics,
+          loss=loss)
+
+      else:
+        return tf.estimator.EstimatorSpec(
           tf.estimator.ModeKeys.EVAL,
           predictions=predictions,
           eval_metric_ops=eval_metrics,
@@ -1475,7 +1470,7 @@ _already_logged = set()
 
 
 def _eager_log(level, *args):
-  if tf.contrib.eager.in_eager_mode() and args in _already_logged:
+  if context.in_eager_mode() and args in _already_logged:
     return
   _already_logged.add(args)
   getattr(tf.logging, level)(*args)
@@ -1487,42 +1482,3 @@ def log_info(*args):
 
 def log_warn(*args):
   _eager_log("warn", *args)
-
-
-def _compose_custom_getters(getter_a, getter_b):
-  """Compose two custom getters.
-
-  Example use:
-  tf.get_variable_scope().set_custom_getter(
-    compose_custom_getters(tf.get_variable_scope().custom_getter, new_getter))
-
-  This composes getters in the same way as creating a new variable scope with
-  the new_getter, but it does not actually create a new variable scope.
-
-  Args:
-    getter_a: a custom getter - generally from the existing variable scope.
-    getter_b: a custom getter
-
-  Returns:
-    a custom getter
-  """
-  if not getter_a:
-    return getter_b
-  if not getter_b:
-    return getter_a
-  def getter_fn(getter, *args, **kwargs):
-    return getter_b(functools.partial(getter_a, getter), *args, **kwargs)
-  return getter_fn
-
-
-def set_custom_getter_compose(custom_getter):
-  """Set a custom getter in the current variable scope.
-
-  Do not overwrite the existing custom getter - rather compose with it.
-
-  Args:
-    custom_getter: a custom getter.
-  """
-  tf.get_variable_scope().set_custom_getter(
-      _compose_custom_getters(
-          tf.get_variable_scope().custom_getter, custom_getter))

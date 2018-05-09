@@ -48,13 +48,8 @@ class Metrics(object):
   ROUGE_2_F = "rouge_2_fscore"
   ROUGE_L_F = "rouge_L_fscore"
   EDIT_DISTANCE = "edit_distance"
-  SET_PRECISION = "set_precision"
-  SET_RECALL = "set_recall"
-  SIGMOID_ACCURACY_ONE_HOT = "sigmoid_accuracy_one_hot"
-  SIGMOID_RECALL_ONE_HOT = "sigmoid_recall_one_hot"
-  SIGMOID_PRECISION_ONE_HOT = "sigmoid_precision_one_hot"
-  SIGMOID_CROSS_ENTROPY_ONE_HOT = "sigmoid_cross_entropy_one_hot"
-  ROC_AUC = "roc_auc"
+  SET_PRECISION = 'set_precision'
+  SET_RECALL = 'set_recall'
   IMAGE_SUMMARY = "image_summary"
   SET_AUC = 'set_auc'
 
@@ -275,7 +270,40 @@ def set_recall(predictions, labels, weights_fn=common_layers.weights_nonzero):
     labels = tf.cast(labels, tf.bool)
     return tf.to_float(tf.equal(labels, predictions)), weights
 
-def image_summary(predictions, targets, hparams):
+def set_auc(predictions,
+            labels,
+            weights_fn=common_layers.weights_nonzero):
+  """AUC of set predictions.
+
+  Args:
+    predictions : A Tensor of scores of shape (batch, nlabels)
+    labels: A Tensor of int32s giving true set elements of shape (batch, seq_length)
+
+  Returns:
+    hits: A Tensor of shape (batch, nlabels)
+    weights: A Tensor of shape (batch, nlabels)
+  """
+  with tf.variable_scope("set_auc", values=[predictions, labels]):
+    labels = tf.squeeze(labels, [2, 3])
+    labels = tf.one_hot(labels, predictions.shape[-1] + 1)
+    labels = tf.reduce_max(labels, axis=1)
+    # gah this is so hacky, now we suppress empty sets...
+    weights = tf.reduce_max(labels[:, 1:], axis=1, keep_dims=True)
+    labels = tf.cast(labels, tf.bool)
+    labels = labels[:, 1:]
+    predictions = tf.nn.sigmoid(predictions)
+    auc, update_op = tf.metrics.auc(labels=labels,
+                                    predictions=predictions,
+                                    weights=weights,
+                                    curve='PR')
+
+    with tf.control_dependencies([update_op]):
+      auc = tf.identity(auc)
+
+    return auc, tf.constant(1.0)
+
+
+def image_summary(predictions, hparams):
   """Reshapes predictions and passes it to tensorboard.
 
   Args:
@@ -473,7 +501,6 @@ def create_evaluation_metrics(problems, model_hparams):
       if ("features" in args) or keywords:
         kwargs["features"] = features
 
-      predictions, labels = reduce_dimensions(predictions, labels)
       # (epurdy/fathom) see comment in model_builder.py, function
       # combine_shards for discussion
       if isinstance(predictions, dict):
@@ -618,6 +645,7 @@ METRICS_FNS = {
     Metrics.SET_RECALL: set_recall,
     Metrics.ROC_AUC: roc_auc,
     Metrics.IMAGE_SUMMARY: image_summary,
+
     # fathom metrics
     Metrics.SET_AUC: set_auc,
     Metrics.FATHOM_ACC: fathom_padded_accuracy,

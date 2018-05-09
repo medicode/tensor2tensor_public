@@ -26,12 +26,8 @@ import functools
 from tensor2tensor.data_generators import problem
 from tensor2tensor.data_generators import video_utils
 
-from tensor2tensor.models.research import rl
-from tensor2tensor.rl import collect
-from tensor2tensor.rl.envs import tf_atari_wrappers as atari
-from tensor2tensor.rl.envs.utils import batch_env_factory
-
-from tensor2tensor.utils import metrics
+from tensor2tensor.data_generators import generator_utils
+from tensor2tensor.data_generators import problem
 from tensor2tensor.utils import registry
 
 import tensorflow as tf

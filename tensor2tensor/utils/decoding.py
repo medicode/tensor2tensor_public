@@ -149,6 +149,7 @@ def decode_from_dataset(estimator,
     # Get the predictions as an iterable
     predictions = estimator.predict(infer_input_fn)
 
+    # Fathom
     # Just return the generator directly if requested
     if return_generator:
       return predictions
@@ -254,7 +255,7 @@ def decode_from_dataset(estimator,
 
   tf.logging.info("Completed inference on %d samples." % num_predictions)  # pylint: disable=undefined-loop-variable
 
-  return predictions_out
+    return predictions_out
 
 def decode_from_file(estimator,
                      filename,

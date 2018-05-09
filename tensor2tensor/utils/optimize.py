@@ -47,7 +47,13 @@ def optimize(loss, learning_rate, hparams, use_tpu=False):
   opt_summaries = ["loss", "global_gradient_norm"]
   if hparams.summarize_grads:
     tf.logging.info("Summarizing gradients")
-    opt_summaries.extend(["gradients", "gradient_norm", "global_gradient_norm"])
+    opt_summaries.extend(["gradients", "gradient_norm"])
+
+  if hparams.clip_grad_norm:
+    tf.logging.info("Clipping gradients, norm: %0.5f", hparams.clip_grad_norm)
+  if hparams.grad_noise_scale:
+    tf.logging.info("Adding noise to gradients, noise scale: %0.5f",
+                    hparams.grad_noise_scale)
 
   if hparams.clip_grad_norm:
     tf.logging.info("Clipping gradients, norm: %0.5f", hparams.clip_grad_norm)

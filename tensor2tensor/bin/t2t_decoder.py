@@ -105,7 +105,9 @@ def decode(estimator, hparams, decode_hp):
       ckpt_time = os.path.getmtime(FLAGS.checkpoint_path + ".index")
       os.utime(FLAGS.decode_to_file, (ckpt_time, ckpt_time))
   else:
-    decoding.decode_from_dataset(
+
+    # Fathom
+    predictions = decoding.decode_from_dataset(
         estimator,
         FLAGS.problem,
         hparams,
@@ -120,66 +122,10 @@ def decode(estimator, hparams, decode_hp):
       assert '-' not in FLAGS.problems
       problem = registry.problem(FLAGS.problems)
       problem.output_predictions(predictions)
-
-
-def score_file(filename):
-  """Score each line in a file and return the scores."""
-  # Prepare model.
-  hparams = create_hparams()
-  encoders = registry.problem(FLAGS.problem).feature_encoders(FLAGS.data_dir)
-  has_inputs = "inputs" in encoders
-
-  # Prepare features for feeding into the model.
-  if has_inputs:
-    inputs_ph = tf.placeholder(dtype=tf.int32)  # Just length dimension.
-    batch_inputs = tf.reshape(inputs_ph, [1, -1, 1, 1])  # Make it 4D.
-  targets_ph = tf.placeholder(dtype=tf.int32)  # Just length dimension.
-  batch_targets = tf.reshape(targets_ph, [1, -1, 1, 1])  # Make it 4D.
-  features = {
-      "inputs": batch_inputs,
-      "targets": batch_targets,
-  } if has_inputs else {"targets": batch_targets}
-
-  # Prepare the model and the graph when model runs on features.
-  model = registry.model(FLAGS.model)(hparams, tf.estimator.ModeKeys.EVAL)
-  _, losses = model(features)
-  saver = tf.train.Saver()
-
-  with tf.Session() as sess:
-    # Load weights from checkpoint.
-    ckpts = tf.train.get_checkpoint_state(FLAGS.output_dir)
-    ckpt = ckpts.model_checkpoint_path
-    saver.restore(sess, ckpt)
-    # Run on each line.
-    results = []
-    for line in open(filename):
-      tab_split = line.split("\t")
-      if len(tab_split) > 2:
-        raise ValueError("Each line must have at most one tab separator.")
-      if len(tab_split) == 1:
-        targets = tab_split[0].strip()
-      else:
-        targets = tab_split[1].strip()
-        inputs = tab_split[0].strip()
-      # Run encoders and append EOS symbol.
-      targets_numpy = encoders["targets"].encode(
-          targets) + [text_encoder.EOS_ID]
-      if has_inputs:
-        inputs_numpy = encoders["inputs"].encode(inputs) + [text_encoder.EOS_ID]
-      # Prepare the feed.
-      feed = {
-          inputs_ph: inputs_numpy,
-          targets_ph: targets_numpy
-      } if has_inputs else {targets_ph: targets_numpy}
-      # Get the score.
-      np_loss = sess.run(losses["training"], feed)
-      results.append(np_loss)
-  return results
-
+    
 
 def main(_):
   tf.logging.set_verbosity(tf.logging.INFO)
-  trainer_lib.set_random_seed(FLAGS.random_seed)
 
   # Fathom
   checkpoint_path = fathom_t2t_model_setup()

@@ -194,7 +194,9 @@ class T2TModel(base.Layer):
       sharded_logits, losses = self.model_fn_sharded(sharded_features)
 
       # Fathom
-      return combine_shards(sharded_logits), losses
+      if isinstance(sharded_logits, list):
+        return combine_shards(sharded_logits), losses
+      return sharded_logits, losses
 
   @property
   def use_body_sharded(self):
@@ -421,15 +423,18 @@ class T2TModel(base.Layer):
     if isinstance(logits, dict):
       if self._problem_hparams:
         target_modality = self._problem_hparams.target_modality
+        # TODO: does that make sense??
+        return self._loss_single(
+          logits, target_modality, features["targets"])
       else:
         target_modality = {k: None for k in logits.keys()}
-      assert set(logits.keys()) == set(target_modality.keys()), (
+        assert set(logits.keys()) == set(target_modality.keys()), (
           "The keys of model_body's returned logits dict must match the keys "
           "of problem_hparams.target_modality's dict.")
-      losses = {}
-      for k, v in six.iteritems(logits):
-        losses[k] = self._loss_single(v, target_modality[k], features[k])
-      return tf.add_n([n / d for n, d in losses.values()])
+        losses = {}
+        for k, v in six.iteritems(logits):
+          losses[k] = self._loss_single(v, target_modality[k], features[k])
+        return tf.add_n([n / d for n, d in losses.values()])
     else:
       if self._problem_hparams:
         target_modality = self._problem_hparams.target_modality
@@ -1069,8 +1074,12 @@ class T2TModel(base.Layer):
 
     if not hasattr(hparams, "problem"):
       raise NotImplementedError(_no_problem_err("estimator_spec_eval"))
-    
-    problem = hparams.problem_instances[0] or hparams.problem
+
+    if 'problem_instances' in hparams and hparams.problem_instances[0]:
+      problem = hparams.problem_instances[0]
+    else:
+      problem = hparams.problem
+
     if common_layers.is_on_tpu():
       # Fathom
       assert False, 'Not supporting TPUs yet'
@@ -1093,16 +1102,16 @@ class T2TModel(base.Layer):
             loss=loss)
     else:
       eval_metrics_fns = metrics.create_evaluation_metrics([problem], hparams)
-      eval_metrics = {}
+      eval_metrics = metrics.Metrics
       for metric_name, metric_fn in six.iteritems(eval_metrics_fns):
-        if isinstance(logits, dict):
+        if False and isinstance(logits, dict):
           # the key is located in the center of metric_name: "metrics-%s/%s/%s"
           k = metric_name.split("/")[1]
           eval_metrics[metric_name] = metric_fn(
               logits[k], features, features[k])
         else:
           eval_metrics[metric_name] = metric_fn(
-              logits, features, features["targets"])
+              logits['logits'][0], features, features["targets"])
       if isinstance(logits, dict):
         predictions = logits
       else:

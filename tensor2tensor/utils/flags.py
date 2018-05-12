@@ -42,6 +42,8 @@ flags.DEFINE_string(
     hyperparameters or when using Vizier. If a hyperparameter setting is
     specified by this flag then it must be a valid hyperparameter name for the
     model.""")
+flags.DEFINE_string("problems", None, ("Problem names if more than one, "
+                                       "otherwise use problem."))
 flags.DEFINE_string("problem", None, "Problem name.")
 
 # data_dir is a common flag name - catch conflicts and define it once.

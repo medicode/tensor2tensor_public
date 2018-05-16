@@ -81,7 +81,8 @@ flags.DEFINE_integer("save_checkpoints_secs", 0,
                      "Save checkpoints every this many seconds. "
                      "Default=0 means save checkpoints each x steps where x "
                      "is max(iterations_per_loop, local_eval_frequency).")
-flags.DEFINE_bool("log_device_placement", False,
+# Fathom - set to True
+flags.DEFINE_bool("log_device_placement", True,
                   "Whether to log device placement.")
 
 # Distributed training flags

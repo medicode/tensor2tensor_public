@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2018 The Tensor2Tensor Authors.
+# Copyright 2017 The Tensor2Tensor Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Query an exported model. Py2 only. Install tensorflow-serving-api."""
 from __future__ import absolute_import
 from __future__ import division
@@ -19,14 +20,21 @@ from __future__ import print_function
 
 import os
 
-from oauth2client.client import GoogleCredentials
+# Dependency imports
+
+from grpc.beta import implementations
+
 from six.moves import input  # pylint: disable=redefined-builtin
 
 from tensor2tensor import problems as problems_lib  # pylint: disable=unused-import
-from tensor2tensor.serving import serving_utils
+from tensor2tensor.data_generators import text_encoder
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import usr_dir
+
 import tensorflow as tf
+
+from tensorflow_serving.apis import predict_pb2
+from tensorflow_serving.apis import prediction_service_pb2
 
 flags = tf.flags
 FLAGS = flags.FLAGS
@@ -39,67 +47,82 @@ flags.DEFINE_string("t2t_usr_dir", None, "Usr dir for registrations.")
 flags.DEFINE_string("inputs_once", None, "Query once with this input.")
 flags.DEFINE_integer("timeout_secs", 10, "Timeout for query.")
 
-# For Cloud ML Engine predictions.
-flags.DEFINE_string("cloud_mlengine_model_name", None,
-                    "Name of model deployed on Cloud ML Engine.")
-flags.DEFINE_string(
-    "cloud_mlengine_model_version", None,
-    "Version of the model to use. If None, requests will be "
-    "sent to the default version.")
+
+def make_example(input_ids, feature_name="inputs"):
+  features = {
+      feature_name:
+          tf.train.Feature(int64_list=tf.train.Int64List(value=input_ids))
+  }
+  return tf.train.Example(features=tf.train.Features(feature=features))
 
 
-def validate_flags():
-  """Validates flags are set to acceptable values."""
-  if FLAGS.cloud_mlengine_model_name:
-    assert not FLAGS.server
-    assert not FLAGS.servable_name
-  else:
-    assert FLAGS.server
-    assert FLAGS.servable_name
+def create_stub():
+  host, port = FLAGS.server.split(":")
+  channel = implementations.insecure_channel(host, int(port))
+  return prediction_service_pb2.beta_create_PredictionService_stub(channel)
 
 
-def make_request_fn():
-  """Returns a request function."""
-  if FLAGS.cloud_mlengine_model_name:
-    request_fn = serving_utils.make_cloud_mlengine_request_fn(
-        credentials=GoogleCredentials.get_application_default(),
-        model_name=FLAGS.cloud_mlengine_model_name,
-        version=FLAGS.cloud_mlengine_model_version)
-  else:
+def query(stub, input_ids, feature_name="inputs"):
+  request = predict_pb2.PredictRequest()
+  request.model_spec.name = FLAGS.servable_name
+  ex = make_example(input_ids, feature_name)
+  request.inputs["input"].CopyFrom(
+      tf.contrib.util.make_tensor_proto(ex.SerializeToString(), shape=[1]))
+  response = stub.Predict(request, FLAGS.timeout_secs)
+  output_ids = response.outputs["outputs"].int_val
+  return output_ids
 
-    request_fn = serving_utils.make_grpc_request_fn(
-        servable_name=FLAGS.servable_name,
-        server=FLAGS.server,
-        timeout_secs=FLAGS.timeout_secs)
-  return request_fn
+
+def encode(inputs, encoder):
+  input_ids = encoder.encode(inputs)
+  input_ids.append(text_encoder.EOS_ID)
+  return input_ids
+
+
+def decode(output_ids, output_decoder):
+  return output_decoder.decode(output_ids)
 
 
 def main(_):
   tf.logging.set_verbosity(tf.logging.INFO)
-  validate_flags()
   usr_dir.import_usr_dir(FLAGS.t2t_usr_dir)
+
   problem = registry.problem(FLAGS.problem)
   hparams = tf.contrib.training.HParams(
       data_dir=os.path.expanduser(FLAGS.data_dir))
   problem.get_hparams(hparams)
-  request_fn = make_request_fn()
+
+  fname = "inputs" if problem.has_inputs else "targets"
+  input_encoder = problem.feature_info[fname].encoder
+  output_decoder = problem.feature_info["targets"].encoder
+
+  stub = create_stub()
+
   while True:
-    inputs = FLAGS.inputs_once if FLAGS.inputs_once else input(">> ")
-    outputs = serving_utils.predict([inputs], problem, request_fn)
-    outputs, = outputs
-    output, score = outputs
+    prompt = ">> "
+    if FLAGS.inputs_once:
+      inputs = FLAGS.inputs_once
+    else:
+      inputs = input(prompt)
+
+    input_ids = encode(inputs, input_encoder)
+    output_ids = query(stub, input_ids, feature_name=fname)
+
+    outputs = decode(output_ids, output_decoder)
+
     print_str = """
 Input:
 {inputs}
 
-Output (Score {score:.3f}):
-{output}
+Output:
+{outputs}
     """
-    print(print_str.format(inputs=inputs, output=output, score=score))
+    print(print_str.format(inputs=inputs, outputs=outputs))
     if FLAGS.inputs_once:
       break
 
 
 if __name__ == "__main__":
-  flags.mark_flags_as_required(["problem", "data_dir"])
+  flags.mark_flags_as_required(
+      ["server", "servable_name", "problem", "data_dir"])
   tf.app.run()

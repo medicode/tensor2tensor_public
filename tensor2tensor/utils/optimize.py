@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Optimization."""
 from __future__ import absolute_import
 from __future__ import division
@@ -44,10 +45,10 @@ def optimize(loss, learning_rate, hparams, use_tpu=False):
     opt = tf.contrib.tpu.CrossShardOptimizer(opt)
 
   tf.summary.scalar("learning_rate", learning_rate)
-  opt_summaries = ["loss"]
+  opt_summaries = ["loss", "global_gradient_norm"]
   if hparams.summarize_grads:
     tf.logging.info("Summarizing gradients")
-    opt_summaries.extend(["gradients", "gradient_norm", "global_gradient_norm"])
+    opt_summaries.extend(["gradients", "gradient_norm"])
 
   if hparams.clip_grad_norm:
     tf.logging.info("Clipping gradients, norm: %0.5f", hparams.clip_grad_norm)
@@ -106,13 +107,7 @@ class ConditionalOptimizer(tf.train.Optimizer):
       self._opt = tf.contrib.layers.OPTIMIZER_CLS_NAMES[optimizer_name](lr)
 
   def compute_gradients(self, loss, var_list=None, **kwargs):
-    gradients = self._opt.compute_gradients(loss, var_list, **kwargs)
-    def cast_grad(g, v):
-      if v is None or g is None:
-        return (g, v)
-      return (tf.cast(g, v.dtype), v)
-    gradients = [cast_grad(g, v) for g, v in gradients]
-    return gradients
+    return self._opt.compute_gradients(loss, var_list, **kwargs)
 
   def apply_gradients(self, grads_and_vars, global_step=None, name=None):
     return self._opt.apply_gradients(
@@ -128,8 +123,7 @@ def weight_decay_and_noise(loss, hparams, learning_rate, var_list=None):
   noise_vars = [v for v in var_list if "/body/" in v.name]
 
   weight_decay_loss = weight_decay(hparams.weight_decay, decay_vars)
-  if hparams.weight_decay:
-    tf.summary.scalar("losses/weight_decay", weight_decay_loss)
+  tf.summary.scalar("losses/weight_decay", weight_decay_loss)
   weight_noise_ops = weight_noise(hparams.weight_noise, learning_rate,
                                   noise_vars)
 
@@ -229,3 +223,4 @@ def get_variable_initializer(hparams):
         hparams.initializer_gain, mode="fan_avg", distribution="uniform")
   else:
     raise ValueError("Unrecognized initializer: %s" % hparams.initializer)
+

@@ -832,9 +832,9 @@ class Problem(object):
     dataset = dataset.map(define_shapes, num_parallel_calls=num_threads)
 
     def prepare_for_output(example):
-      if not config or not config.use_tpu:
-        _summarize_features(example,
-                            (config and config.data_parallelism.n) or 1)
+      # if not config or not config.use_tpu:
+      #   _summarize_features(example,
+      #                       (config and config.data_parallelism.n) or 1)
       if mode == tf.estimator.ModeKeys.PREDICT:
         example["infer_targets"] = example.pop("targets")
         return example

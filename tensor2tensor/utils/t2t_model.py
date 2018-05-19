@@ -174,7 +174,7 @@ class T2TModel(base.Layer):
 
   def model_fn_sharded(self, sharded_features):
     dp = self._data_parallelism
-    summarize_features(sharded_features, num_shards=dp.n)
+    #summarize_features(sharded_features, num_shards=dp.n)
     datashard_to_features = self._to_features_per_datashard(sharded_features)
     if self.use_body_sharded:
       # MoE models override body_sharded

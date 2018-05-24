@@ -230,16 +230,19 @@ class T2TModel(base.Layer):
 
   def model_fn(self, features):
     transformed_features = self.bottom(features)
+    print(f'transformed_features: {transformed_features}')
 
     with tf.variable_scope("body"):
       body_out = self.body(transformed_features)
     output, losses = self._normalize_body_output(body_out)
+    print(f'normalize_body_output: {output}, {losses}')
 
     if "training" in losses:
       logits = output
     else:
       logits = self.top(output, features)
       losses["training"] = self.loss(logits, features)
+    print(f'model_fn_out: {logits}, {losses}')
     return logits, losses
 
   def bottom(self, features):
@@ -293,6 +296,7 @@ class T2TModel(base.Layer):
     raise NotImplementedError("Abstract Method")
 
   def top(self, body_output, features):
+    print(f't2tmodel_top: {body_output}')
     if not self._problem_hparams:
       tf.logging.warn("Without a Problem, T2TModel.top is a passthrough.")
       return body_output

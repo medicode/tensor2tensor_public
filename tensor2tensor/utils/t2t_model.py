@@ -839,6 +839,7 @@ class T2TModel(base.Layer):
       TPUEstimatorSpec if use tpu else EstimatorSpec
     """
     _create_dummy_vars()
+
     hparams = copy.deepcopy(hparams)
     hparams.use_tpu = use_tpu
 
@@ -927,7 +928,12 @@ class T2TModel(base.Layer):
           tf.estimator.ModeKeys.EVAL,
           eval_metrics=(eval_metrics_fn, [logits, labels]), loss=loss)
     else:
-      eval_metrics_fns = metrics.create_evaluation_metrics([problem], hparams)
+      if hasattr(problem, 'tasks'):
+        eval_metrics_fns = metrics.create_evaluation_metrics_multitask(
+          problem.tasks,
+          hparams)
+      else:
+        eval_metrics_fns = metrics.create_evaluation_metrics([problem], hparams)
       eval_metrics = {}
       for metric_name, metric_fn in six.iteritems(eval_metrics_fns):
         eval_metrics[metric_name] = metric_fn(logits, features)

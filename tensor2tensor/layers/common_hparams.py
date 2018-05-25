@@ -84,7 +84,11 @@ def basic_params1():
       # decay_steps and decay_staircase for learning_rate_decay_scheme=="exp"
       learning_rate_decay_steps=5000,
       learning_rate_decay_staircase=False,
-      learning_rate_minimum=None,
+
+      # Fathom (forget why I needed this to happen...)
+      # learning_rate_minimum=None,
+      learning_rate_minimum=0.0,
+
       learning_rate_decay_rate=1.0,
       learning_rate_warmup_steps=100,
       learning_rate_cosine_cycle_steps=250000,

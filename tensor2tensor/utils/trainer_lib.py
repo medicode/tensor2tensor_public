@@ -41,6 +41,32 @@ from tensorflow.python import debug
 from fathomt2t.problems.fprecord_text_problem import FPRecordTextProblem
 
 
+# Fathom
+class AdaptiveTaskChoiceHook(tf.train.SessionRunHook):
+  def __init__(self, choice_var, possible_values):
+    self.possible_values = possible_values
+
+  def begin(self):
+    if self.possible_values is None:
+      return
+    
+    with tf.variable_scope('task_choice', reuse=tf.AUTO_REUSE):
+      task_choice_var = tf.get_variable(
+        'task_choice',
+        dtype=tf.string,
+        initializer=tf.constant(sorted(self.possible_values)[0]),
+        trainable=False)
+    task_choice_idx = tf.random_uniform([], maxval=len(self.possible_values), dtype=tf.int32)
+    task_choices = tf.constant(sorted(self.possible_values))
+    self.assign = tf.assign(task_choice_var, task_choices[task_choice_idx])
+
+  #def before_run(self, run_context):
+    #return tf.train.SessionRunArgs(self.assign)
+  
+  def after_run(self, run_context, run_values):  # pylint: disable=unused-argument
+    pass
+
+      
 def create_session_config(log_device_placement=False,
                           enable_graph_rewriter=False,
                           gpu_mem_fraction=0.95,
@@ -225,6 +251,10 @@ class MemoryReportingHook(SessionRunHook):
         return session_args
 
 def create_hooks(use_tfdbg=False, use_dbgprofile=False, dbgprofile_kwargs=None,
+
+                 # Fathom
+                 task_choices=None, task_choice_var=None,
+
                  use_validation_monitor=False, validation_monitor_kwargs=None,
                  use_early_stopping=False, early_stopping_kwargs=None):
   """Create train and eval hooks for Experiment."""
@@ -254,6 +284,11 @@ def create_hooks(use_tfdbg=False, use_dbgprofile=False, dbgprofile_kwargs=None,
         tf.contrib.learn.monitors.ValidationMonitor(
             hooks=eval_hooks, **validation_monitor_kwargs))
 
+  # Fathom
+  train_monitors.append(
+    AdaptiveTaskChoiceHook(choice_var=task_choice_var,
+                           possible_values=task_choices))
+    
   if use_early_stopping:
     hook = metrics_hook.EarlyStoppingHook(**early_stopping_kwargs)
     # Adding to both training and eval so that eval aborts as well
@@ -343,6 +378,14 @@ def create_experiment(run_config,
         plateau_delta=eval_early_stopping_metric_delta,
         every_n_steps=min_eval_frequency)
 
+    # Fathom
+    if hasattr(problem, 'tasks'):
+      task_choices = problem.tasks.keys()
+      task_choice_var = None
+    else:
+      task_choices = None
+      task_choice_var = None
+      
     # In-process eval (and possible early stopping)
     local_schedules = ["train_and_evaluate", "continuous_train_and_eval"]
     use_validation_monitor = (
@@ -356,6 +399,11 @@ def create_experiment(run_config,
         dbgprofile_kwargs=dbgprofile_kwargs,
         use_validation_monitor=use_validation_monitor,
         use_early_stopping=use_early_stopping,
+
+        # Fathom
+        task_choices=task_choices,
+        task_choice_var=task_choice_var,
+      
         validation_monitor_kwargs=validation_monitor_kwargs,
         early_stopping_kwargs=early_stopping_kwargs)
     hooks_kwargs = {"train_monitors": train_monitors, "eval_hooks": eval_hooks}

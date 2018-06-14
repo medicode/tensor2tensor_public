@@ -69,6 +69,10 @@ try:
 except absl.flags._exceptions.DuplicateFlagError:
   pass
 
+flags.DEFINE_bool('default_True', True, '')
+flags.DEFINE_bool('default_False', False, '')
+print('t2t default_True:', FLAGS.default_True)
+print('t2t default_False:', FLAGS.default_False)
 flags.DEFINE_string("data_dir", "", "Data directory.")
 flags.DEFINE_string("tmp_dir", "/tmp/t2t_datagen",
                     "Temporary storage directory.")

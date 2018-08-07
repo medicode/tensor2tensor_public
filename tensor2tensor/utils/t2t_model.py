@@ -1419,6 +1419,12 @@ class T2TModel(base.Layer):
     # Pass through remaining features
     for name, feature in features.items():
       if name not in list(predictions.keys()) + ["infer_targets"]:
+        # Fathom
+        # allow model to emit additional outputs hardcoding in feature
+        # keys t2t uses
+        SKIP_FEATURES = ['inputs', 'targets', 'outputs', 'scores', 'problem_choice']
+        if name in SKIP_FEATURES:
+            continue
         if not feature.shape.as_list():
           # All features must have a batch dimension
           batch_size = common_layers.shape_list(outputs)[0]
@@ -1427,16 +1433,6 @@ class T2TModel(base.Layer):
 
     _del_dict_non_tensors(predictions)
 
-    # Fathom
-    # allow model to emit additional outputs hardcoding in feature
-    # keys t2t uses
-    SKIP_FEATURES = ['inputs', 'targets', 'infer_targets', 'outputs', 'scores', 'problem_choice']
-    for k in infer_out:
-      if k in SKIP_FEATURES: continue
-      assert k not in predictions
-      predictions[k] = infer_out[k]
-
-    
     export_out = {"outputs": predictions["outputs"]}
     if "scores" in predictions:
       export_out["scores"] = predictions["scores"]

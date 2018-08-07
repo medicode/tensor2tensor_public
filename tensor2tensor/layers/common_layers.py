@@ -42,9 +42,9 @@ def tf_inplace_ops():
   return inplace_ops
 
 
-@function.Defun(
-    python_grad_func=lambda x, dy: tf.convert_to_tensor(dy),
-    shape_func=lambda op: [op.inputs[0].get_shape()])
+#@function.Defun(
+    #python_grad_func=lambda x, dy: tf.convert_to_tensor(dy),
+    #shape_func=lambda op: [op.inputs[0].get_shape()])
 def convert_gradient_to_tensor(x):
   """Identity operation whose gradient is converted to a `Tensor`.
 

@@ -122,6 +122,7 @@ class ConditionalOptimizer(tf.train.Optimizer):
       (word embedding slowdown problems)
 
       can delete this block if runs OK
+      """
       if v is None or g is None:
         return (g, v)
       # Fathom: Ryan Sepassi said this would help
@@ -132,9 +133,10 @@ class ConditionalOptimizer(tf.train.Optimizer):
       if v is not None and g is not None:
         g = common_layers.cast_like(g, v)
       return (g, v)
+      """
+
     gradients = [cast_grad(g, v) for g, v in gradients]
     return gradients
-    # return self._opt.compute_gradients(loss, var_list, **kwargs)
 
   def apply_gradients(self, grads_and_vars, global_step=None, name=None):
     return self._opt.apply_gradients(

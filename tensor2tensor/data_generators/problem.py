@@ -855,6 +855,10 @@ class Problem(object):
             "Shapes are not fully defined. Assuming batch_size means tokens.")
         batch_size_means_tokens = True
 
+    print('!!!! params', params)
+    print('!!!! hparams', hparams)
+    print('!!!! config', config)
+    print('!!!! batch_size_means_tokens', batch_size_means_tokens)
     # Batching
     if not batch_size_means_tokens:
       # Batch size means examples per datashard.
@@ -890,10 +894,11 @@ class Problem(object):
           # Here  batch_size really means examples per datashard.
           batching_scheme["batch_sizes"] = [hparams.batch_size]
           batching_scheme["boundaries"] = []
+        print('!!!! batching scheme: ', batching_scheme)
         dataset = data_reader.bucket_by_sequence_length(
             dataset, data_reader.example_length, batching_scheme["boundaries"],
             batching_scheme["batch_sizes"])
-
+        print('is_training', is_training)
         if not is_training:
           batch_multiple = shard_multiplier
           if hparams.use_fixed_batch_size:
@@ -908,6 +913,7 @@ class Problem(object):
             dataset = dataset.map(
                 functools.partial(pad_batch, batch_multiple=batch_multiple),
                 num_parallel_calls=num_threads)
+            print('batch_multiple:', batch_multiple)
 
     dataset = dataset.map(define_shapes, num_parallel_calls=num_threads)
 
@@ -930,7 +936,6 @@ class Problem(object):
       # minimal expected interface but does nothing.
       tf.add_to_collection(tf.GraphKeys.QUEUE_RUNNERS,
                            data_reader.DummyQueueRunner())
-
     return dataset
 
   def serving_input_fn(self, hparams):
@@ -1130,6 +1135,8 @@ def standardize_shapes(features, batch_size=None):
       t.set_shape(t.get_shape().merge_with(shape))
       # Assert shapes are fully known
       t.get_shape().assert_is_fully_defined()
+  for name, tensor in features.items():
+    features[name] = tf.Print(tensor, [tensor, tf.shape(tensor)], f'!!!!! standardize {name}', summarize=10)
 
   return features
 

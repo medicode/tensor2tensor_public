@@ -84,23 +84,29 @@ def bucket_by_sequence_length(dataset,
           tf.less_equal(buckets_min, seq_length),
           tf.less(seq_length, buckets_max))
       bucket_id = tf.reduce_min(tf.where(conditions_c))
-
+      print('seq_length: ', seq_length)
+      print('boundaries: ', boundaries)
+      print('buckets: ', buckets_min, buckets_max, bucket_id)
+      print('conditions', conditions_c)
       return bucket_id
 
     def window_size_fn(bucket_id):
       # window size = batch size
       batch_sizes = tf.constant(bucket_batch_sizes, dtype=tf.int64)
       window_size = batch_sizes[bucket_id]
+      batch_sizes = tf.Print(batch_sizes, [batch_sizes], '!!! BATCH SIZES WINDOW ', summarize=10)
       return window_size
 
     def batching_fn(bucket_id, grouped_dataset):
       batch_sizes = tf.constant(bucket_batch_sizes, dtype=tf.int64)
       batch_size = batch_sizes[bucket_id]
+      batch_sizes = tf.Print(batch_sizes, [batch_sizes], '!!! BATCH SIZES', summarize=10)
       return padded_batch(grouped_dataset, batch_size, padded_shapes)
 
     dataset = dataset.apply(
         tf.contrib.data.group_by_window(example_to_bucket_id, batching_fn, None,
                                         window_size_fn))
+    print(dataset.output_shapes)
     return dataset
 
 
@@ -108,6 +114,8 @@ def padded_batch(dataset, batch_size, padded_shapes=None):
   padded_shapes = padded_shapes or dict(
       [(name, [None] * len(shape))
        for name, shape in dataset.output_shapes.items()])
+  print('!!!!!!dataset shapes: ', dataset.output_shapes)
+  print('padded_shapes', padded_shapes)
   return dataset.padded_batch(batch_size, padded_shapes)
 
 

@@ -188,7 +188,7 @@ def decode_from_dataset(estimator,
   problem = hparams.problem
   infer_input_fn = problem.make_estimator_input_fn(
       tf.estimator.ModeKeys.PREDICT, hparams, dataset_kwargs=dataset_kwargs)
-  
+
   ##############
   # BEGIN FATHOM
   ##############

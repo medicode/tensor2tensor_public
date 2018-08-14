@@ -84,6 +84,7 @@ def bucket_by_sequence_length(dataset,
           tf.less_equal(buckets_min, seq_length),
           tf.less(seq_length, buckets_max))
       bucket_id = tf.reduce_min(tf.where(conditions_c))
+
       return bucket_id
 
     def window_size_fn(bucket_id):
@@ -100,7 +101,6 @@ def bucket_by_sequence_length(dataset,
     dataset = dataset.apply(
         tf.contrib.data.group_by_window(example_to_bucket_id, batching_fn, None,
                                         window_size_fn))
-    print(dataset.output_shapes)
     return dataset
 
 

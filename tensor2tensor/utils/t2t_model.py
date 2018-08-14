@@ -693,30 +693,17 @@ class T2TModel(base.Layer):
 
     initial_ids = tf.zeros([batch_size], dtype=tf.int32)
 
-    for name, tensor in features.items():
-      if name == 'inputs':
-        features[name] = tf.Print(tensor, [tensor, tf.shape(tensor)], f'!!!!! beam_decode_slow before {name}', summarize=10)
-
     if self.has_input:
       inputs_old = features["inputs"]
       features["inputs"] = tf.expand_dims(features["inputs"], 1)
       if len(features["inputs"].shape) < 5:
         features["inputs"] = tf.expand_dims(features["inputs"], 4)
       # Expand the inputs in to the beam size.
-      for name, tensor in features.items():
-        if name == 'inputs':
-          features[name] = tf.Print(tensor, [tensor, tf.shape(tensor)], f'!!!!! before tile {name}', summarize=10)
       features["inputs"] = tf.tile(features["inputs"], [1, beam_size, 1, 1, 1])
-      for name, tensor in features.items():
-        if name == 'inputs':
-          features[name] = tf.Print(tensor, [tensor, tf.shape(tensor)], f'!!!!! after tile {name}', summarize=10)
       s = common_layers.shape_list(features["inputs"])
       features["inputs"] = tf.reshape(features["inputs"],
                                       [s[0] * s[1], s[2], s[3], s[4]])
 
-    for name, tensor in features.items():
-      if name == 'inputs':
-        features[name] = tf.Print(tensor, [tensor, tf.shape(tensor)], f'!!!!! slow beam decode {name}', summarize=10)
     target_modality = self._problem_hparams.target_modality
     vocab_size = target_modality.top_dimensionality
     # Setting decode length to input length + decode_length

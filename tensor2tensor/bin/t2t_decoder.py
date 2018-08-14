@@ -230,7 +230,6 @@ def main(_):
   hp = create_hparams()
   decode_hp = create_decode_hparams()
 
-  print('decodhparams', decode_hp)
   estimator = trainer_lib.create_estimator(
       FLAGS.model,
       hp,

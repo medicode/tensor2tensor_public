@@ -573,7 +573,7 @@ class Transformer(t2t_model.T2TModel):
         - Optionally adding timing signals.
 
       Args:
-        targets: inputs ids to the decoder. [batch_size, 1]
+        targets: inputs ids to the decoder. [batch_size, ?, 1, 1]
         i: scalar, Step number of the decoding loop.
 
       Returns:

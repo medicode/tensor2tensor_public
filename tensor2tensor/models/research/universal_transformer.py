@@ -284,7 +284,7 @@ class UniversalTransformerEncoder(transformer.Transformer):
     Returns:
       Tuple of:
           encoder_output: Encoder representation.
-              [batch_size, input_length, hidden_dim]
+              [batch_size, encoded_length, hidden_dim]
           encoder_extra_output: which is extra encoder output used in some
             variants of the model (e.g. in ACT, to pass the ponder-time to body)
     """
@@ -313,12 +313,12 @@ class UniversalTransformerEncoder(transformer.Transformer):
     Args:
       features: Map of features to the model. Should contain the following:
           "inputs": Transformer inputs [batch_size, input_length, hidden_dim]
-          "targets": Target decoder outputs.
-              [batch_size, decoder_length, hidden_dim]
+          "targets": Target encoder outputs.
+              [batch_size, encoder_length, hidden_dim]
           "target_space_id"
 
     Returns:
-      Final decoder representation. [batch_size, decoder_length, hidden_dim]
+      Final decoder representation. [batch_size, encoder_length, 1, hidden_dim]
     """
     hparams = self._hparams
 

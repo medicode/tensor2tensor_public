@@ -213,9 +213,10 @@ def create_run_config(hp):
       hp.activation_dtype == "float32" and
       hp.weight_dtype == "float32")
 
-  inter_op_parallelism_threads = hp.get('inter_op_parallelism_threads', FLAGS.intra_op_parallelism_threads)
+  inter_op_parallelism_threads = hp.get('inter_op_parallelism_threads',
+                                        FLAGS.intra_op_parallelism_threads)
   print('  -----------> ', FLAGS.intra_op_parallelism_threads)
-  print('  -----------> ', intra_op_parallelism_threads)
+  print('  -----------> ', inter_op_parallelism_threads)
 
   return trainer_lib.create_run_config(
       model_dir=os.path.expanduser(FLAGS.output_dir),

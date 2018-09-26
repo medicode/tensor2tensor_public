@@ -212,6 +212,11 @@ def create_run_config(hp):
       hp.daisy_chain_variables and
       hp.activation_dtype == "float32" and
       hp.weight_dtype == "float32")
+
+  inter_op_parallelism_threads = hp.get('inter_op_parallelism_threads', FLAGS.intra_op_parallelism_threads)
+  print('  -----------> ', FLAGS.intra_op_parallelism_threads)
+  print('  -----------> ', intra_op_parallelism_threads)
+
   return trainer_lib.create_run_config(
       model_dir=os.path.expanduser(FLAGS.output_dir),
       warm_start_from=FLAGS.warm_start_from,
@@ -243,7 +248,7 @@ def create_run_config(hp):
       tpu_infeed_sleep_secs=FLAGS.tpu_infeed_sleep_secs,
       inter_op_parallelism_threads=FLAGS.inter_op_parallelism_threads,
       log_step_count_steps=FLAGS.log_step_count_steps,
-      intra_op_parallelism_threads=FLAGS.intra_op_parallelism_threads,
+      intra_op_parallelism_threads=inter_op_parallelism_threads,
       tpu_config_extra_kwargs=tpu_config_extra_kwargs)
 
 

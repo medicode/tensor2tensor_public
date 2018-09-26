@@ -213,8 +213,8 @@ def create_run_config(hp):
       hp.activation_dtype == "float32" and
       hp.weight_dtype == "float32")
 
-  inter_op_parallelism_threads = hp.get('inter_op_parallelism_threads',
-                                        FLAGS.intra_op_parallelism_threads)
+  inter_op_parallelism_threads = 1# hp.get('inter_op_parallelism_threads',
+                                  #       FLAGS.intra_op_parallelism_threads)
   print('  -----------> ', FLAGS.intra_op_parallelism_threads)
   print('  -----------> ', inter_op_parallelism_threads)
 

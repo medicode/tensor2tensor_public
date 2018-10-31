@@ -396,7 +396,7 @@ def update_hparams_for_universal_transformer(hparams):
 
   # Default ffn layer is separable convolution.
   # Options: "fc" and "sepconv".
-  hparams.add_hparam("transformer_ffn_type", "fc")
+  hparams.add_hparam("transformer_ffn_type", "sepconv")
 
   # Transform bias (in models with highway or skip connection).
   hparams.add_hparam("transform_bias_init", -1.0)
@@ -416,7 +416,7 @@ def update_hparams_for_universal_transformer(hparams):
   # LSTM forget bias for lstm style recurrence.
   hparams.add_hparam("lstm_forget_bias", 1.0)
   # Uses the memory at the last step as the final output, if true.
-  hparams.add_hparam("use_memory_as_final_state", True)
+  hparams.add_hparam("use_memory_as_final_state", False)
   # if also add a ffn unit to the transition function when using gru/lstm
   hparams.add_hparam("add_ffn_unit_to_the_transition_function", False)
 

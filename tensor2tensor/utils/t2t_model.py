@@ -553,7 +553,6 @@ class T2TModel(base.Layer):
       if self._problem_hparams:
         target_modality = _create_target_modality(
             self._problem_hparams.modality)
-        target_modality = self._problem_hparams.target_modality
         # Fathom
         # This and below changes needed b/c we sometimes send in
         # logits as a dict...that is our format, and not theirs.

@@ -40,8 +40,9 @@ MODULES = [
     # FATHOM
     # remove h5py and gym dependencies
     #"tensor2tensor.data_generators.gene_expression",
-    "tensor2tensor.data_generators.google_robot_pushing",
     #"tensor2tensor.data_generators.gym_problems_specs",
+    "tensor2tensor.data_generators.google_robot_pushing",
+    "tensor2tensor.data_generators.gym_env",
     "tensor2tensor.data_generators.ice_parsing",
     "tensor2tensor.data_generators.imagenet",
     "tensor2tensor.data_generators.image_lsun",

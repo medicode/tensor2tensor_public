@@ -79,11 +79,14 @@ def check_cond_latents(cond_latents, hparams):
 def get_variable_ddi(name, shape, initial_value, dtype=tf.float32, init=False,
                      trainable=True):
   """Wrapper for data-dependent initialization."""
-  # Cast from python bool to TF bool for usage in tf.cond
-  if isinstance(init, bool):
-    init = tf.constant(init, dtype=tf.bool)
+  # If init is a tensor bool, w is returned dynamically.
   w = tf.get_variable(name, shape, dtype, None, trainable=trainable)
-  return tf.cond(init, lambda: assign(w, initial_value), lambda: w)
+  if isinstance(init, bool):
+    if init:
+      return assign(w, initial_value)
+    return w
+  else:
+    return tf.cond(init, lambda: assign(w, initial_value), lambda: w)
 
 
 @add_arg_scope
@@ -473,7 +476,7 @@ def squeeze(name, x, factor=2, reverse=True):
 
 @add_arg_scope
 def tensor_to_dist(name, x, output_channels=None, architecture="single_conv",
-                   depth=1, pre_output_channels=512):
+                   depth=1, pre_output_channels=512, width=512):
   """Map x to the mean and log-scale of a Gaussian.
 
   Args:
@@ -484,6 +487,7 @@ def tensor_to_dist(name, x, output_channels=None, architecture="single_conv",
     architecture: "single_conv" or "glow_nn"
     depth: depth of architecture mapping to the mean and std.
     pre_output_channels: output channels before the final (mean, std) mapping.
+    width: Resnet width.
   Returns:
     dist: instance of tf.distributions.Normal
   Raises:
@@ -506,6 +510,16 @@ def tensor_to_dist(name, x, output_channels=None, architecture="single_conv",
                               filter_size=[3, 3], stride=[1, 1],
                               output_channels=2*output_channels,
                               apply_actnorm=False, conv_init="zeros")
+    elif architecture == "glow_resnet":
+      h = x
+      for layer in range(depth):
+        h2 = conv_block("glow_res_%d" % layer, h, mid_channels=width)
+        h3 = conv2d("glow_res_zeros_%d" % layer, h2, conv_init="zeros",
+                    output_channels=x_shape[-1], apply_actnorm=False)
+        h += h3
+      mean_log_scale = conv2d("glow_res_final", h, conv_init="zeros",
+                              output_channels=2*output_channels,
+                              apply_actnorm=False)
     else:
       raise ValueError("expected architecture to be single_conv or glow_nn "
                        "got %s" % architecture)
@@ -543,7 +557,6 @@ def merge_level_and_latent_dist(level_dist, latent_dist,
     scale = level_std
   elif merge_std == "prev_step":
     scale = latent_std
-  tf.summary.scalar("latent_scale", tf.reduce_mean(scale))
   return tf.distributions.Normal(loc=new_mean, scale=scale)
 
 
@@ -582,7 +595,8 @@ def level_cond_prior(prior_dist, z, latent, hparams, state):
         "latent_stack", latent_stack, output_channels=output_channels,
         architecture=hparams.latent_architecture,
         depth=hparams.latent_encoder_depth,
-        pre_output_channels=hparams.latent_pre_output_channels)
+        pre_output_channels=hparams.latent_pre_output_channels,
+        width=hparams.latent_encoder_width)
     if latent_skip:
       cond_dist = tf.distributions.Normal(
           cond_dist.loc + latent[-1], cond_dist.scale)
@@ -597,8 +611,6 @@ def level_cond_prior(prior_dist, z, latent, hparams, state):
     if latent_skip:
       cond_dist = tf.distributions.Normal(
           cond_dist.loc + latent, cond_dist.scale)
-  tf.summary.histogram("split_prior_mean", prior_dist.loc)
-  tf.summary.histogram("split_prior_scale", prior_dist.scale)
   return cond_dist.loc, cond_dist.scale, state
 
 
@@ -765,7 +777,6 @@ def scale_gaussian_prior(name, z, logscale_factor=3.0, trainable=True):
         "log_scale_latent", shape=z_shape, dtype=tf.float32,
         initializer=tf.zeros_initializer(), trainable=trainable)
     log_scale = log_scale * logscale_factor
-    tf.summary.scalar("gaussian_log_scale", tf.reduce_mean(log_scale))
     return tf.distributions.Normal(
         loc=latent_multiplier * z, scale=tf.exp(log_scale))
 

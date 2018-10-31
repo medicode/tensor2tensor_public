@@ -13,26 +13,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tiny run of trainer_model_based_new. Smoke test."""
+"""Tests for video_conditional_fvd."""
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from tensor2tensor.rl import trainer_model_based_new
-
+from tensor2tensor.metrics import video_conditional_fvd
 import tensorflow as tf
 
-FLAGS = tf.flags.FLAGS
+
+class VideoConditionalFvdTest(tf.test.TestCase):
+
+  def test_sample(self):
+    dataset = video_conditional_fvd.VideoEvaluationDataset(
+        n_input_frames=4,
+        n_output_frames=10,
+        get_video_batch_fn=None)
+    model = video_conditional_fvd.Model(
+        apply_fn=None,
+        load_fn=None)
+    video_conditional_fvd.evaluate_model(dataset, model, 10, 16)
 
 
-class ModelRLExperimentNewTest(tf.test.TestCase):
-
-  def test_basic(self):
-    FLAGS.output_dir = tf.test.get_temp_dir()
-    FLAGS.loop_hparams_set = "rlmb_tiny"
-    FLAGS.schedule = "train"  # skip evaluation for world model training
-    trainer_model_based_new.main(None)
-
-
-if __name__ == "__main__":
+if __name__ == '__main__':
   tf.test.main()

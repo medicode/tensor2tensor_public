@@ -26,28 +26,22 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import contextlib
 import copy
 import datetime
 import math
 import os
-import re
+import pprint
+import random
 import time
 
 import numpy as np
 import six
 
-
-from tensor2tensor.bin import t2t_trainer
-from tensor2tensor.data_generators import generator_utils
-from tensor2tensor.data_generators import gym_problems
-from tensor2tensor.data_generators import gym_problems_specs
-from tensor2tensor.layers import discretization
+from tensor2tensor.bin import t2t_trainer  # pylint: disable=unused-import
+from tensor2tensor.data_generators.gym_env import T2TGymEnv
+from tensor2tensor.models.research import rl
 from tensor2tensor.rl import rl_trainer_lib
 from tensor2tensor.rl import trainer_model_based_params
-from tensor2tensor.rl.envs.tf_atari_wrappers import PyFuncWrapper
-from tensor2tensor.rl.envs.utils import InitialFrameChooser
-from tensor2tensor.utils import registry
 from tensor2tensor.utils import trainer_lib
 
 import tensorflow as tf
@@ -55,6 +49,35 @@ import tensorflow as tf
 
 flags = tf.flags
 FLAGS = flags.FLAGS
+
+
+def real_ppo_epoch_increment(hparams):
+  """PPO increment."""
+  if hparams.gather_ppo_real_env_data:
+    assert hparams.real_ppo_epochs_num is 0, (
+        "Should be put to 0 to enforce better readability"
+    )
+    return int(math.ceil(
+        hparams.num_real_env_frames /
+        (hparams.epochs * hparams.real_ppo_epoch_length)
+    ))
+  else:
+    return hparams.real_ppo_epochs_num
+
+
+def sim_ppo_epoch_increment(hparams, is_final_epoch):
+  increment = hparams.ppo_epochs_num
+  if is_final_epoch:
+    increment *= 2
+  return increment
+
+
+def world_model_step_increment(hparams, is_initial_epoch):
+  if is_initial_epoch:
+    multiplier = hparams.initial_epoch_train_steps_multiplier
+  else:
+    multiplier = 1
+  return multiplier * hparams.model_train_steps
 
 
 def setup_directories(base_dir, subdirs):
@@ -83,46 +106,6 @@ def make_relative_timing_fn():
   return log_relative_time
 
 
-@contextlib.contextmanager
-def temporary_flags(flag_settings):
-  old_values = {}
-  for flag_name, flag_value in flag_settings.items():
-    old_values[flag_name] = getattr(FLAGS, flag_name)
-    setattr(FLAGS, flag_name, flag_value)
-  yield
-  for flag_name, flag_value in old_values.items():
-    setattr(FLAGS, flag_name, flag_value)
-
-
-def generate_real_env_data(problem_name, agent_policy_path, hparams, data_dir,
-                           tmp_dir, autoencoder_path=None, eval_phase=False,
-                           real_reward=False):
-  """Run the agent against the real environment and return mean reward."""
-  tf.gfile.MakeDirs(data_dir)
-  with temporary_flags({
-      "problem": problem_name,
-      "agent_policy_path": agent_policy_path,
-      "autoencoder_path": autoencoder_path,
-  }):
-    gym_problem = registry.problem(problem_name)
-    if hparams.gather_ppo_real_env_data:
-      env_steps_per_epoch = int(hparams.num_real_env_frames / hparams.epochs)
-    else:
-      env_steps_per_epoch = (
-          hparams.num_real_env_frames / (hparams.epochs * (1. - 1./11.)))
-    gym_problem.settable_num_steps = env_steps_per_epoch
-    gym_problem.settable_eval_phase = eval_phase
-    if real_reward and autoencoder_path is None:
-      gym_problem._forced_collect_level = 1  # pylint: disable=protected-access
-    gym_problem.generate_data(data_dir, tmp_dir)
-    mean_reward = None
-    if gym_problem.statistics.number_of_dones:
-      mean_reward = (gym_problem.statistics.sum_of_rewards /
-                     gym_problem.statistics.number_of_dones)
-
-  return mean_reward
-
-
 def make_log_fn(epoch, log_relative_time_fn):
 
   def log(msg, *args):
@@ -133,53 +116,27 @@ def make_log_fn(epoch, log_relative_time_fn):
   return log
 
 
-def train_autoencoder(problem_name, data_dir, output_dir, hparams, epoch):
-  """Train autoencoder on problem_name."""
-  additional_steps = 1 + hparams.autoencoder_train_steps_initial_multiplier
-  train_steps = hparams.autoencoder_train_steps * (epoch + additional_steps)
-  with temporary_flags({
-      "problem": problem_name,
-      "data_dir": data_dir,
-      "output_dir": output_dir,
-      "model": "autoencoder_ordered_discrete",
-      "hparams_set": hparams.autoencoder_hparams_set,
-      "train_steps": train_steps,
-      "eval_steps": 100,
-  }):
-    t2t_trainer.main([])
+def train_supervised(problem, model_name, hparams, data_dir, output_dir,
+                     train_steps, eval_steps, local_eval_frequency=None,
+                     schedule="continuous_train_and_eval"):
+  """Train supervised."""
+  if local_eval_frequency is None:
+    local_eval_frequency = getattr(FLAGS, "local_eval_frequency")
+
+  exp_fn = trainer_lib.create_experiment_fn(
+      model_name, problem, data_dir, train_steps, eval_steps,
+      min_eval_frequency=local_eval_frequency
+  )
+  run_config = trainer_lib.create_run_config(model_name, model_dir=output_dir)
+  exp = exp_fn(run_config, hparams)
+  getattr(exp, schedule)()
 
 
-def _ppo_training_epochs(hparams, epoch, is_final_epoch, real_env_training):
-  """Helper for PPO restarts."""
-  if hparams.gather_ppo_real_env_data:
-    assert hparams.real_ppo_epochs_num is 0, (
-        "Should be put to 0 to enforce better readability")
-    real_training_ppo_epochs_num = int(math.ceil(
-        hparams.num_real_env_frames /
-        (hparams.epochs*hparams.real_ppo_epoch_length)))
-  else:
-    real_training_ppo_epochs_num = hparams.real_ppo_epochs_num
-
-  simulated_training_ppo_epochs_num = hparams.ppo_epochs_num
-
-  if epoch == -1:
-    assert real_env_training, (
-        "Epoch -1 should only be used for PPO collection in real environment.")
-    return real_training_ppo_epochs_num
-  ppo_training_epochs = (epoch + 1) * (simulated_training_ppo_epochs_num
-                                       + real_training_ppo_epochs_num)
-  if is_final_epoch:  # Length of training in the final epoch is doubled.
-    ppo_training_epochs += simulated_training_ppo_epochs_num
-  if real_env_training:
-    ppo_training_epochs += real_training_ppo_epochs_num
-  return ppo_training_epochs
-
-
-def train_agent(problem_name, agent_model_dir,
-                event_dir, world_model_dir, epoch_data_dir, hparams, epoch=0,
+def train_agent(real_env, agent_model_dir, event_dir, world_model_dir, data_dir,
+                hparams, completed_ppo_epochs_num, epoch=0,
                 is_final_epoch=False):
   """Train the PPO agent in the simulated environment."""
-  gym_problem = registry.problem(problem_name)
+  del data_dir
   ppo_hparams = trainer_lib.create_hparams(hparams.ppo_params)
   ppo_params_names = ["epochs_num", "epoch_length",
                       "learning_rate", "num_agents",
@@ -190,67 +147,89 @@ def train_agent(problem_name, agent_model_dir,
     if ppo_param_name in hparams:
       ppo_hparams.set_hparam(param_name, hparams.get(ppo_param_name))
 
-  ppo_hparams.epochs_num = _ppo_training_epochs(hparams, epoch,
-                                                is_final_epoch, False)
+  completed_ppo_epochs_num += sim_ppo_epoch_increment(hparams, is_final_epoch)
+  ppo_hparams.epochs_num = completed_ppo_epochs_num
+
   ppo_hparams.save_models_every_epochs = 10
   ppo_hparams.world_model_dir = world_model_dir
-  ppo_hparams.add_hparam("force_beginning_resets", True)
 
-  # Adding model hparams for model specific adjustments
-  model_hparams = trainer_lib.create_hparams(hparams.generative_model_params)
-  ppo_hparams.add_hparam("model_hparams", model_hparams)
+  environment_spec_params = {
+      param_name: hparams.get(param_name)
+      for param_name in [
+          "intrinsic_reward_scale", "simulation_random_starts",
+          "simulation_flip_first_random_for_beginning"
+      ]
+  }
+  environment_spec_params.update({
+      "model_name": hparams.generative_model,
+      "model_hparams": trainer_lib.create_hparams(
+          hparams.generative_model_params
+      ),
+      # Hardcoded for now. TODO(koz4k): Make it a hparam.
+      "video_num_input_frames": 4,
+      "video_num_target_frames": 1
+  })
+  environment_spec = rl.standard_atari_env_simulated_spec(
+      real_env, **environment_spec_params
+  )
 
-  environment_spec = copy.copy(gym_problem.environment_spec)
-  environment_spec.simulation_random_starts = hparams.simulation_random_starts
-  do_flip = hparams.simulation_flip_first_random_for_beginning
-  environment_spec.simulation_flip_first_random_for_beginning = do_flip
-  environment_spec.intrinsic_reward_scale = hparams.intrinsic_reward_scale
+  with tf.Session() as sess:
+    encoded_png_p = tf.placeholder(tf.string)
+    decoded_png_t = tf.image.decode_png(encoded_png_p)
+    def decode_png(encoded_png):
+      return sess.run(decoded_png_t, feed_dict={encoded_png_p: encoded_png})
 
-  ppo_hparams.add_hparam("environment_spec", environment_spec)
-  ppo_hparams.add_hparam("initial_frame_chooser", InitialFrameChooser(
-      environment_spec, mode=tf.estimator.ModeKeys.TRAIN
-  ))
+    num_input_frames = environment_spec.video_num_input_frames
+    initial_frame_rollouts = real_env.current_epoch_rollouts(
+        split=tf.contrib.learn.ModeKeys.TRAIN,
+        minimal_rollout_frames=num_input_frames,
+    )
+    # TODO(koz4k): Move this to a different module.
+    def initial_frame_chooser(batch_size):
+      """Frame chooser."""
 
-  with temporary_flags({
-      "problem": problem_name,
-      "model": hparams.generative_model,
-      "hparams_set": hparams.generative_model_params,
-      "output_dir": world_model_dir,
-      "data_dir": epoch_data_dir,
-  }):
+      deterministic_initial_frames =\
+          initial_frame_rollouts[0][:num_input_frames]
+      if not environment_spec.simulation_random_starts:
+        # Deterministic starts: repeat first frames from the first rollout.
+        initial_frames = [deterministic_initial_frames] * batch_size
+      else:
+        # Random starts: choose random initial frames from random rollouts.
+        # TODO(koz4k): Weigh rollouts by their lengths so sampling is uniform
+        # over frames and not rollouts.
+        def choose_initial_frames():
+          try:
+            rollout = random.choice(initial_frame_rollouts)
+            from_index = random.randrange(len(rollout) - num_input_frames + 1)
+            return rollout[from_index:(from_index + num_input_frames)]
+          except ValueError:
+            # Rollout too short; repeat.
+            return choose_initial_frames()
+        initial_frames = [choose_initial_frames() for _ in range(batch_size)]
+        if environment_spec.simulation_flip_first_random_for_beginning:
+          # Flip first entry in the batch for deterministic initial frames.
+          initial_frames[0] = deterministic_initial_frames
+
+      return np.stack([
+          [decode_png(frame.observation) for frame in initial_frame_stack]
+          for initial_frame_stack in initial_frames
+      ])
+
+    environment_spec.add_hparam("initial_frame_chooser", initial_frame_chooser)
+
+    ppo_hparams.add_hparam("environment_spec", environment_spec)
+
     rl_trainer_lib.train(ppo_hparams, event_dir + "sim", agent_model_dir,
                          name_scope="ppo_sim%d" % (epoch + 1))
 
-ppo_data_dumper_counter = 0
-dumper_path = None
-
-
-def ppo_data_dumper(observ, reward, done, action):
-  """Save frames from PPO to a numpy file."""
-  global ppo_data_dumper_counter, dumper_path
-  file_path = "{}/frame_{}.npz".format(dumper_path, ppo_data_dumper_counter)
-  if gym_problems.frame_dumper_use_disk:
-    # np.savez_compressed can't create a tf.gfile, so we need to create it
-    # beforehand.
-    with tf.gfile.Open(file_path, mode="wb+") as gfile:
-      gfile.write("1")
-    with tf.gfile.Open(file_path, mode="wb+") as gfile:
-      np.savez_compressed(
-          gfile, observ=observ, reward=reward, done=done, action=action)
-  else:
-    data = {"observ": observ, "reward": reward, "done": done, "action": action}
-    gym_problems.frame_dumper[file_path] = data
-  ppo_data_dumper_counter += 1
-  return 0.0
+  return completed_ppo_epochs_num
 
 
 def train_agent_real_env(
-    problem_name, agent_model_dir, event_dir, world_model_dir, epoch_data_dir,
-    hparams, epoch=0, is_final_epoch=False):
+    env, agent_model_dir, event_dir, data_dir,
+    hparams, completed_ppo_epochs_num, epoch=0, is_final_epoch=False):
   """Train the PPO agent in the real environment."""
-  global dumper_path, ppo_data_dumper_counter
-
-  gym_problem = registry.problem(problem_name)
+  del is_final_epoch, data_dir
   ppo_hparams = trainer_lib.create_hparams(hparams.ppo_params)
   ppo_params_names = ["epochs_num", "epoch_length",
                       "learning_rate", "num_agents", "eval_every_epochs",
@@ -263,231 +242,142 @@ def train_agent_real_env(
     if ppo_param_name in hparams:
       ppo_hparams.set_hparam(param_name, hparams.get(ppo_param_name))
 
-  ppo_hparams.epochs_num = _ppo_training_epochs(hparams, epoch,
-                                                is_final_epoch, True)
+  completed_ppo_epochs_num += real_ppo_epoch_increment(hparams)
+  ppo_hparams.epochs_num = completed_ppo_epochs_num
   # We do not save model, as that resets frames that we need at restarts.
   # But we need to save at the last step, so we set it very high.
   ppo_hparams.save_models_every_epochs = 1000000
 
-  environment_spec = copy.copy(gym_problem.environment_spec)
-
-  if hparams.gather_ppo_real_env_data:
-    # TODO(piotrmilos):This should be refactored
-    assert hparams.real_ppo_num_agents == 1, (
-        "It is required to use collect with pyfunc_wrapper")
-
-    ppo_data_dumper_counter = 0
-    dumper_path = os.path.join(epoch_data_dir, "dumper")
-    tf.gfile.MakeDirs(dumper_path)
-    dumper_spec = [PyFuncWrapper, {"process_fun": ppo_data_dumper}]
-    environment_spec.wrappers.insert(2, dumper_spec)
+  environment_spec = rl.standard_atari_env_spec(env)
 
   ppo_hparams.add_hparam("environment_spec", environment_spec)
 
-  with temporary_flags({
-      "problem": problem_name,
-      "output_dir": world_model_dir,
-      "data_dir": epoch_data_dir,
-  }):
-    rl_trainer_lib.train(ppo_hparams, event_dir + "real", agent_model_dir,
-                         name_scope="ppo_real%d" % (epoch + 1))
+  rl_trainer_lib.train(ppo_hparams, event_dir + "real", agent_model_dir,
+                       name_scope="ppo_real%d" % (epoch + 1))
+
+  # Save unfinished rollouts to history.
+  env.reset()
+
+  return completed_ppo_epochs_num
 
 
-def evaluate_world_model(simulated_problem_name, problem_name, hparams,
-                         world_model_dir, epoch_data_dir, tmp_dir):
-  """Generate simulated environment data and return reward accuracy."""
-  gym_simulated_problem = registry.problem(simulated_problem_name)
-  sim_steps = hparams.simulated_env_generator_num_steps
-  gym_simulated_problem.settable_num_steps = sim_steps
-  gym_simulated_problem.settable_rollout_fractions = \
-      hparams.eval_rollout_fractions
-  with temporary_flags({
-      "problem": problem_name,
-      "model": hparams.generative_model,
-      "hparams_set": hparams.generative_model_params,
-      "data_dir": epoch_data_dir,
-      "output_dir": world_model_dir,
-  }):
-    gym_simulated_problem.generate_data(epoch_data_dir, tmp_dir)
-  n = max(1., gym_simulated_problem.statistics.number_of_dones)
-  model_reward_accuracy = [
-      (frac, score / float(n))
-      for (frac, score) in six.iteritems(
-          gym_simulated_problem.statistics.
-          successful_episode_reward_predictions
-      )
-  ]
-  old_path = os.path.join(epoch_data_dir, "debug_frames_sim")
-  new_path = os.path.join(epoch_data_dir, "debug_frames_sim_eval")
-  if not tf.gfile.Exists(new_path):
-    tf.gfile.Rename(old_path, new_path)
-  return model_reward_accuracy
-
-
-def train_world_model(problem_name, data_dir, output_dir, hparams, epoch):
+def train_world_model(
+    env, data_dir, output_dir, hparams, world_model_steps_num, epoch
+):
   """Train the world model on problem_name."""
-  train_steps = hparams.model_train_steps * (
-      epoch + hparams.inital_epoch_train_steps_multiplier)
+  world_model_steps_num += world_model_step_increment(
+      hparams, is_initial_epoch=(epoch == 0)
+  )
   model_hparams = trainer_lib.create_hparams(hparams.generative_model_params)
-  learning_rate = model_hparams.learning_rate_constant
-  if epoch > 0: learning_rate *= hparams.learning_rate_bump
-  with temporary_flags({
-      "data_dir": data_dir,
-      "output_dir": output_dir,
-      "problem": problem_name,
-      "model": hparams.generative_model,
-      "hparams_set": hparams.generative_model_params,
-      "hparams": "learning_rate_constant=%.6f" % learning_rate,
-      "eval_steps": 100,
-      "local_eval_frequency": 2000,
-      "train_steps": train_steps,
-  }):
-    t2t_trainer.main([])
+  model_hparams.learning_rate = model_hparams.learning_rate_constant
+  if epoch > 0:
+    model_hparams.learning_rate *= hparams.learning_rate_bump
+
+  train_supervised(
+      problem=env,
+      model_name=hparams.generative_model,
+      hparams=model_hparams,
+      data_dir=data_dir,
+      output_dir=output_dir,
+      train_steps=world_model_steps_num,
+      eval_steps=100,
+      local_eval_frequency=2000
+  )
+
+  return world_model_steps_num
 
 
-def encode_dataset(model, dataset, problem, ae_hparams, autoencoder_path,
-                   out_files):
-  """Encode all frames in dataset with model and write them out to out_files."""
-  batch_size = 8
-  dataset = dataset.batch(batch_size)
-  examples = dataset.make_one_shot_iterator().get_next()
-  images = examples.pop("frame")
-  images = tf.cast(images, tf.int32)
+def setup_env(hparams, batch_size):
+  """Setup."""
+  game_mode = "Deterministic-v4"
+  camel_game_name = "".join(
+      [w[0].upper() + w[1:] for w in hparams.game.split("_")])
+  camel_game_name += game_mode
+  env_name = camel_game_name
 
-  encoded = model.encode(images)
-  encoded_frame_height = int(
-      math.ceil(problem.frame_height / 2**ae_hparams.num_hidden_layers))
-  encoded_frame_width = int(
-      math.ceil(problem.frame_width / 2**ae_hparams.num_hidden_layers))
-  num_bits = 8
-  encoded = tf.reshape(
-      encoded, [-1, encoded_frame_height, encoded_frame_width, 3, num_bits])
-  encoded = tf.cast(discretization.bit_to_int(encoded, num_bits), tf.uint8)
-
-  pngs = tf.map_fn(tf.image.encode_png, encoded, dtype=tf.string,
-                   back_prop=False)
-
-  with tf.Session() as sess:
-    autoencoder_saver = tf.train.Saver(tf.global_variables("autoencoder.*"))
-    trainer_lib.restore_checkpoint(autoencoder_path, autoencoder_saver, sess,
-                                   must_restore=True)
-
-    def generator():
-      """Generate examples."""
-      while True:
-        try:
-          pngs_np, examples_np = sess.run([pngs, examples])
-          rewards = examples_np["reward"].tolist()
-          actions = examples_np["action"].tolist()
-          frame_numbers = examples_np["frame_number"].tolist()
-          for action, reward, frame_number, png in \
-                  zip(actions, rewards, frame_numbers, pngs_np):
-            yield {
-                "action": action,
-                "reward": reward,
-                "frame_number": frame_number,
-                "image/encoded": [png],
-                "image/format": ["png"],
-                "image/height": [encoded_frame_height],
-                "image/width": [encoded_frame_width],
-            }
-        except tf.errors.OutOfRangeError:
-          break
-
-    generator_utils.generate_files(
-        generator(), out_files,
-        cycle_every_n=problem.total_number_of_frames // 10)
+  env = T2TGymEnv(base_env_name=env_name,
+                  batch_size=batch_size,
+                  grayscale=hparams.grayscale,
+                  resize_width_factor=hparams.resize_width_factor,
+                  resize_height_factor=hparams.resize_height_factor,
+                  base_env_timesteps_limit=hparams.env_timesteps_limit,
+                  max_num_noops=hparams.max_num_noops)
+  return env
 
 
-def encode_env_frames(problem_name, ae_problem_name, ae_hparams_set,
-                      autoencoder_path, epoch_data_dir):
-  """Encode all frames from problem_name and write out as ae_problem_name."""
-  with tf.Graph().as_default():
-    ae_hparams = trainer_lib.create_hparams(ae_hparams_set,
-                                            problem_name=problem_name)
-    problem = ae_hparams.problem
-    model = registry.model("autoencoder_ordered_discrete")(
-        ae_hparams, tf.estimator.ModeKeys.EVAL)
+def evaluate_single_config(hparams, agent_model_dir):
+  """Evaluate the PPO agent in the real environment."""
+  eval_hparams = trainer_lib.create_hparams(hparams.ppo_params)
+  eval_hparams.num_agents = hparams.num_agents
+  env = setup_env(hparams, batch_size=hparams.num_agents)
+  environment_spec = rl.standard_atari_env_spec(env)
+  eval_hparams.add_hparam("environment_spec", environment_spec)
+  eval_hparams.add_hparam(
+      "policy_to_actions_lambda", hparams.policy_to_actions_lambda
+  )
 
-    ae_problem = registry.problem(ae_problem_name)
-    ae_training_paths = ae_problem.training_filepaths(epoch_data_dir, 10, True)
-    ae_eval_paths = ae_problem.dev_filepaths(epoch_data_dir, 1, True)
+  env.start_new_epoch(0)
+  rl_trainer_lib.evaluate(eval_hparams, agent_model_dir)
+  rollouts = env.current_epoch_rollouts()[:hparams.num_agents]
+  env.close()
 
-    skip_train = False
-    skip_eval = False
-    for path in ae_training_paths:
-      if tf.gfile.Exists(path):
-        skip_train = True
-        break
-    for path in ae_eval_paths:
-      if tf.gfile.Exists(path):
-        skip_eval = True
-        break
-
-    # Encode train data
-    if not skip_train:
-      dataset = problem.dataset(tf.estimator.ModeKeys.TRAIN, epoch_data_dir,
-                                shuffle_files=False, output_buffer_size=100,
-                                preprocess=False)
-      encode_dataset(model, dataset, problem=problem, ae_hparams=ae_hparams,
-                     autoencoder_path=autoencoder_path,
-                     out_files=ae_training_paths)
-
-    # Encode eval data
-    if not skip_eval:
-      dataset = problem.dataset(tf.estimator.ModeKeys.EVAL, epoch_data_dir,
-                                shuffle_files=False, output_buffer_size=100,
-                                preprocess=False)
-      encode_dataset(model, dataset, problem=problem, ae_hparams=ae_hparams,
-                     autoencoder_path=autoencoder_path, out_files=ae_eval_paths)
+  assert len(rollouts) == hparams.num_agents
+  return tuple(
+      compute_mean_reward(rollouts, clipped) for clipped in (True, False)
+  )
 
 
-def check_problems(problem_names):
-  for problem_name in problem_names:
-    registry.problem(problem_name)
+def evaluate_all_configs(hparams, agent_model_dir):
+  """Evaluate the agent with multiple eval configurations."""
+  def make_eval_hparams(hparams, policy_to_action, max_num_noops):
+    hparams = copy.copy(hparams)
+    hparams.add_hparam("num_agents", hparams.eval_num_agents)
+    hparams.add_hparam("policy_to_actions_lambda", {
+        "sample": lambda policy: policy.sample(),
+        "mode": lambda policy: policy.mode()
+    }[policy_to_action])
+    hparams.max_num_noops = max_num_noops
+    return hparams
+
+  metrics = {}
+  # Iterate over all combinations of picking actions by sampling/mode and
+  # whether to do initial no-ops.
+  for policy_to_action in ("mode", "sample"):
+    for max_num_noops in (hparams.eval_max_num_noops, 0):
+      eval_hparams = make_eval_hparams(hparams, policy_to_action, max_num_noops)
+      scores = evaluate_single_config(eval_hparams, agent_model_dir)
+      for (score, clipped) in zip(scores, (True, False)):
+        metric_name = "mean_reward/eval/{}_{}_max_noops_{}".format(
+            policy_to_action, max_num_noops,
+            "clipped" if clipped else "unclipped"
+        )
+        metrics[metric_name] = score
+
+  return metrics
 
 
-def setup_problems(hparams, using_autoencoder=False):
-  """Register problems based on game name."""
-  if hparams.game in gym_problems_specs.ATARI_GAMES:
-    game_with_mode = hparams.game + "_deterministic-v4"
+def compute_mean_reward(rollouts, clipped):
+  """Calculate mean rewards from given epoch."""
+  reward_name = "reward" if clipped else "unclipped_reward"
+  rewards = []
+  for rollout in rollouts:
+    if rollout[-1].done:
+      rollout_reward = sum(getattr(frame, reward_name) for frame in rollout)
+      rewards.append(rollout_reward)
+  if rewards:
+    mean_rewards = np.mean(rewards)
   else:
-    game_with_mode = hparams.game
-  game_problems_kwargs = {}
-  # Problems
-  if using_autoencoder:
-    game_problems_kwargs["autoencoder_hparams"] = (
-        hparams.autoencoder_hparams_set)
-    problem_name = (
-        "gym_discrete_problem_with_agent_on_%s_with_autoencoder"
-        % game_with_mode)
-    world_model_problem = (
-        "gym_discrete_problem_with_agent_on_%s_autoencoded" % game_with_mode)
-    simulated_problem_name = (
-        "gym_simulated_discrete_problem_with_agent_on_%s_autoencoded"
-        % game_with_mode)
-    world_model_eval_problem_name = (
-        "gym_simulated_discrete_problem_for_world_model_eval_with_agent_on_%s"
-        "_autoencoded"
-        % game_with_mode)
-  else:
-    problem_name = ("gym_discrete_problem_with_agent_on_%s" % game_with_mode)
-    world_model_problem = problem_name
-    simulated_problem_name = ("gym_simulated_discrete_problem_with_agent_on_%s"
-                              % game_with_mode)
-    world_model_eval_problem_name = (
-        "gym_simulated_discrete_problem_for_world_model_eval_with_agent_on_%s"
-        % game_with_mode)
-  if problem_name not in registry.list_problems():
-    game_problems_kwargs["resize_height_factor"] = hparams.resize_height_factor
-    game_problems_kwargs["resize_width_factor"] = hparams.resize_width_factor
-    game_problems_kwargs["grayscale"] = hparams.grayscale
-    tf.logging.info("Game Problem %s not found; dynamically registering",
-                    problem_name)
-    gym_problems_specs.create_problems_for_game(
-        hparams.game, game_mode="Deterministic-v4", **game_problems_kwargs)
-  return (problem_name, world_model_problem, simulated_problem_name,
-          world_model_eval_problem_name)
+    mean_rewards = 0
+  return mean_rewards
+
+
+def summarize_metrics(eval_metrics_writer, metrics, epoch):
+  """Write metrics to summary."""
+  for (name, value) in six.iteritems(metrics):
+    summary = tf.Summary()
+    summary.value.add(tag=name, simple_value=value)
+    eval_metrics_writer.add_summary(summary, epoch)
+  eval_metrics_writer.flush()
 
 
 def training_loop(hparams, output_dir, report_fn=None, report_metric=None):
@@ -495,107 +385,59 @@ def training_loop(hparams, output_dir, report_fn=None, report_metric=None):
   if report_fn:
     assert report_metric is not None
 
-  # Global state
-
   # Directories
   subdirectories = ["data", "tmp", "world_model", "ppo"]
-  using_autoencoder = hparams.autoencoder_train_steps > 0
-  if using_autoencoder:
-    subdirectories.append("autoencoder")
   directories = setup_directories(output_dir, subdirectories)
 
-  (problem_name, world_model_problem, simulated_problem_name,
-   world_model_eval_problem_name) = setup_problems(hparams, using_autoencoder)
-
-  # Autoencoder model dir
-  autoencoder_model_dir = directories.get("autoencoder")
+  epoch = -1
+  data_dir = directories["data"]
+  env = setup_env(hparams, batch_size=hparams.real_ppo_num_agents)
+  env.start_new_epoch(epoch, data_dir)
 
   # Timing log function
   log_relative_time = make_relative_timing_fn()
 
   # Per-epoch state
   epoch_metrics = []
-  epoch_data_dirs = []
+  metrics = {}
 
-  ppo_model_dir = None
-  data_dir = os.path.join(directories["data"], "initial")
-  epoch_data_dirs.append(data_dir)
   # Collect data from the real environment with PPO or random policy.
-  if hparams.gather_ppo_real_env_data:
-    ppo_model_dir = directories["ppo"]
-    tf.logging.info("Initial training of PPO in real environment.")
-    ppo_event_dir = os.path.join(directories["world_model"],
-                                 "ppo_summaries/initial")
-    train_agent_real_env(
-        problem_name, ppo_model_dir,
-        ppo_event_dir, directories["world_model"], data_dir,
-        hparams, epoch=-1, is_final_epoch=False)
-
-  tf.logging.info("Generating real environment data with %s policy",
-                  "PPO" if hparams.gather_ppo_real_env_data else "random")
-  mean_reward = generate_real_env_data(
-      problem_name, ppo_model_dir, hparams, data_dir, directories["tmp"])
-  tf.logging.info("Mean reward (random): {}".format(mean_reward))
+  # TODO(lukaszkaiser): do we need option not to gather_ppo_real_env_data?
+  # We could set learning_rate=0 if this flag == False.
+  assert hparams.gather_ppo_real_env_data
+  ppo_model_dir = directories["ppo"]
+  tf.logging.info("Initial training of PPO in real environment.")
+  ppo_event_dir = os.path.join(directories["world_model"],
+                               "ppo_summaries/initial")
+  completed_ppo_epochs_num = train_agent_real_env(
+      env, ppo_model_dir, ppo_event_dir, data_dir, hparams,
+      completed_ppo_epochs_num=0, epoch=epoch, is_final_epoch=False
+  )
+  metrics["mean_reward/train/clipped"] = compute_mean_reward(
+      env.current_epoch_rollouts(), clipped=True
+  )
+  tf.logging.info("Mean training reward (initial): {}".format(
+      metrics["mean_reward/train/clipped"]
+  ))
 
   eval_metrics_event_dir = os.path.join(directories["world_model"],
                                         "eval_metrics_event_dir")
   eval_metrics_writer = tf.summary.FileWriter(eval_metrics_event_dir)
-  model_reward_accuracy_summary = tf.Summary()
-  for frac in hparams.eval_rollout_fractions:
-    model_reward_accuracy_summary.value.add(
-        tag="model_reward_accuracy_{}".format(frac),
-        simple_value=None
-    )
-  mean_reward_summary = tf.Summary()
-  mean_reward_summary.value.add(tag="mean_reward",
-                                simple_value=None)
-  mean_reward_gen_summary = tf.Summary()
-  mean_reward_gen_summary.value.add(tag="mean_reward_during_generation",
-                                    simple_value=None)
+
+  world_model_steps_num = 0
 
   for epoch in range(hparams.epochs):
+    env.generate_data(data_dir)
+
     is_final_epoch = (epoch + 1) == hparams.epochs
     log = make_log_fn(epoch, log_relative_time)
 
-    # Combine all previously collected environment data
-    epoch_data_dir = os.path.join(directories["data"], str(epoch))
-    tf.gfile.MakeDirs(epoch_data_dir)
-    # Because the data is being combined in every iteration, we only need to
-    # copy from the previous directory.
-    combine_training_data(registry.problem(problem_name),
-                          epoch_data_dir,
-                          epoch_data_dirs[-1:])
-    epoch_data_dirs.append(epoch_data_dir)
-
-    if using_autoencoder:
-      # Train the Autoencoder on all prior environment frames
-      log("Training Autoencoder")
-      train_autoencoder(problem_name, epoch_data_dir, autoencoder_model_dir,
-                        hparams, epoch)
-
-      log("Autoencoding environment frames")
-      encode_env_frames(problem_name, world_model_problem,
-                        ae_hparams_set=hparams.autoencoder_hparams_set,
-                        autoencoder_path=autoencoder_model_dir,
-                        epoch_data_dir=epoch_data_dir)
-
     # Train world model
     log("Training world model")
-    train_world_model(world_model_problem, epoch_data_dir,
-                      directories["world_model"], hparams, epoch)
-
-    # Evaluate world model
-    model_reward_accuracy = []
-    if hparams.eval_world_model:
-      log("Evaluating world model")
-      model_reward_accuracy = evaluate_world_model(
-          world_model_eval_problem_name, world_model_problem, hparams,
-          directories["world_model"],
-          epoch_data_dir, directories["tmp"])
-      log(
-          "World model reward accuracy per rollout fraction: %s",
-          model_reward_accuracy
-      )
+    world_model_steps_num = train_world_model(
+        env, data_dir, directories["world_model"], hparams,
+        world_model_steps_num, epoch
+    )
 
     # Train PPO
     log("Training PPO in simulated environment.")
@@ -604,147 +446,52 @@ def training_loop(hparams, output_dir, report_fn=None, report_metric=None):
     ppo_model_dir = directories["ppo"]
     if not hparams.ppo_continue_training:
       ppo_model_dir = ppo_event_dir
-    train_agent(simulated_problem_name, ppo_model_dir,
-                ppo_event_dir, directories["world_model"], epoch_data_dir,
-                hparams, epoch=epoch, is_final_epoch=is_final_epoch)
+
+    completed_ppo_epochs_num = train_agent(
+        env, ppo_model_dir, ppo_event_dir,
+        directories["world_model"], data_dir, hparams, completed_ppo_epochs_num,
+        epoch=epoch, is_final_epoch=is_final_epoch
+    )
+
+    env.start_new_epoch(epoch, data_dir)
 
     # Train PPO on real env (short)
     log("Training PPO in real environment.")
-    train_agent_real_env(
-        problem_name, ppo_model_dir,
-        ppo_event_dir, directories["world_model"], epoch_data_dir,
-        hparams, epoch=epoch, is_final_epoch=is_final_epoch)
+    completed_ppo_epochs_num = train_agent_real_env(
+        env, ppo_model_dir, ppo_event_dir, data_dir, hparams,
+        completed_ppo_epochs_num, epoch=epoch, is_final_epoch=is_final_epoch
+    )
 
     if hparams.stop_loop_early:
       return 0.0
 
-    # Collect data from the real environment.
-    generation_mean_reward = None
-    if not is_final_epoch:
-      log("Generating real environment data.")
-      generation_mean_reward = generate_real_env_data(
-          problem_name, ppo_model_dir, hparams, epoch_data_dir,
-          directories["tmp"], autoencoder_path=autoencoder_model_dir,
-          eval_phase=False)
-      log("Mean clipped reward during generation: {}".format(
-          generation_mean_reward))
+    metrics["mean_reward/train/clipped"] = compute_mean_reward(
+        env.current_epoch_rollouts(), clipped=True
+    )
+    log("Mean training reward: {}".format(metrics["mean_reward/train/clipped"]))
 
-    log("Evaluating in real environment.")
-    eval_data_dir = os.path.join(epoch_data_dir, "eval")
-    mean_reward = generate_real_env_data(
-        problem_name, ppo_model_dir, hparams, eval_data_dir,
-        directories["tmp"], autoencoder_path=autoencoder_model_dir,
-        eval_phase=True, real_reward=True)
-    log("Mean eval reward (unclipped): {}".format(mean_reward))
-
-    # Summarize metrics.
-    assert model_reward_accuracy is not None
-    assert mean_reward is not None
-    for ((_, accuracy), summary_value) in zip(
-        model_reward_accuracy, model_reward_accuracy_summary.value
-    ):
-      summary_value.simple_value = accuracy
-    mean_reward_summary.value[0].simple_value = mean_reward
-    eval_metrics_writer.add_summary(model_reward_accuracy_summary, epoch)
-    eval_metrics_writer.add_summary(mean_reward_summary, epoch)
-    if generation_mean_reward is not None:
-      mean_reward_gen_summary.value[0].simple_value = int(
-          generation_mean_reward)
-      eval_metrics_writer.add_summary(mean_reward_gen_summary, epoch)
-    eval_metrics_writer.flush()
+    eval_metrics = evaluate_all_configs(hparams, ppo_model_dir)
+    log("Eval metrics:\n{}".format(pprint.pformat(eval_metrics)))
+    metrics.update(eval_metrics)
+    summarize_metrics(eval_metrics_writer, metrics, epoch)
 
     # Report metrics
-    eval_metrics = {"mean_reward": mean_reward}
-    eval_metrics.update({
-        "model_reward_accuracy_{}".format(frac): accuracy
-        for (frac, accuracy) in model_reward_accuracy
-    })
-    epoch_metrics.append(eval_metrics)
-    log("Eval metrics: %s", str(eval_metrics))
+    epoch_metrics.append(metrics)
     if report_fn:
-      report_fn(eval_metrics[report_metric], epoch)
+      if report_metric == "mean_reward":
+        report_fn(eval_metrics["mean_reward/eval/{}_{}_max_noops_{}".format(
+            "mode", hparams.eval_max_num_noops, "unclipped")], epoch)
+      else:
+        report_fn(eval_metrics[report_metric], epoch)
 
   # Return the evaluation metrics from the final epoch
   return epoch_metrics[-1]
 
 
-def extract_game_name(data_dir):
-  files = tf.gfile.ListDirectory(data_dir)
-  matches = [re.findall(r"on_(.*)_deterministic", f) for f in files]
-  non_empty_matches = [m for m in matches if m]
-  return non_empty_matches[0][0]
-
-
-def compute_final_evaluation_on_real_environments(hparams, job_results_dir,
-                                                  eval_output_file=None):
-  """Runs evaluation of PPO policies on environment with real environments."""
-  if eval_output_file is None:
-    eval_output_file = os.path.join(
-        FLAGS.eval_results_dir,
-        "result_{}.txt".format(
-            os.path.basename(os.path.normpath(job_results_dir))))
-  directories = tf.gfile.ListDirectory(job_results_dir)
-  results = {}
-  tmp_dir = os.path.join(FLAGS.eval_results_dir, "eval_tmp")
-  if tf.gfile.Exists(tmp_dir):
-    tf.gfile.DeleteRecursively(tmp_dir)
-  for directory in directories:
-    ppo_model_dir = os.path.join(job_results_dir, directory, "ppo")
-    data_dir = os.path.join(job_results_dir, directory, "data/initial")
-    hparams.game = extract_game_name(data_dir)
-    problem_name, _, _, _ = setup_problems(hparams)
-
-    tf.logging.info("Evaluating in real environment game %s." % hparams.game)
-    try:
-      mean_reward = int(generate_real_env_data(
-          problem_name, ppo_model_dir, hparams,
-          os.path.join(tmp_dir, directory),
-          "/tmp", autoencoder_path=None,
-          eval_phase=True, real_reward=True))
-      tf.logging.info(
-          "Mean eval reward on {}: {}".format(hparams.game, mean_reward))
-    except AttributeError:
-      tf.logging.info("No PPO model for: {}".format(ppo_model_dir))
-      mean_reward = None
-    game_results = results.get(hparams.game, [])
-    game_results.append(mean_reward)
-    results[hparams.game] = game_results
-
-  with open(eval_output_file, "w") as f:
-    for game in sorted(six.iterkeys(results)):
-      print("{}:".format(game), file=f, end="")
-      for z in reversed(sorted(results[game])):
-        print(" {}".format(z), file=f, end="")
-      print("", file=f)
-
-
-def combine_training_data(problem, final_data_dir, old_data_dirs,
-                          copy_last_eval_set=True):
-  """Add training data from old_data_dirs into final_data_dir."""
-  for i, data_dir in enumerate(old_data_dirs):
-    suffix = os.path.basename(data_dir)
-    # Glob train files in old data_dir
-    old_train_files = tf.gfile.Glob(
-        problem.filepattern(data_dir, tf.estimator.ModeKeys.TRAIN))
-    if (i + 1) == len(old_data_dirs) and copy_last_eval_set:
-      old_train_files += tf.gfile.Glob(
-          problem.filepattern(data_dir, tf.estimator.ModeKeys.EVAL))
-    for fname in old_train_files:
-      # Move them to the new data_dir with a suffix
-      # Since the data is read based on a prefix filepattern, adding the suffix
-      # should be fine.
-      new_fname = os.path.join(final_data_dir,
-                               os.path.basename(fname) + "." + suffix)
-      if not tf.gfile.Exists(new_fname):
-        tf.gfile.Copy(fname, new_fname)
-
-
 def main(_):
   hp = trainer_model_based_params.create_loop_hparams()
-  if FLAGS.job_dir_to_evaluate:
-    compute_final_evaluation_on_real_environments(hp, FLAGS.job_dir_to_evaluate)
-  else:
-    training_loop(hp, FLAGS.output_dir)
+  assert not FLAGS.job_dir_to_evaluate
+  training_loop(hp, FLAGS.output_dir)
 
 
 if __name__ == "__main__":

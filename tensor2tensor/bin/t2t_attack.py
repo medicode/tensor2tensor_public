@@ -99,6 +99,7 @@ def create_surrogate_run_config(hp):
       hp.daisy_chain_variables and hp.activation_dtype == "float32" and
       hp.weight_dtype == "float32")
   return trainer_lib.create_run_config(
+      model_name=FLAGS.model,
       model_dir=os.path.expanduser(FLAGS.surrogate_output_dir),
       master=FLAGS.master,
       iterations_per_loop=FLAGS.iterations_per_loop,
@@ -193,7 +194,7 @@ def main(argv):
 
   if FLAGS.surrogate_attack:
     sur_model_fn = t2t_model.T2TModel.make_estimator_model_fn(
-        FLAGS.surrogate_model, sur_hparams)
+        FLAGS.surrogate_model, sur_hparams, use_tpu=FLAGS.use_tpu)
     sur_ch_model = adv_attack_utils.T2TAttackModel(
         sur_model_fn, features, params, sur_config, scope="surrogate")
     # Dummy call to construct graph

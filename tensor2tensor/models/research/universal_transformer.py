@@ -396,7 +396,7 @@ def update_hparams_for_universal_transformer(hparams):
 
   # Default ffn layer is separable convolution.
   # Options: "fc" and "sepconv".
-  hparams.add_hparam("transformer_ffn_type", "fc")
+  hparams.add_hparam("transformer_ffn_type", "sepconv")
 
   # Transform bias (in models with highway or skip connection).
   hparams.add_hparam("transform_bias_init", -1.0)

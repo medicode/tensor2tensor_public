@@ -131,7 +131,7 @@ class T2TModel(base.Layer):
           input_modality.top_dimensionality !=
           target_modality.top_dimensionality):
         log_info("Unsetting shared_embedding_and_softmax_weights.")
-        hparams.shared_embedding_and_softmax_weights = 0
+        #hparams.shared_embedding_and_softmax_weights = 0
     self._original_hparams = hparams
     self.set_mode(mode)
 

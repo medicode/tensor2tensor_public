@@ -105,6 +105,11 @@ class SymbolModality(modality.Modality):
         x = tf.expand_dims(x, axis=-1)
 
       var = self._get_weights()
+      # TEST
+#      print_op = tf.print('weights in bottom simple', tf.get_variable_scope().name, var.name, var)
+#      with tf.control_dependencies([print_op]):
+#          var = tf.identity(var)
+      # TEST
       x = common_layers.dropout_no_scaling(
           x, 1.0 - self._model_hparams.symbol_dropout)
       ret = common_layers.gather(var, x)
@@ -151,6 +156,11 @@ class SymbolModality(modality.Modality):
     with tf.variable_scope(scope_name, reuse=reuse):
       body_output_shape = common_layers.shape_list(body_output)
       var = self._get_weights(body_output_shape[-1])
+      # TEST
+#      print_op = tf.print('fc_layer', tf.get_variable_scope().name, var.name, var, summarize=-1)
+#      with tf.control_dependencies([print_op]):
+#        var = tf.identity(var)
+      # TEST
       if (self._model_hparams.factored_logits and
           self._model_hparams.mode == tf.estimator.ModeKeys.TRAIN):
         # insert channels dimension

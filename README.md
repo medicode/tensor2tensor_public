@@ -6,6 +6,7 @@ version](https://badge.fury.io/py/tensor2tensor.svg)](https://badge.fury.io/py/t
 Issues](https://img.shields.io/github/issues/tensorflow/tensor2tensor.svg)](https://github.com/tensorflow/tensor2tensor/issues)
 [![Contributions
 welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/b8e3d596d8094de687705f8fe3f72c8d)](https://app.codacy.com/app/Fathom/tensor2tensor?utm_source=github.com&utm_medium=referral&utm_content=medicode/tensor2tensor&utm_campaign=Badge_Grade_Dashboard)
 [![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/tensor2tensor/Lobby)
 [![License](https://img.shields.io/badge/License-Apache%202.0-brightgreen.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Travis](https://img.shields.io/travis/tensorflow/tensor2tensor.svg)](https://travis-ci.org/tensorflow/tensor2tensor)

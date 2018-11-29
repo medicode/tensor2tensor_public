@@ -1333,6 +1333,12 @@ class T2TModel(base.Layer):
     if common_layers.is_xla_compiled():
       if isinstance(logits, dict):
         for k, v in sorted(six.iteritems(logits)):
+          print("Key is ",k)
+          try:
+            print("V is",v)
+          except:
+            pass
+          print(f"Shape is {shape = v.get_shape().as_list()}")
           if "scalar/" in k:
             continue
 

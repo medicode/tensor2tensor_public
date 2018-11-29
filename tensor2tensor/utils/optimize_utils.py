@@ -23,6 +23,7 @@ from tensorflow.python.ops import gen_control_flow_ops
 from tensorflow.python.ops import gen_math_ops
 from tensorflow.python.ops import math_ops
 from tensorflow.python.training import optimizer
+import tensorflow as tf
 
 
 class LossScaleOptimizer(optimizer.Optimizer):

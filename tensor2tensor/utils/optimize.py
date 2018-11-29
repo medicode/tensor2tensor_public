@@ -119,12 +119,10 @@ class ConditionalOptimizer(tf.train.Optimizer):
         decr_every_n_nan_or_inf=2,
         incr_ratio=2,
         decr_ratio=0.5)
-    tf.logging.info('before wrapper self._opt', type(self._opt))
     #self._opt = tf.contrib.mixed_precision.LossScaleOptimizer(
     from tensor2tensor.utils.optimize_utils import LossScaleOptimizer
     self._opt = LossScaleOptimizer(
         self._opt, loss_scale_manager)
-    tf.logging.info('after wrapper self._opt', type(self._opt))
 
   def compute_gradients(self, loss, var_list=None, **kwargs):  # pylint: disable=arguments-differ
     gradients = self._opt.compute_gradients(loss, var_list, **kwargs)

@@ -132,7 +132,8 @@ class LossScaleOptimizer(optimizer.Optimizer):
       else:
         loss_val = loss
       print_op = tf.print('loss val', loss_val)
-      with tf.control_dependencies([print_op]):
+      print_op_2 = tf.print('loss scale', loss_scale)
+      with tf.control_dependencies([print_op, print_op_2]):
         scaled_loss = loss_val * math_ops.cast(loss_scale,
                                                loss_val.dtype.base_dtype)
     grads_and_vars = self._opt.compute_gradients(
@@ -142,7 +143,7 @@ class LossScaleOptimizer(optimizer.Optimizer):
         aggregation_method=aggregation_method,
         colocate_gradients_with_ops=colocate_gradients_with_ops,
         grad_loss=grad_loss)
-    print_op = tf.print('loss scale', scaled_loss)
+    print_op = tf.print('scaled loss', scaled_loss)
     with tf.control_dependencies([print_op]):
       return self._down_scale(grads_and_vars, loss_scale)
 

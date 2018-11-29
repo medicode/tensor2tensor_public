@@ -158,6 +158,8 @@ class SymbolModality(modality.Modality):
         return common_layers.FactoredTensor(body_output, var)
       else:
         body_output = tf.reshape(body_output, [-1, body_output_shape[-1]])
+        # TODO
+        var = tf.cast(var, tf.float16)
         logits = tf.matmul(body_output, var, transpose_b=True)
         if (common_layers.is_xla_compiled() and
             self._model_hparams.mode == tf.estimator.ModeKeys.TRAIN):

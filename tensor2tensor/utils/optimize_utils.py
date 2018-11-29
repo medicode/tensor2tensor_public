@@ -140,7 +140,9 @@ class LossScaleOptimizer(optimizer.Optimizer):
         aggregation_method=aggregation_method,
         colocate_gradients_with_ops=colocate_gradients_with_ops,
         grad_loss=grad_loss)
-    return self._down_scale(grads_and_vars, loss_scale)
+    print_op = tf.print('loss scale', scaled_loss)
+    with tf.control_dependencies([print_op]):
+      return self._down_scale(grads_and_vars, loss_scale)
 
   def apply_gradients(self, grads_and_vars, global_step=None, name=None):
     """Apply gradients. See base class `tf.train.Optimizer`."""
@@ -154,8 +156,6 @@ class LossScaleOptimizer(optimizer.Optimizer):
         is_finite_grad.append(math_ops.reduce_all(gen_math_ops.is_finite(g)))
     is_overall_finite = math_ops.reduce_all(is_finite_grad)
     # DEBUG
-    for g in grads:
-
     print_op = tf.print('is overall finite', is_overall_finite)
     with tf.control_dependencies([print_op]):
       is_overall_finite = tf.identity(is_overall_finite)

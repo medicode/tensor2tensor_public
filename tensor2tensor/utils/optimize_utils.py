@@ -131,8 +131,10 @@ class LossScaleOptimizer(optimizer.Optimizer):
         loss_val = loss()
       else:
         loss_val = loss
-      scaled_loss = loss_val * math_ops.cast(loss_scale,
-                                             loss_val.dtype.base_dtype)
+      print_op = tf.print('loss val', loss_val)
+      with tf.control_dependencies([print_op]):
+        scaled_loss = loss_val * math_ops.cast(loss_scale,
+                                               loss_val.dtype.base_dtype)
     grads_and_vars = self._opt.compute_gradients(
         scaled_loss,
         var_list=var_list,

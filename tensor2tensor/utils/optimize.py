@@ -119,7 +119,7 @@ class ConditionalOptimizer(tf.train.Optimizer):
         decr_every_n_nan_or_inf=2,
         incr_ratio=2,
         decr_ratio=0.5)
-    tf.logging.info('before wrapper self._opt', type(self._opt)
+    tf.logging.info('before wrapper self._opt', type(self._opt))
     #self._opt = tf.contrib.mixed_precision.LossScaleOptimizer(
     from tensor2tensor.utils.optimize_utils import LossScaleOptimizer
     self._opt = LossScaleOptimizer(

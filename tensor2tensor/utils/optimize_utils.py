@@ -131,8 +131,8 @@ class LossScaleOptimizer(optimizer.Optimizer):
         loss_val = loss()
       else:
         loss_val = loss
-      print_op = tf.print('loss val', loss_val)
-      print_op_2 = tf.print('loss scale', loss_scale)
+      print_op = tf.print('loss val', loss_val.dtype, loss_val)
+      print_op_2 = tf.print('loss scale', loss_scale.dtype, loss_scale)
       with tf.control_dependencies([print_op, print_op_2]):
         scaled_loss = loss_val * math_ops.cast(loss_scale,
                                                loss_val.dtype.base_dtype)
@@ -143,7 +143,7 @@ class LossScaleOptimizer(optimizer.Optimizer):
         aggregation_method=aggregation_method,
         colocate_gradients_with_ops=colocate_gradients_with_ops,
         grad_loss=grad_loss)
-    print_op = tf.print('scaled loss', scaled_loss)
+    print_op = tf.print('scaled loss', scaled_loss.dtype, scaled_loss)
     with tf.control_dependencies([print_op]):
       return self._down_scale(grads_and_vars, loss_scale)
 
@@ -153,13 +153,13 @@ class LossScaleOptimizer(optimizer.Optimizer):
 
     is_finite_grad = []
     for g in grads:
-      print_op = tf.print('gradients', g)
+      print_op = tf.print('gradients', g.dtype, g)
       print_op_2 = tf.print('gradients finit', gen_math_ops.is_finite(g))
       with tf.control_dependencies([print_op, print_op_2]):
         is_finite_grad.append(math_ops.reduce_all(gen_math_ops.is_finite(g)))
     is_overall_finite = math_ops.reduce_all(is_finite_grad)
     # DEBUG
-    print_op = tf.print('is overall finite', is_overall_finite)
+    print_op = tf.print('is overall finite', is_overall_finite.dtype, is_overall_finite)
     with tf.control_dependencies([print_op]):
       is_overall_finite = tf.identity(is_overall_finite)
     # END DEBUG

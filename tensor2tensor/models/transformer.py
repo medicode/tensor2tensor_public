@@ -42,6 +42,9 @@ import tensorflow as tf
 from tensorflow.python.ops import inplace_ops
 from tensorflow.python.util import nest
 
+# Fathom
+from fathomt2t_dependencies.common_t2t_utils import get_tf_activation_dtype
+
 
 @registry.register_model
 class Transformer(t2t_model.T2TModel):
@@ -1137,8 +1140,7 @@ def transformer_prepare_encoder(inputs, target_space, hparams, features=None):
         32,
         ishape_static[-1],
         name="target_space_embedding",
-        dtype=tf.bfloat16
-        if hparams.activation_dtype == "bfloat16" else tf.float32)
+        dtype=get_tf_activation_dtype(hparams))
     emb_target_space = tf.reshape(emb_target_space, [1, 1, -1])
     encoder_input += emb_target_space
   if hparams.pos == "timing":
@@ -1151,11 +1153,11 @@ def transformer_prepare_encoder(inputs, target_space, hparams, features=None):
     encoder_input = common_attention.add_positional_embedding(
         encoder_input, hparams.max_length, "inputs_positional_embedding",
         inputs_position)
-  if hparams.activation_dtype == "bfloat16":
+  if get_tf_activation_dtype(hparams) != tf.float32:
     encoder_self_attention_bias = tf.cast(encoder_self_attention_bias,
-                                          tf.bfloat16)
+                                          get_tf_activation_dtype(hparams))
     encoder_decoder_attention_bias = tf.cast(encoder_decoder_attention_bias,
-                                             tf.bfloat16)
+                                             get_tf_activation_dtype(hparams))
   return (encoder_input, encoder_self_attention_bias,
           encoder_decoder_attention_bias)
 
@@ -1212,9 +1214,9 @@ def transformer_prepare_decoder(targets, hparams, features=None):
         decoder_input, hparams.max_length, "targets_positional_embedding",
         targets_position)
 
-  if hparams.activation_dtype == "bfloat16":
+  if get_tf_activation_dtype(hparams) != tf.float32:
     decoder_self_attention_bias = tf.cast(decoder_self_attention_bias,
-                                          tf.bfloat16)
+                                          get_tf_activation_dtype(hparams))
   return (decoder_input, decoder_self_attention_bias)
 
 

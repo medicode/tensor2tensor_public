@@ -1338,7 +1338,7 @@ class T2TModel(base.Layer):
             print("V is",v)
           except:
             pass
-          print(f"Shape is {shape = v.get_shape().as_list()}")
+          print(f"Shape is {v.get_shape().as_list()}")
           if "scalar/" in k:
             continue
 

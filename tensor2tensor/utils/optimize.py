@@ -113,7 +113,7 @@ class ConditionalOptimizer(tf.train.Optimizer):
     else:
       self._opt = tf.contrib.layers.OPTIMIZER_CLS_NAMES[optimizer_name](lr)
     # TODO: move to hparams
-    loss_scale_manager = tf.contrib.mixed_precision.ExponentialUpdateLossScaleManger(
+    loss_scale_manager = tf.contrib.mixed_precision.ExponentialUpdateLossScaleManager(
         init_loss_scale=2**7,
         incr_every_n_steps=2000,
         decr_every_n_nan_or_inf=2,

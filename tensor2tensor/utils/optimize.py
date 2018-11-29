@@ -118,7 +118,7 @@ class ConditionalOptimizer(tf.train.Optimizer):
         incr_every_n_steps=2000,
         decr_every_n_nan_or_inf=2,
         incr_ratio=2,
-        decr_ratio=0.8)
+        decr_ratio=0.5)
     self._opt = tf.contrib.mixed_precision.LossScaleOptimizer(
         self._opt, loss_scale_manager)
 

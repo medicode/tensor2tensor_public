@@ -184,7 +184,7 @@ class Modality(object):
     if weights_fn is None:
       weights_fn = self.targets_weights_fn
     return common_layers.padded_cross_entropy(
-        logits,
+        tf.cast(logits, tf.float32),
         targets,
         self._model_hparams.label_smoothing,
         weights_fn=weights_fn)

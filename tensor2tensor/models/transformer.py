@@ -1255,7 +1255,7 @@ def transformer_encoder(encoder_input,
     'encoder input', encoder_input.dtype,
     tf.math.count_nonzero(tf.debugging.is_nan(encoder_input)))
   with tf.control_dependencies([print_op]):
-    x = encoder_input
+    x = tf.identity(encoder_input)
   attention_dropout_broadcast_dims = (
       common_layers.comma_separated_string_to_integer_list(
           getattr(hparams, "attention_dropout_broadcast_dims", "")))
@@ -1356,7 +1356,7 @@ def transformer_decoder(decoder_input,
     'decoder input', decoder_input.dtype,
     tf.math.count_nonzero(tf.debugging.is_nan(decoder_input)))
   with tf.control_dependencies([print_op]):
-    x = decoder_input
+    x = tf.identity(decoder_input)
   attention_dropout_broadcast_dims = (
       common_layers.comma_separated_string_to_integer_list(
           getattr(hparams, "attention_dropout_broadcast_dims", "")))

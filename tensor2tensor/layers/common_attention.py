@@ -1478,7 +1478,7 @@ def dot_product_attention(q,
     # Drop out attention links for each head.
     print_ops = [
       print_op_make('before dropout with broadcast logits_32', logits_32),
-      tf.print('logits_32 values', logits_32),
+      tf.print('logits_32 values', logits_32, summarize=1000000),
       print_op_make('before dropout with broadcast weights_32', weights_32),
       print_op_make('before dropout with broadcast weights', weights),
     ]

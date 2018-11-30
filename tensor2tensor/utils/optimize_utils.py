@@ -150,7 +150,9 @@ class LossScaleOptimizer(optimizer.Optimizer):
         var.name, var.dtype,
         tf.math.count_nonzero(tf.debugging.is_nan(tf.cast(var, tf.float16)))))
     print_op = tf.print('scaled loss', scaled_loss.dtype, scaled_loss)
-    print_op_2 = tf.print('gradients before down scale', grads[0].dtype, grads[0])
+    print_op_2 = tf.print(
+        'gradients before down scale', grads[0].dtype,
+        tf.math.count_nonzero(tf.debugging.is_nan(grads[0])))
     with tf.control_dependencies([print_op, print_op_2] + var_print_ops):
       return self._down_scale(grads_and_vars, loss_scale)
 
@@ -160,7 +162,9 @@ class LossScaleOptimizer(optimizer.Optimizer):
 
     is_finite_grad = []
     for g in grads:
-      print_op = tf.print('gradients', g.dtype, g)
+      print_op = tf.print(
+        'gradients', g.dtype,
+        tf.math.count_nonzero(tf.debugging.is_nan(g)))
       print_op_2 = tf.print('gradients finit', gen_math_ops.is_finite(g))
       with tf.control_dependencies([print_op, print_op_2]):
         is_finite_grad.append(math_ops.reduce_all(gen_math_ops.is_finite(g)))

@@ -131,11 +131,11 @@ class LossScaleOptimizer(optimizer.Optimizer):
         loss_val = loss()
       else:
         loss_val = loss
-      print_op = tf.print('loss val', loss_val.dtype, loss_val)
-      print_op_2 = tf.print('loss scale', loss_scale.dtype, loss_scale)
-      with tf.control_dependencies([print_op, print_op_2]):
-        scaled_loss = loss_val * math_ops.cast(loss_scale,
-                                               loss_val.dtype.base_dtype)
+#      print_op = tf.print('loss val', loss_val.dtype, loss_val)
+#      print_op_2 = tf.print('loss scale', loss_scale.dtype, loss_scale)
+#      with tf.control_dependencies([print_op, print_op_2]):
+      scaled_loss = loss_val * math_ops.cast(loss_scale,
+                                             loss_val.dtype.base_dtype)
     grads_and_vars = self._opt.compute_gradients(
         scaled_loss,
         var_list=var_list,
@@ -143,18 +143,7 @@ class LossScaleOptimizer(optimizer.Optimizer):
         aggregation_method=aggregation_method,
         colocate_gradients_with_ops=colocate_gradients_with_ops,
         grad_loss=grad_loss)
-    grads = [g for (g, _) in grads_and_vars] #
-    var_print_ops = []
-    for (_, var) in grads_and_vars:
-      var_print_ops.append(tf.print(
-        var.name, var.dtype,
-        tf.math.count_nonzero(tf.debugging.is_nan(tf.cast(var, tf.float16)))))
-    print_op = tf.print('scaled loss', scaled_loss.dtype, scaled_loss)
-    print_op_2 = tf.print(
-        'gradients before down scale', grads[0].dtype,
-        tf.math.count_nonzero(tf.debugging.is_nan(grads[0])))
-    with tf.control_dependencies([print_op, print_op_2] + var_print_ops):
-      return self._down_scale(grads_and_vars, loss_scale)
+    return self._down_scale(grads_and_vars, loss_scale)
 
   def apply_gradients(self, grads_and_vars, global_step=None, name=None):
     """Apply gradients. See base class `tf.train.Optimizer`."""
@@ -162,17 +151,8 @@ class LossScaleOptimizer(optimizer.Optimizer):
 
     is_finite_grad = []
     for g in grads:
-      print_op = tf.print(
-        'gradients', g.dtype,
-        tf.math.count_nonzero(tf.debugging.is_nan(g)))
-      with tf.control_dependencies([print_op]):
-        is_finite_grad.append(math_ops.reduce_all(gen_math_ops.is_finite(g)))
+      is_finite_grad.append(math_ops.reduce_all(gen_math_ops.is_finite(g)))
     is_overall_finite = math_ops.reduce_all(is_finite_grad)
-    # DEBUG
-    print_op = tf.print('is overall finite', is_overall_finite.dtype, is_overall_finite)
-    with tf.control_dependencies([print_op]):
-      is_overall_finite = tf.identity(is_overall_finite)
-    # END DEBUG
 
     # Only update gradients when all grads are finite.
     def true_apply_gradients_fn():

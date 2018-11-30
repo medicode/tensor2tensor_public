@@ -182,7 +182,7 @@ class Transformer(t2t_model.T2TModel):
         targets, hparams, features=features)
 
     print_op = print_op_make('body bias', encoder_decoder_attention_bias)
-    value_op = print_op('body bias values', encoder_decoder_attention_bias, summarize=10000)
+    value_op = tf.print('body bias values', encoder_decoder_attention_bias, summarize=10000)
     with tf.control_dependencies([print_op, value_op]):
       decoder_output = self.decode(
           decoder_input,

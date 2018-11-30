@@ -179,14 +179,19 @@ class Transformer(t2t_model.T2TModel):
     targets = common_layers.flatten4d3d(targets)
     decoder_input, decoder_self_attention_bias = transformer_prepare_decoder(
         targets, hparams, features=features)
-    decoder_output = self.decode(
-        decoder_input,
-        encoder_output,
-        encoder_decoder_attention_bias,
-        decoder_self_attention_bias,
-        hparams,
-        nonpadding=features_to_nonpadding(features, "targets"),
-        losses=losses)
+    print_op = tf.print(
+      'body', encoder_decoder_attention_bias.name,
+      encoder_decoder_attention_bias.dtype,
+      tf.math.count_nonzero(tf.debugging.is_nan(encoder_decoder_attention_bias)))
+    with tf.control_dependencies([print_op]):
+      decoder_output = self.decode(
+          decoder_input,
+          encoder_output,
+          encoder_decoder_attention_bias,
+          decoder_self_attention_bias,
+          hparams,
+          nonpadding=features_to_nonpadding(features, "targets"),
+          losses=losses)
 
     expected_attentions = features.get("expected_attentions")
     if expected_attentions is not None:

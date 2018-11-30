@@ -180,7 +180,6 @@ class Transformer(t2t_model.T2TModel):
     targets = common_layers.flatten4d3d(targets)
     decoder_input, decoder_self_attention_bias = transformer_prepare_decoder(
         targets, hparams, features=features)
-
     decoder_output = self.decode(
         decoder_input,
         encoder_output,
@@ -1115,7 +1114,6 @@ def transformer_prepare_encoder(inputs, target_space, hparams, features=None):
   ishape_static = inputs.shape.as_list()
   encoder_input = inputs
   if features and "inputs_segmentation" in features:
-    print('packed dataset')
     # Packed dataset.  Keep the examples from seeing each other.
     inputs_segmentation = features["inputs_segmentation"]
     inputs_position = features["inputs_position"]
@@ -1126,7 +1124,6 @@ def transformer_prepare_encoder(inputs, target_space, hparams, features=None):
         common_attention.attention_bias_same_segment(targets_segmentation,
                                                      inputs_segmentation))
   else:
-    print('not packed dataset')
     # Usual case - not a packed dataset.
     encoder_padding = common_attention.embedding_to_padding(encoder_input)
     ignore_padding = common_attention.attention_bias_ignore_padding(
@@ -1255,7 +1252,7 @@ def transformer_encoder(encoder_input,
   Returns:
     y: a Tensors
   """
-  x = tf.identity(encoder_input)
+  x = encoder_input
   attention_dropout_broadcast_dims = (
       common_layers.comma_separated_string_to_integer_list(
           getattr(hparams, "attention_dropout_broadcast_dims", "")))
@@ -1350,7 +1347,7 @@ def transformer_decoder(decoder_input,
     y: a Tensors
   """
   #print_op = print_op_make('decoder input', decoder_input)
-  x = tf.identity(decoder_input)
+  x = decoder_input
   attention_dropout_broadcast_dims = (
       common_layers.comma_separated_string_to_integer_list(
           getattr(hparams, "attention_dropout_broadcast_dims", "")))

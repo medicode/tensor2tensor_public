@@ -1725,10 +1725,10 @@ def padded_cross_entropy(logits,
         logits,
         shape_list(labels) + [vocab_size],
         name="padded_cross_entropy_size_check")
-    print_op = tf.print('logits before', logits.dtype, logits)
+    print_op = tf.print('logits before cast', logits.dtype, tf.debugging.is_nan(logits))
     with tf.control_dependencies([print_op]):
       logits = tf.cast(logits, tf.float32)
-    print_op = tf.print('logits after', logits.dtype, logits)
+    print_op = tf.print('logits after cast', logits.dtype, tf.debugging.is_nan(logits))
     with tf.control_dependencies([print_op]):
       xent = smoothing_cross_entropy(
           logits, labels, vocab_size, confidence, gaussian=gaussian)

@@ -1475,7 +1475,7 @@ def dot_product_attention(q,
 
     print_ops = [
       print_op_make('before dot product matmul weights', weights),
-      print_op_make('before dot product matmul v', v)]
+      print_op_make('before dot product matmul v', v)
     ]
     with tf.control_dependencies(print_ops):
       return tf.matmul(weights, v)

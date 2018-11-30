@@ -1468,7 +1468,7 @@ def dot_product_attention(q,
       print_op_make('logits before softmax', logits),
     ]
     with tf.control_dependencies(print_ops):
-      weights = tf.nn.softmax(logits, name="attention_weights")
+      weights = tf.cast(tf.nn.softmax(tf.cast(logits, tf.float32), name="attention_weights"), tf.float16)
     if save_weights_to is not None:
       save_weights_to[scope.name] = weights
       save_weights_to[scope.name + "/logits"] = logits

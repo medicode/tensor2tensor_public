@@ -1459,11 +1459,31 @@ def dot_product_attention(q,
   """
   with tf.variable_scope(
       name, default_name="dot_product_attention", values=[q, k, v]) as scope:
-    logits = tf.matmul(q, k, transpose_b=True)  # [..., length_q, length_kv]
+    print_ops = [
+      print_op_make('q before matmul', q)
+      print_op_make('k before matmul', k)
+    ]
+    with tf.control_dependencies(print_ops):
+      logits = tf.matmul(q, k, transpose_b=True)  # [..., length_q, length_kv]
     if bias is not None:
-      bias = common_layers.cast_like(bias, logits)
-      logits += bias
-    weights = tf.nn.softmax(logits, name="attention_weights")
+      print_ops = [
+        print_op_make('logits before cast like', logits)
+        print_op_make('bias before cast like', bias)
+      ]
+      with tf.control_dependencies(print_ops):
+        bias = common_layers.cast_like(bias, logits)
+      print_ops = [
+        print_op_make('logits before logits += bias', logits)
+        print_op_make('bias before logits += bias', bias)
+      ]
+      with tf.control_dependencies(print_ops):
+        logits += bias
+
+    print_ops = [
+      print_op_make('logits before softmax', logits),
+    ]
+    with tf.control_dependencies(print_ops):
+      weights = tf.nn.softmax(logits, name="attention_weights")
     if save_weights_to is not None:
       save_weights_to[scope.name] = weights
       save_weights_to[scope.name + "/logits"] = logits

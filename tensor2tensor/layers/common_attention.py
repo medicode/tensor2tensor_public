@@ -1472,7 +1472,13 @@ def dot_product_attention(q,
         weights, 1.0 - dropout_rate, broadcast_dims=dropout_broadcast_dims)
     if common_layers.should_generate_summaries() and make_image_summary:
       attention_image_summary(weights, image_shapes)
-    return tf.matmul(weights, v)
+
+    print_ops = [
+      print_op_make('before dot product matmul weights', weights),
+      print_op_make('before dot product matmul v', v)]
+    ]
+    with tf.control_dependencies(print_ops):
+      return tf.matmul(weights, v)
 
 
 def _generate_relative_positions_matrix(length, max_relative_position):
@@ -3525,7 +3531,7 @@ def multihead_attention(query_antecedent,
       assert attention_type == "unmasked_dilated_1d"
       x = dilated_self_attention_1d(q, k, v, block_length, block_width,
                                     gap_size, num_memory_blocks)
-    print_op = print_op_make('before combine heads', x)
+    print_op = print_op_make('after dot product', x)
     with tf.control_dependencies([print_op]):
       x = combine_heads(x)
 

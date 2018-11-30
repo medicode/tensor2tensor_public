@@ -884,11 +884,7 @@ def attention_bias_same_segment(query_segment_id, memory_segment_id):
           tf.expand_dims(query_segment_id, 2),
           #tf.expand_dims(memory_segment_id, 1))) * -1e9
           tf.expand_dims(memory_segment_id, 1))) * tf.float16.min
-  print_ops = [
-    print_op_make('ret in attention_bias_same_segment', ret)
-  ]
-  with tf.control_dependencies(print_ops):
-    return tf.expand_dims(ret, axis=1)
+  return tf.expand_dims(ret, axis=1)
 
 
 @expert_utils.add_name_scope()
@@ -903,13 +899,7 @@ def attention_bias_ignore_padding(memory_padding):
   """
   #ret = memory_padding * -1e9
   ret = memory_padding * tf.float16.min
-  print_ops = [
-    print_op_make('memory padding', memory_padding),
-    print_op_make('tf float16 min', tf.float16.min),
-    print_op_make('memory padding * tf.float16.min', ret)
-  ]
-  with tf.control_dependencies(print_ops):
-    return tf.expand_dims(tf.expand_dims(ret, axis=1), axis=1)
+  return tf.expand_dims(tf.expand_dims(ret, axis=1), axis=1)
 
 
 @expert_utils.add_name_scope()
@@ -1474,43 +1464,33 @@ def dot_product_attention(q,
     logits = tf.matmul(q, k, transpose_b=True)  # [..., length_q, length_kv]
     if bias is not None:
       bias = common_layers.cast_like(bias, logits)
-      print_ops = [
-        print_op_make('logits before logits += bias', logits),
-        print_op_make('bias before logits += bias', bias),
-      ]
-      with tf.control_dependencies(print_ops):
-        logits += bias
+      logits += bias
 
-    print_ops = [
-      print_op_make('logits before softmax', logits),
-    ]
-    with tf.control_dependencies(print_ops):
-      logits_32 = tf.cast(logits, tf.float32)
-      weights_32 = tf.nn.softmax(logits_32, name="attention_weights")
-      weights = tf.cast(weights_32, tf.float16)
-      #weights = tf.cast(tf.nn.softmax(tf.cast(logits, tf.float32), name="attention_weights"), tf.float16)
+#    print_ops = [
+#      print_op_make('logits before softmax', logits),
+#    ]
+#    with tf.control_dependencies(print_ops):
+#      logits_32 = tf.cast(logits, tf.float32)
+#      weights_32 = tf.nn.softmax(logits_32, name="attention_weights")
+#      weights = tf.cast(weights_32, tf.float16)
+    weights = tf.cast(tf.nn.softmax(tf.cast(logits, tf.float32), name="attention_weights"), tf.float16)
     if save_weights_to is not None:
       save_weights_to[scope.name] = weights
       save_weights_to[scope.name + "/logits"] = logits
     # Drop out attention links for each head.
-    print_ops = [
-      print_op_make('before dropout with broadcast logits_32', logits_32),
-      #tf.print('logits_32 values', logits_32),
-      print_op_make('before dropout with broadcast weights_32', weights_32),
-      print_op_make('before dropout with broadcast weights', weights),
-    ]
-    with tf.control_dependencies(print_ops):
-      weights = common_layers.dropout_with_broadcast_dims(
-          weights, 1.0 - dropout_rate, broadcast_dims=dropout_broadcast_dims)
+#    print_ops = [
+#      print_op_make('before dropout with broadcast logits_32', logits_32),
+#      #tf.print('logits_32 values', logits_32),
+#      print_op_make('before dropout with broadcast weights_32', weights_32),
+#      print_op_make('before dropout with broadcast weights', weights),
+#    ]
+#    with tf.control_dependencies(print_ops):
+    weights = common_layers.dropout_with_broadcast_dims(
+        weights, 1.0 - dropout_rate, broadcast_dims=dropout_broadcast_dims)
     if common_layers.should_generate_summaries() and make_image_summary:
       attention_image_summary(weights, image_shapes)
 
-    print_ops = [
-      print_op_make('before dot product matmul weights', weights),
-      print_op_make('before dot product matmul v', v)
-    ]
-    with tf.control_dependencies(print_ops):
-      return tf.matmul(weights, v)
+    return tf.matmul(weights, v)
 
 
 def _generate_relative_positions_matrix(length, max_relative_position):
@@ -3489,17 +3469,17 @@ def multihead_attention(query_antecedent,
       if isinstance(x, tuple):
         x, additional_returned_value = x  # Unpack
     elif attention_type == "dot_product":
-      print_ops = [
-        print_op_make('before dot_product q', q),
-        print_op_make('before dot_product k', k),
-        print_op_make('before dot_product v', v),
-        print_op_make('before dot_product bias', bias)
-      ]
-      with tf.control_dependencies(print_ops):
-        x = dot_product_attention(q, k, v, bias, dropout_rate, image_shapes,
-                                  save_weights_to=save_weights_to,
-                                  make_image_summary=make_image_summary,
-                                  dropout_broadcast_dims=dropout_broadcast_dims)
+#      print_ops = [
+#        print_op_make('before dot_product q', q),
+#        print_op_make('before dot_product k', k),
+#        print_op_make('before dot_product v', v),
+#        print_op_make('before dot_product bias', bias)
+#      ]
+#      with tf.control_dependencies(print_ops):
+      x = dot_product_attention(q, k, v, bias, dropout_rate, image_shapes,
+                                save_weights_to=save_weights_to,
+                                make_image_summary=make_image_summary,
+                                dropout_broadcast_dims=dropout_broadcast_dims)
     elif attention_type == "dot_product_relative":
       x = dot_product_attention_relative(
           q,
@@ -3567,9 +3547,8 @@ def multihead_attention(query_antecedent,
       assert attention_type == "unmasked_dilated_1d"
       x = dilated_self_attention_1d(q, k, v, block_length, block_width,
                                     gap_size, num_memory_blocks)
-    print_op = print_op_make('after dot product', x)
-    with tf.control_dependencies([print_op]):
-      x = combine_heads(x)
+
+    x = combine_heads(x)
 
     # Set last dim specifically.
     x.set_shape(x.shape.as_list()[:-1] + [total_value_depth])

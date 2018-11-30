@@ -36,6 +36,9 @@ import tensorflow as tf
 from tensorflow.python.framework import function
 from tensorflow.python.ops import inplace_ops
 
+# Fathom
+from fathomt2t_dependencies.common_t2t_utils import get_tf_activation_dtype
+
 # Struct containing the sequences ids and order on a batch (are send to the
 # expert to allow them to compute the bias mask)
 BatchInfo = collections.namedtuple("BatchInfo", "coordinates, order")
@@ -1473,7 +1476,11 @@ def dot_product_attention(q,
 #      logits_32 = tf.cast(logits, tf.float32)
 #      weights_32 = tf.nn.softmax(logits_32, name="attention_weights")
 #      weights = tf.cast(weights_32, tf.float16)
-    weights = tf.cast(tf.nn.softmax(tf.cast(logits, tf.float32), name="attention_weights"), tf.float16)
+    # TODO: pass hparams through so we can call get_tf_activation_dtype?
+    if logits.dtype == tf.float16:
+      weights = tf.cast(tf.nn.softmax(tf.cast(logits, tf.float32), name="attention_weights"), tf.float16)
+    else:
+      weights = tf.nn.softmax(logits, name="attention_weights")
     if save_weights_to is not None:
       save_weights_to[scope.name] = weights
       save_weights_to[scope.name + "/logits"] = logits

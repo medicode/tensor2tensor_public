@@ -1388,7 +1388,7 @@ def transformer_decoder(decoder_input,
               decode_loop_step=decode_loop_step,
               vars_3d=hparams.get("attention_variables_3d"))
           print_op = tf.print(
-            'decoder', layer_name, y.dtype,
+            'decoder y self attention', layer_name, y.dtype,
             tf.math.count_nonzero(tf.debugging.is_nan(y)))
           with tf.control_dependencies([print_op]):
             x = common_layers.layer_postprocess(x, y, hparams)
@@ -1413,7 +1413,11 @@ def transformer_decoder(decoder_input,
                 dropout_broadcast_dims=attention_dropout_broadcast_dims,
                 max_length=hparams.get("max_length"),
                 vars_3d=hparams.get("attention_variables_3d"))
-            x = common_layers.layer_postprocess(x, y, hparams)
+            print_op = tf.print(
+              'decoder y encdec attention', layer_name, y.dtype,
+              tf.math.count_nonzero(tf.debugging.is_nan(y)))
+            with tf.control_dependencies([print_op]):
+              x = common_layers.layer_postprocess(x, y, hparams)
         with tf.variable_scope("ffn"):
           y = transformer_ffn_layer(
               common_layers.layer_preprocess(x, hparams),
@@ -1423,7 +1427,11 @@ def transformer_decoder(decoder_input,
               losses=losses,
               cache=layer_cache,
               decode_loop_step=decode_loop_step)
-          x = common_layers.layer_postprocess(x, y, hparams)
+          print_op = tf.print(
+            'decoder y ffn', layer_name, y.dtype,
+            tf.math.count_nonzero(tf.debugging.is_nan(y)))
+          with tf.control_dependencies([print_op]):
+            x = common_layers.layer_postprocess(x, y, hparams)
     # if normalization is done in layer_preprocess, then it should also be done
     # on the output, since the output can grow very large, being the sum of
     # a whole stack of unnormalized layer outputs.

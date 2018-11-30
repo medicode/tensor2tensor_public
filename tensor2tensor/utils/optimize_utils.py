@@ -144,15 +144,14 @@ class LossScaleOptimizer(optimizer.Optimizer):
         colocate_gradients_with_ops=colocate_gradients_with_ops,
         grad_loss=grad_loss)
     grads = [g for (g, _) in grads_and_vars] #
+    var_print_ops = []
     for (_, var) in grads_and_vars:
-      print_op = tf.print(
+      var_print_ops.append(tf.print(
         var.name, var.dtype,
-        tf.math.count_nonzero(tf.debugging.is_nan(var)))
-      with tf.control_dependencies([print_op]):
-        var = tf.identity(var)
+        tf.math.count_nonzero(tf.debugging.is_nan(var))))
     print_op = tf.print('scaled loss', scaled_loss.dtype, scaled_loss)
     print_op_2 = tf.print('gradients before down scale', grads[0].dtype, grads[0])
-    with tf.control_dependencies([print_op, print_op_2]):
+    with tf.control_dependencies([print_op, print_op_2] + var_print_ops):
       return self._down_scale(grads_and_vars, loss_scale)
 
   def apply_gradients(self, grads_and_vars, global_step=None, name=None):

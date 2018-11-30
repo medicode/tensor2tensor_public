@@ -1473,8 +1473,10 @@ def dot_product_attention(q,
       save_weights_to[scope.name] = weights
       save_weights_to[scope.name + "/logits"] = logits
     # Drop out attention links for each head.
-    weights = common_layers.dropout_with_broadcast_dims(
-        weights, 1.0 - dropout_rate, broadcast_dims=dropout_broadcast_dims)
+    print_op = print_op_make('before dropout with broadcast', weights)
+    with tf.control_dependencies([print_op]):
+      weights = common_layers.dropout_with_broadcast_dims(
+          weights, 1.0 - dropout_rate, broadcast_dims=dropout_broadcast_dims)
     if common_layers.should_generate_summaries() and make_image_summary:
       attention_image_summary(weights, image_shapes)
 

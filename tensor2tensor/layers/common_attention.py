@@ -898,7 +898,13 @@ def attention_bias_ignore_padding(memory_padding):
   """
   #ret = memory_padding * -1e9
   ret = memory_padding * tf.float16.min
-  return tf.expand_dims(tf.expand_dims(ret, axis=1), axis=1)
+  print_ops = [
+    print_op_make('memory padding', memory_padding),
+    print_op_make('tf float16 min', tf.float16.min),
+    print_op_make('memory padding * tf.float16.min', ret)
+  ]
+  with tf.control_dependencies(print_ops):
+    return tf.expand_dims(tf.expand_dims(ret, axis=1), axis=1)
 
 
 @expert_utils.add_name_scope()

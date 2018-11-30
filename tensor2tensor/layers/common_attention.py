@@ -1468,13 +1468,20 @@ def dot_product_attention(q,
       print_op_make('logits before softmax', logits),
     ]
     with tf.control_dependencies(print_ops):
-      weights = tf.cast(tf.nn.softmax(tf.cast(logits, tf.float32), name="attention_weights"), tf.float16)
+      logits_32 = tf.cast(logits, tf.float32)
+      weights_32 = tf.nn.softmax(logits_32, name="attention_weights")
+      weights = tf.cast(weights_32, tf.float16)
+      #weights = tf.cast(tf.nn.softmax(tf.cast(logits, tf.float32), name="attention_weights"), tf.float16)
     if save_weights_to is not None:
       save_weights_to[scope.name] = weights
       save_weights_to[scope.name + "/logits"] = logits
     # Drop out attention links for each head.
-    print_op = print_op_make('before dropout with broadcast', weights)
-    with tf.control_dependencies([print_op]):
+    print_ops = [
+      print_op_make('before dropout with broadcast logits_32', logits_32),
+      print_op_make('before dropout with broadcast weights_32', weights_32),
+      print_op_make('before dropout with broadcast weights', weights),
+    ]
+    with tf.control_dependencies(print_ops):
       weights = common_layers.dropout_with_broadcast_dims(
           weights, 1.0 - dropout_rate, broadcast_dims=dropout_broadcast_dims)
     if common_layers.should_generate_summaries() and make_image_summary:

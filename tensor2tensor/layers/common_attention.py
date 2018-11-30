@@ -896,7 +896,8 @@ def attention_bias_ignore_padding(memory_padding):
   Returns:
     a `Tensor` with shape [batch, 1, 1, memory_length].
   """
-  ret = memory_padding * -1e9
+  #ret = memory_padding * -1e9
+  ret = memory_padding * tf.float16.min
   return tf.expand_dims(tf.expand_dims(ret, axis=1), axis=1)
 
 
@@ -1459,10 +1460,20 @@ def dot_product_attention(q,
   """
   with tf.variable_scope(
       name, default_name="dot_product_attention", values=[q, k, v]) as scope:
+      print_ops = [
+        print_op_make('q max before matmul', q.max()),
+        print_op_make('k max before matmul', k.max()),
+      ]
+      with tf.control_dependencies(print_ops):
     logits = tf.matmul(q, k, transpose_b=True)  # [..., length_q, length_kv]
     if bias is not None:
       bias = common_layers.cast_like(bias, logits)
-      logits += bias
+      print_ops = [
+        print_op_make('logits before logits += bias', logits),
+        print_op_make('bias before logits += bias', bias),
+      ]
+      with tf.control_dependencies(print_ops):
+        logits += bias
 
     print_ops = [
       print_op_make('logits before softmax', logits),

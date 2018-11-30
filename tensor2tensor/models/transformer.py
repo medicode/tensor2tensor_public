@@ -1411,6 +1411,7 @@ def transformer_decoder(decoder_input,
                 vars_3d=hparams.get("attention_variables_3d"))
             print_ops = [
               print_op_make('decoder y encdec attention' + layer_name, y),
+              print_op_make('decoder y encdec bias' + layer_name, encoder_decoder_attention_bias),
               print_op_make('decoder encoder output' + layer_name, encoder_output),
               print_op_make('decoder encoder output' + layer_name, encoder_output)
             ]

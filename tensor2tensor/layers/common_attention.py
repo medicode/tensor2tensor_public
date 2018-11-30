@@ -3445,7 +3445,11 @@ def multihead_attention(query_antecedent,
         return tf.print(
           message, var.name, var.dtype,
           tf.math.count_nonzero(tf.debugging.is_nan(var)))
-      print_ops = [print_op_make('inside dot_product', var) for var in [q, k, v]]
+      print_ops = [
+        print_op_make('inside dot_product q', q),
+        print_op_make('inside dot_product k', k),
+        print_op_make('inside dot_product v', v)
+      ]
       with tf.control_dependencies(print_ops):
         x = dot_product_attention(q, k, v, bias, dropout_rate, image_shapes,
                                   save_weights_to=save_weights_to,

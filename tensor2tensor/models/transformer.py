@@ -1118,6 +1118,7 @@ def transformer_prepare_encoder(inputs, target_space, hparams, features=None):
   ishape_static = inputs.shape.as_list()
   encoder_input = inputs
   if features and "inputs_segmentation" in features:
+    print('packed dataset')
     # Packed dataset.  Keep the examples from seeing each other.
     inputs_segmentation = features["inputs_segmentation"]
     inputs_position = features["inputs_position"]
@@ -1128,6 +1129,7 @@ def transformer_prepare_encoder(inputs, target_space, hparams, features=None):
         common_attention.attention_bias_same_segment(targets_segmentation,
                                                      inputs_segmentation))
   else:
+    print('not packed dataset')
     # Usual case - not a packed dataset.
     encoder_padding = common_attention.embedding_to_padding(encoder_input)
     ignore_padding = common_attention.attention_bias_ignore_padding(

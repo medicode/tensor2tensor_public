@@ -882,8 +882,13 @@ def attention_bias_same_segment(query_segment_id, memory_segment_id):
   ret = tf.to_float(
       tf.not_equal(
           tf.expand_dims(query_segment_id, 2),
-          tf.expand_dims(memory_segment_id, 1))) * -1e9
-  return tf.expand_dims(ret, axis=1)
+          #tf.expand_dims(memory_segment_id, 1))) * -1e9
+          tf.expand_dims(memory_segment_id, 1))) * tf.float16.min
+  print_ops = [
+    print_op_make('ret in attention_bias_same_segment', ret)
+  ]
+  with tf.control_dependencies(print_ops):
+    return tf.expand_dims(ret, axis=1)
 
 
 @expert_utils.add_name_scope()

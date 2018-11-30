@@ -1413,6 +1413,10 @@ def transformer_decoder(decoder_input,
                 dropout_broadcast_dims=attention_dropout_broadcast_dims,
                 max_length=hparams.get("max_length"),
                 vars_3d=hparams.get("attention_variables_3d"))
+            if layer_cache:
+              print_layer_cache_op = tf.print(
+                'decoder encoder attention layer_cache', layer_cache.dtype,
+                tf.math.count_nonzero(tf.debugging.is_nan(layer_cache)))
             print_op = tf.print(
               'decoder y encdec attention', layer_name, y.dtype,
               tf.math.count_nonzero(tf.debugging.is_nan(y)))

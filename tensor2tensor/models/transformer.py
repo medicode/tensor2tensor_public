@@ -45,6 +45,7 @@ from tensorflow.python.util import nest
 # Fathom
 from fathomt2t_dependencies.common_t2t_utils import get_tf_activation_dtype
 
+print_op_make = common_attention.print_op_make
 
 @registry.register_model
 class Transformer(t2t_model.T2TModel):
@@ -179,10 +180,8 @@ class Transformer(t2t_model.T2TModel):
     targets = common_layers.flatten4d3d(targets)
     decoder_input, decoder_self_attention_bias = transformer_prepare_decoder(
         targets, hparams, features=features)
-    print_op = tf.print(
-      'body bias', encoder_decoder_attention_bias.name,
-      encoder_decoder_attention_bias.dtype,
-      tf.math.count_nonzero(tf.debugging.is_nan(encoder_decoder_attention_bias)))
+
+    print_op = print_op_make('body bias', encoder_decoder_attention_bias)
     with tf.control_dependencies([print_op]):
       decoder_output = self.decode(
           decoder_input,
@@ -1256,9 +1255,7 @@ def transformer_encoder(encoder_input,
   Returns:
     y: a Tensors
   """
-  print_op = tf.print(
-    'encoder input', encoder_input.dtype,
-    tf.math.count_nonzero(tf.debugging.is_nan(encoder_input)))
+  print_op = print_op_make('encoder input', encoder_input)
   with tf.control_dependencies([print_op]):
     x = tf.identity(encoder_input)
   attention_dropout_broadcast_dims = (
@@ -1296,9 +1293,7 @@ def transformer_encoder(encoder_input,
               dropout_broadcast_dims=attention_dropout_broadcast_dims,
               max_length=hparams.get("max_length"),
               vars_3d=hparams.get("attention_variables_3d"))
-          print_op = tf.print(
-            'encoder', "layer_%d" % layer, y.dtype,
-            tf.math.count_nonzero(tf.debugging.is_nan(y)))
+          print_op = print_op_make('encoder layer_%d' % layer, y)
           with tf.control_dependencies([print_op]):
             x = common_layers.layer_postprocess(x, y, hparams)
         with tf.variable_scope("ffn"):
@@ -1357,9 +1352,7 @@ def transformer_decoder(decoder_input,
   Returns:
     y: a Tensors
   """
-  print_op = tf.print(
-    'decoder input', decoder_input.dtype,
-    tf.math.count_nonzero(tf.debugging.is_nan(decoder_input)))
+  print_op = print_op_make('decoder input', decoder_input)
   with tf.control_dependencies([print_op]):
     x = tf.identity(decoder_input)
   attention_dropout_broadcast_dims = (
@@ -1392,9 +1385,7 @@ def transformer_decoder(decoder_input,
               max_length=hparams.get("max_length"),
               decode_loop_step=decode_loop_step,
               vars_3d=hparams.get("attention_variables_3d"))
-          print_op = tf.print(
-            'decoder y self attention', layer_name, y.dtype,
-            tf.math.count_nonzero(tf.debugging.is_nan(y)))
+          print_op = print_op_make('decoder y self attention' + layer_name, y)
           with tf.control_dependencies([print_op]):
             x = common_layers.layer_postprocess(x, y, hparams)
         if encoder_output is not None:
@@ -1418,23 +1409,12 @@ def transformer_decoder(decoder_input,
                 dropout_broadcast_dims=attention_dropout_broadcast_dims,
                 max_length=hparams.get("max_length"),
                 vars_3d=hparams.get("attention_variables_3d"))
-            if layer_cache:
-              print_layer_cache_op = tf.print(
-                'decoder encoder attention layer_cache', layer_cache.dtype,
-                tf.math.count_nonzero(tf.debugging.is_nan(layer_cache)))
-            print_op = tf.print(
-              'decoder y encdec attention', layer_name, y.dtype,
-              tf.math.count_nonzero(tf.debugging.is_nan(y)))
-            encoder_output_print_op = tf.print(
-              'decoder encoder output', layer_name, encoder_output.dtype,
-              tf.math.count_nonzero(tf.debugging.is_nan(encoder_output)))
-            var_print_ops = []
-            for var in tf.trainable_variables(scope='multihead_attention'):
-              var_print_ops.append(
-                'multihead_attention variable', var.name, var.dtype,
-                tf.math.count_nonzero(tf.debugging.is_nan(var)))
-            with tf.control_dependencies(
-                [print_op, encoder_output_print_op] + var_print_ops):
+            print_ops = [
+              print_op_make('decoder y encdec attention' + layer_name, y),
+              print_op_make('decoder encoder output' + layer_name, encoder_output),
+              print_op_make('decoder encoder output' + layer_name, encoder_output)
+            ]
+            with tf.control_dependencies(print_ops):
               x = common_layers.layer_postprocess(x, y, hparams)
         with tf.variable_scope("ffn"):
           y = transformer_ffn_layer(
@@ -1445,9 +1425,7 @@ def transformer_decoder(decoder_input,
               losses=losses,
               cache=layer_cache,
               decode_loop_step=decode_loop_step)
-          print_op = tf.print(
-            'decoder y ffn', layer_name, y.dtype,
-            tf.math.count_nonzero(tf.debugging.is_nan(y)))
+          print_op = print_op_make('decoder y ffn' + layer_name, y)
           with tf.control_dependencies([print_op]):
             x = common_layers.layer_postprocess(x, y, hparams)
     # if normalization is done in layer_preprocess, then it should also be done

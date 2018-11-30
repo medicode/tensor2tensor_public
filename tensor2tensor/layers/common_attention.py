@@ -3270,6 +3270,12 @@ def compute_qkv(query_antecedent,
   return q, k, v
 
 
+def print_op_make(message, var):
+  return tf.print(
+    message, var.name, var.dtype,
+    tf.math.count_nonzero(tf.debugging.is_nan(var)))
+
+
 def multihead_attention(query_antecedent,
                         memory_antecedent,
                         bias,
@@ -3441,10 +3447,6 @@ def multihead_attention(query_antecedent,
       if isinstance(x, tuple):
         x, additional_returned_value = x  # Unpack
     elif attention_type == "dot_product":
-      def print_op_make(message, var):
-        return tf.print(
-          message, var.name, var.dtype,
-          tf.math.count_nonzero(tf.debugging.is_nan(var)))
       print_ops = [
         print_op_make('before dot_product q', q),
         print_op_make('before dot_product k', k),
@@ -3523,7 +3525,9 @@ def multihead_attention(query_antecedent,
       assert attention_type == "unmasked_dilated_1d"
       x = dilated_self_attention_1d(q, k, v, block_length, block_width,
                                     gap_size, num_memory_blocks)
-    x = combine_heads(x)
+    print_op = print_op_make('before combine heads', x)
+    with tf.control_dependencies([print_op]):
+      x = combine_heads(x)
 
     # Set last dim specifically.
     x.set_shape(x.shape.as_list()[:-1] + [total_value_depth])

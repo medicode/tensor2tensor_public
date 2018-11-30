@@ -180,7 +180,7 @@ class Transformer(t2t_model.T2TModel):
     decoder_input, decoder_self_attention_bias = transformer_prepare_decoder(
         targets, hparams, features=features)
     print_op = tf.print(
-      'body', encoder_decoder_attention_bias.name,
+      'body bias', encoder_decoder_attention_bias.name,
       encoder_decoder_attention_bias.dtype,
       tf.math.count_nonzero(tf.debugging.is_nan(encoder_decoder_attention_bias)))
     with tf.control_dependencies([print_op]):

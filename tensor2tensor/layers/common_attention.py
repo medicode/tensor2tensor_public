@@ -1478,6 +1478,7 @@ def dot_product_attention(q,
     # Drop out attention links for each head.
     print_ops = [
       print_op_make('before dropout with broadcast logits_32', logits_32),
+      tf.print('logits_32 values', logits_32),
       print_op_make('before dropout with broadcast weights_32', weights_32),
       print_op_make('before dropout with broadcast weights', weights),
     ]
@@ -3293,7 +3294,7 @@ def compute_qkv(query_antecedent,
 def print_op_make(message, var):
   return tf.print(
     message, var.name, var.dtype,
-    tf.math.count_nonzero(tf.debugging.is_nan(var)))
+    tf.math.count_nonzero(tf.debugging.is_nan(var)), tf.size(var))
 
 
 def multihead_attention(query_antecedent,

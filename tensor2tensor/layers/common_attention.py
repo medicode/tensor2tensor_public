@@ -1460,12 +1460,7 @@ def dot_product_attention(q,
   """
   with tf.variable_scope(
       name, default_name="dot_product_attention", values=[q, k, v]) as scope:
-    print_ops = [
-      print_op_make('q max before matmul', q.max()),
-      print_op_make('k max before matmul', k.max()),
-    ]
-    with tf.control_dependencies(print_ops):
-      logits = tf.matmul(q, k, transpose_b=True)  # [..., length_q, length_kv]
+    logits = tf.matmul(q, k, transpose_b=True)  # [..., length_q, length_kv]
     if bias is not None:
       bias = common_layers.cast_like(bias, logits)
       print_ops = [

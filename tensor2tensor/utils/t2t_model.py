@@ -1339,7 +1339,7 @@ class T2TModel(base.Layer):
           except:
             pass
           print(f"Shape is {v.get_shape().as_list()}")
-          if "scalar/" in k:
+          if "scalar/" in k or 'outputs' in k: #outputs is non standard!
             continue
 
           shape = v.get_shape().as_list()

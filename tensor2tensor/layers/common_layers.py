@@ -1725,7 +1725,7 @@ def padded_cross_entropy(logits,
         logits,
         shape_list(labels) + [vocab_size],
         name="padded_cross_entropy_size_check")
-    print_op = tf.print('is_nam(logits) before cast', logits.dtype, tf.math.count_nonzero(tf.debugging.is_nan(logits)))
+    print_op = tf.print('is_nan(logits) before cast', logits.dtype, tf.math.count_nonzero(tf.debugging.is_nan(logits)))
     with tf.control_dependencies([print_op]):
       logits = tf.identity(logits)
     logits = tf.cast(logits, tf.float32)

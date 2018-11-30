@@ -1420,9 +1420,9 @@ def transformer_decoder(decoder_input,
               'decoder encoder output', layer_name, encoder_output.dtype,
               tf.math.count_nonzero(tf.debugging.is_nan(encoder_output)))
             var_print_ops = []
-            for var in tf.trainable_variables(scope='encdec_attention'):
+            for var in tf.trainable_variables(scope='multihead_attention'):
               var_print_ops.append(
-                'encdec_attention variable', var.name, var.dtype,
+                'multihead_attention variable', var.name, var.dtype,
                 tf.math.count_nonzero(tf.debugging.is_nan(var)))
             with tf.control_dependencies(
                 [print_op, encoder_output_print_op] + var_print_ops):

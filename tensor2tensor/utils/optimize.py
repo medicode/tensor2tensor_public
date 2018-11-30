@@ -116,17 +116,17 @@ class ConditionalOptimizer(tf.train.Optimizer):
     else:
       self._opt = tf.contrib.layers.OPTIMIZER_CLS_NAMES[optimizer_name](lr)
 
-    if get_tf_activation_dtype(hparams) == 'float16':
-      # TODO: move to hparams
-      loss_scale_manager = tf.contrib.mixed_precision.ExponentialUpdateLossScaleManager(
-          init_loss_scale=2**15,
-          incr_every_n_steps=2000,
-          decr_every_n_nan_or_inf=2,
-          incr_ratio=2,
-          decr_ratio=0.5)
-      #self._opt = tf.contrib.mixed_precision.LossScaleOptimizer(
-      from tensor2tensor.utils.optimize_utils import LossScaleOptimizer
-      self._opt = LossScaleOptimizer(self._opt, loss_scale_manager)
+#    if get_tf_activation_dtype(hparams) == 'float16':
+#      # TODO: move to hparams
+#      loss_scale_manager = tf.contrib.mixed_precision.ExponentialUpdateLossScaleManager(
+#          init_loss_scale=2**15,
+#          incr_every_n_steps=2000,
+#          decr_every_n_nan_or_inf=2,
+#          incr_ratio=2,
+#          decr_ratio=0.5)
+#      #self._opt = tf.contrib.mixed_precision.LossScaleOptimizer(
+#      from tensor2tensor.utils.optimize_utils import LossScaleOptimizer
+#      self._opt = LossScaleOptimizer(self._opt, loss_scale_manager)
 
   def compute_gradients(self, loss, var_list=None, **kwargs):  # pylint: disable=arguments-differ
     gradients = self._opt.compute_gradients(loss, var_list, **kwargs)

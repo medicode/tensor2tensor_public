@@ -1425,7 +1425,7 @@ def transformer_decoder(decoder_input,
                 'encdec_attention variable', var.name, var.dtype,
                 tf.math.count_nonzero(tf.debugging.is_nan(var)))
             with tf.control_dependencies(
-                [print_op, encoder_output_print_op, var_print_ops]):
+                [print_op, encoder_output_print_op] + var_print_ops):
               x = common_layers.layer_postprocess(x, y, hparams)
         with tf.variable_scope("ffn"):
           y = transformer_ffn_layer(

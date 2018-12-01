@@ -447,7 +447,8 @@ def add_timing_signal_1d(x,
   channels = common_layers.shape_list(x)[2]
   signal = get_timing_signal_1d(length, channels, min_timescale, max_timescale,
                                 start_index)
-  return x + signal
+  # TODO: better solution with hparams?
+  return x + tf.cast(signal, x.dtype)
 
 
 @expert_utils.add_name_scope()

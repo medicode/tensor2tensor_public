@@ -658,6 +658,7 @@ class Problem(object):
     #TODO: TPU Logic?
     repeat = True
     if repeat:
+      print("DEBUG LOG: Repeating dataset")
       dataset = dataset.repeat()
     return dataset
 

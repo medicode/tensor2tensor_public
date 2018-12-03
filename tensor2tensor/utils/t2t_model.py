@@ -1425,7 +1425,8 @@ class T2TModel(base.Layer):
           loss=loss,
           train_op=train_op,
           host_call=host_call,
-          scaffold_fn=scaffold_fn)
+          scaffold_fn=scaffold_fn,
+          train_batch_size=64)
     else:
       if self._hparams.warm_start_from:
         self.initialize_from_ckpt(self._hparams.warm_start_from)

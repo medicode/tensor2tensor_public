@@ -273,7 +273,7 @@ def create_estimator(model_name,
         model_dir=run_config.model_dir,
         config=run_config,
         use_tpu=use_tpu,
-        train_batch_size=batch_size,
+        train_batch_size=10,#batch_size,
         eval_batch_size=batch_size if "eval" in schedule else None,
         predict_batch_size=predict_batch_size)
   else:

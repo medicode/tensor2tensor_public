@@ -654,7 +654,11 @@ class Problem(object):
     dataset = dataset.take(max_records)
     if output_buffer_size:
       dataset = dataset.prefetch(output_buffer_size)
-
+    
+    #TODO: TPU Logic?
+    repeat = True
+    if repeat:
+      dataset = dataset.repeat()
     return dataset
 
   def decode_example(self, serialized_example):

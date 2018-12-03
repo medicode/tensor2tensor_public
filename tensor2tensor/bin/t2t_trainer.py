@@ -293,7 +293,7 @@ def profile_context():
   if True:
     with tf.contrib.tfprof.ProfileContext(
         #"t2tprof", trace_steps=range(100), dump_steps=range(100)) as pctx:
-        "t2tprof", trace_steps=range(200, 202), dump_steps=range(200, 202)) as pctx:
+        FLAGS.output_dir + "t2tprof", trace_steps=range(200, 202), dump_steps=range(200, 202)) as pctx:
       opts = tf.profiler.ProfileOptionBuilder.time_and_memory()
       pctx.add_auto_profiling("op", opts, range(200, 202))
       yield

@@ -907,7 +907,9 @@ class Problem(object):
     else:
       # batch_size means tokens per datashard
       if config and config.use_tpu:
+        print(f'Filtering using Max size of {self.max_length(hparams)}')
         dataset = dataset.filter(tpu_valid_size)
+        print(f'TPU logs: Filtering done')
         padded_shapes = self._pad_for_tpu(dataset.output_shapes, hparams)
         # on TPU, we use params["batch_size"], which specifies the number of
         # examples across all datashards

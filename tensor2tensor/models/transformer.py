@@ -2158,7 +2158,7 @@ def update_hparams_for_tpu(hparams):
   #
   # For problems with fixed sequence lengths - e.g. the "_packed" problems,
   # this hyperparameter is ignored.
-  hparams.max_length = 64
+  hparams.max_length = int(10e4)
 
   # TPUs have less memory than GPUs, so decrease the batch size
   hparams.batch_size = 2048

@@ -173,7 +173,7 @@ def create_run_config(model_name,
     # If using TPUEstimator, use TPU RunConfig, add TPUConfig, and add
     # additional args.
     tpu_config_kwargs = {
-        "iterations_per_loop": iterations_per_loop,
+        "iterations_per_loop": 250,
         "num_shards": num_shards,
         "per_host_input_for_training": True,
         "initial_infeed_sleep_secs": tpu_infeed_sleep_secs,

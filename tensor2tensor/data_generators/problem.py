@@ -883,7 +883,7 @@ class Problem(object):
     dataset = dataset.map(
         data_reader.cast_ints_to_int32, num_parallel_calls=num_threads)
 
-    if self.batch_size_means_tokens:
+    if self.batch_size_means_ :
       batch_size_means_tokens = True
     else:
       if _are_shapes_fully_defined(dataset.output_shapes):
@@ -939,6 +939,7 @@ class Problem(object):
           # Here  batch_size really means examples per datashard.
           batching_scheme["batch_sizes"] = [hparams.batch_size]
           batching_scheme["boundaries"] = []
+        print(f"Batch sizes of scheme {batching_scheme["batch_sizes"]}")
         dataset = dataset.apply(
             tf.contrib.data.bucket_by_sequence_length(
                 data_reader.example_length, batching_scheme["boundaries"],

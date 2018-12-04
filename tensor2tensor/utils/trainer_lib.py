@@ -173,7 +173,7 @@ def create_run_config(model_name,
     # If using TPUEstimator, use TPU RunConfig, add TPUConfig, and add
     # additional args.
     tpu_config_kwargs = {
-        "iterations_per_loop": 250,
+        "iterations_per_loop": 200,
         "num_shards": num_shards,
         "per_host_input_for_training": True,
         "initial_infeed_sleep_secs": tpu_infeed_sleep_secs,
@@ -273,7 +273,7 @@ def create_estimator(model_name,
         model_dir=run_config.model_dir,
         config=run_config,
         use_tpu=use_tpu,
-        train_batch_size=256,
+        train_batch_size=batch_size,
         eval_batch_size=batch_size if "eval" in schedule else None,
         predict_batch_size=predict_batch_size)
   else:

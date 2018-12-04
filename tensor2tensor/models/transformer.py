@@ -2158,10 +2158,10 @@ def update_hparams_for_tpu(hparams):
   #
   # For problems with fixed sequence lengths - e.g. the "_packed" problems,
   # this hyperparameter is ignored.
-  hparams.max_length = 1024
+  # hparams.max_length = 1024
 
   # TPUs have less memory than GPUs, so decrease the batch size
-  hparams.batch_size = 4
+  hparams.batch_size = 256
 
   # Using noise broadcast in the dropout layers saves memory during training.
   hparams.attention_dropout_broadcast_dims = "0,1"  # batch, heads

@@ -883,7 +883,7 @@ class Problem(object):
     dataset = dataset.map(
         data_reader.cast_ints_to_int32, num_parallel_calls=num_threads)
 
-    if self.batch_size_means_ :
+    if self.batch_size_means_tokens:
       batch_size_means_tokens = True
     else:
       if _are_shapes_fully_defined(dataset.output_shapes):

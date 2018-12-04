@@ -940,6 +940,8 @@ class Problem(object):
           batching_scheme["boundaries"] = []
         numb = batching_scheme["batch_sizes"]
         print(f'Batch sizes of scheme {numb}')
+        sizes_with_boundaries = list(zip(batching_scheme["batch_sizes"], batching_scheme["boundaries"]))
+        print(f'Batch sizes with bucket lengths {sizes_with_boundaries}')
         print(f'Batch size is {hparams.batch_size}')
         dataset = dataset.apply(
             tf.contrib.data.bucket_by_sequence_length(

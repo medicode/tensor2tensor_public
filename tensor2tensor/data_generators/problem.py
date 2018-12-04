@@ -892,7 +892,6 @@ class Problem(object):
         tf.logging.warning(
             "Shapes are not fully defined. Assuming batch_size means tokens.")
         batch_size_means_tokens = True
-
     # Batching
     if not batch_size_means_tokens:
       # Batch size means examples per datashard.
@@ -940,6 +939,7 @@ class Problem(object):
           batching_scheme["batch_sizes"] = [hparams.batch_size]
           batching_scheme["boundaries"] = []
         print(f"Batch sizes of scheme {batching_scheme["batch_sizes"]}")
+        print(f"Batch size is {hparams.batch_size}")
         dataset = dataset.apply(
             tf.contrib.data.bucket_by_sequence_length(
                 data_reader.example_length, batching_scheme["boundaries"],

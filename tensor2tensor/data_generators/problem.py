@@ -938,8 +938,9 @@ class Problem(object):
           # Here  batch_size really means examples per datashard.
           batching_scheme["batch_sizes"] = [hparams.batch_size]
           batching_scheme["boundaries"] = []
-        print(f"Batch sizes of scheme {batching_scheme["batch_sizes"]}")
-        print(f"Batch size is {hparams.batch_size}")
+        numb = batching_scheme["batch_sizes"]
+        print(f'Batch sizes of scheme {numb}')
+        print(f'Batch size is {hparams.batch_size}')
         dataset = dataset.apply(
             tf.contrib.data.bucket_by_sequence_length(
                 data_reader.example_length, batching_scheme["boundaries"],

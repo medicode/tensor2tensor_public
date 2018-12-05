@@ -2440,14 +2440,12 @@ def transformer_tpu_1b():
 def transformer_base_fp16():
     hparams = transformer_base()
     hparams.activation_dtype = 'float16'
-    hparams.weight_decay = 0
     return hparams
 
 
 @registry.register_hparams
 def transformer_base_no_fp16():
     hparams = transformer_base()
-    hparams.weight_decay = 0
     return hparams
 
 
@@ -2456,7 +2454,6 @@ def transformer_fairseq_fp16():
     hparams = transformer_big()
     hparams.batch_size = 3584
     hparams.activation_dtype = 'float16'
-    hparams.weight_decay = 0
     return hparams
 
 
@@ -2464,5 +2461,4 @@ def transformer_fairseq_fp16():
 def transformer_fairseq_fp32():
     hparams = transformer_big()
     hparams.batch_size = 3584
-    hparams.weight_decay = 0
     return hparams

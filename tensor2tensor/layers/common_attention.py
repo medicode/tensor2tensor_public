@@ -37,7 +37,15 @@ from tensorflow.python.framework import function
 from tensorflow.python.ops import inplace_ops
 
 # Fathom
-from fathomt2t_dependencies.common_t2t_utils import get_tf_activation_dtype
+#from fathomt2t_dependencies.common_t2t_utils import get_tf_activation_dtype
+
+def get_tf_activation_dtype(hparams):
+    if hparams.activation_dtype == 'float16':
+        return tf.float16
+    elif hparams.activation_dtype == "bfloat16":
+        return tf.bfloat16
+    else:
+        return tf.float32
 
 # Struct containing the sequences ids and order on a batch (are send to the
 # expert to allow them to compute the bias mask)

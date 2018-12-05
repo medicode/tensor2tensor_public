@@ -34,7 +34,7 @@ from tensor2tensor.utils import usr_dir
 import tensorflow as tf
 
 # Fathom
-import fathomt2t_dependencies.t2t_trainer_utils as fathom
+#import fathomt2t_dependencies.t2t_trainer_utils as fathom
 
 from tensorflow.contrib.tpu.python.tpu import tpu_config
 
@@ -190,7 +190,7 @@ def create_experiment_fn():
       decode_hparams=decoding.decode_hparams(FLAGS.decode_hparams),
       use_tfdbg=FLAGS.tfdbg,
       #use_dbgprofile=FLAGS.dbgprofile,
-      use_dbgprofile=False,
+      use_dbgprofile=True,
       eval_early_stopping_steps=FLAGS.eval_early_stopping_steps,
       eval_early_stopping_metric=FLAGS.eval_early_stopping_metric,
       eval_early_stopping_metric_delta=FLAGS.eval_early_stopping_metric_delta,
@@ -289,8 +289,8 @@ def generate_data():
 
 @contextlib.contextmanager
 def profile_context():
-  #if FLAGS.profile:
-  if True:
+  if FLAGS.profile:
+  #if True:
     with tf.contrib.tfprof.ProfileContext(
         #"t2tprof", trace_steps=range(100), dump_steps=range(100)) as pctx:
         FLAGS.output_dir + "t2tprof", trace_steps=range(200, 201), dump_steps=range(200, 201)) as pctx:
@@ -361,14 +361,14 @@ def run_std_server():
 
 def main(argv):
   # Fathom
-  if FLAGS.fathom:
-      fathom.t2t_trainer_setup(FLAGS.problem)
+  #if FLAGS.fathom:
+      #fathom.t2t_trainer_setup(FLAGS.problem)
 
   tf.logging.set_verbosity(tf.logging.INFO)
   if FLAGS.schedule == "run_std_server":
     run_std_server()
   trainer_lib.set_random_seed(FLAGS.random_seed)
-  usr_dir.import_usr_dir(FLAGS.t2t_usr_dir)
+  #usr_dir.import_usr_dir(FLAGS.t2t_usr_dir)
   maybe_log_registry_and_exit()
 
   if FLAGS.cloud_mlengine:
@@ -389,7 +389,7 @@ def main(argv):
   hparams = create_hparams()
 
   # Fathom
-  hparams = fathom.adjust_params_for_scaling(hparams)
+  #hparams = fathom.adjust_params_for_scaling(hparams)
 
   exp_fn = create_experiment_fn()
   exp = exp_fn(create_run_config(hparams), hparams)
@@ -400,7 +400,7 @@ def main(argv):
   # Fathom
   # NOTE: this must run LAST in the process, to make sure STDOUT is
   # appropriately populated.
-  fathom.t2t_trainer_cleanup()
+  #fathom.t2t_trainer_cleanup()
 
 
 if __name__ == "__main__":

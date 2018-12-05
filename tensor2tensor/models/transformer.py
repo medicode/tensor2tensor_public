@@ -2433,3 +2433,18 @@ def transformer_tpu_1b():
   # maximize number of parameters relative to computation by not sharing.
   hparams.shared_embedding_and_softmax_weights = False
   return hparams
+
+
+@registry.register_hparams
+def transformer_base_fp16():
+    hparams = transformer_base()
+    hparams.activation_dtype = 'float16'
+    hparams.weight_decay = 0
+    return hparams
+
+
+@registry.register_hparams
+def transformer_base_no_fp16():
+    hparams = transformer_base()
+    hparams.weight_decay = 0
+    return hparams

@@ -48,7 +48,8 @@ from tensorflow.python.ops import inplace_ops
 from tensorflow.python.ops import variable_scope
 
 # Fathom
-from fathomt2t_dependencies.common_t2t_utils import combine_shards, FATHOM_DICT_FORMAT, get_tf_activation_dtype
+#from fathomt2t_dependencies.common_t2t_utils import combine_shards, FATHOM_DICT_FORMAT, get_tf_activation_dtype
+from tensor2tensor.layers.common_attention import get_tf_activation_dtype
 
 _no_problem_err_str = (
     "The default implementation of %s requires that the "
@@ -224,21 +225,22 @@ class T2TModel(base.Layer):
       sharded_logits, losses = self.model_fn_sharded(sharded_features)
 
       # Fathom
-      if isinstance(sharded_logits, dict):
-        # skip FATHOM_DICT_FORMAT before passing to combine_shards
-        # TODO: figure out why this is needed here for multi gpu
-        # but handled inside combine_shards for 1 gpu
-        # https://app.asana.com/0/730593582890719/905516294620076/f
-        return (
-            {
-                k: combine_shards(v)
-                for k, v in sharded_logits.items()
-                if k != FATHOM_DICT_FORMAT
-            },
-            losses
-        )
-      else:
-        return combine_shards(sharded_logits), losses
+#      if isinstance(sharded_logits, dict):
+#        # skip FATHOM_DICT_FORMAT before passing to combine_shards
+#        # TODO: figure out why this is needed here for multi gpu
+#        # but handled inside combine_shards for 1 gpu
+#        # https://app.asana.com/0/730593582890719/905516294620076/f
+#        return (
+#            {
+#                k: combine_shards(v)
+#                for k, v in sharded_logits.items()
+#                if k != FATHOM_DICT_FORMAT
+#            },
+#            losses
+#        )
+#      else:
+#        return combine_shards(sharded_logits), losses
+      return sharded_logits, losses
 
   @staticmethod
   def has_symmetric_shards(model_name):

@@ -29,7 +29,8 @@ import tensorflow as tf
 from tensorflow.python.framework import dtypes
 
 # Fathom
-from fathomt2t_dependencies.common_t2t_utils import get_tf_activation_dtype
+#from fathomt2t_dependencies.common_t2t_utils import get_tf_activation_dtype
+from tensor2tensor.layers.common_attention import get_tf_activation_dtype
 
 
 def optimize(loss, learning_rate, hparams, use_tpu=False):

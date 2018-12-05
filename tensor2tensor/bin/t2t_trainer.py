@@ -368,7 +368,7 @@ def main(argv):
   if FLAGS.schedule == "run_std_server":
     run_std_server()
   trainer_lib.set_random_seed(FLAGS.random_seed)
-  #usr_dir.import_usr_dir(FLAGS.t2t_usr_dir)
+  usr_dir.import_usr_dir(FLAGS.t2t_usr_dir)
   maybe_log_registry_and_exit()
 
   if FLAGS.cloud_mlengine:

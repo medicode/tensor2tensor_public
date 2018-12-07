@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 
 import tensorflow as tf
 
-from tensor2tensor.utils.automatic_loss_scaler
+from tensor2tensor.utils.automatic_loss_scaler import AutomaticLossScaler
 
 
 # pylint: disable=abstract-method

@@ -120,6 +120,7 @@ class ConditionalOptimizer(tf.train.Optimizer):
     if get_tf_activation_dtype(hparams) == 'float16':
       # NVIDIA OpenSeq2Seq wrapper
       from tensor2tensor.utils import mp_wrapper
+      assert hparams.weight_decay == 0
       self._opt = mp_wrapper.MixedPrecisionOptimizerWrapper(
         self._opt, loss_scaling=AutomaticLossScaler(algorithm='Backoff'))
       # TODO: move to hparams

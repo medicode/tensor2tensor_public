@@ -2449,12 +2449,12 @@ def transformer_tpu_1b():
 #    return hparams
 #
 #
-#@registry.register_hparams
-#def transformer_fairseq_fp16():
-#    hparams = transformer_big()
-#    hparams.batch_size = 3584
-#    hparams.activation_dtype = 'float16'
-#    return hparams
+@registry.register_hparams
+def transformer_fairseq_fp16():
+    hparams = transformer_big()
+    hparams.batch_size = 3584
+    hparams.activation_dtype = 'float16'
+    return hparams
 #
 #
 #@registry.register_hparams

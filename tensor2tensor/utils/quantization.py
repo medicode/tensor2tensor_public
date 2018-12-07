@@ -231,32 +231,12 @@ class ParameterEncoding(object):
       return self.decode(x)
     return my_fn(x)
 
-#  def custom_getter(self, activation_dtype=tf.bfloat16):
-#    """A custom getter that uses the encoding for bfloat16 and float32 vars.
-#
-#    When a bfloat16 or float32 variable is requsted, an encoded float16
-#    varaible is created, which is then decoded and cast to a bfloat16
-#    activation.
-#
-#    Args:
-#      activation_dtype: a dtype to which to convert the decoded value.
-#
-#    Returns:
-#      a function.
-#    """
-#    def getter_fn(getter, *args, **kwargs):
-#      requested_dtype = kwargs["dtype"]
-#      if requested_dtype in (tf.bfloat16, tf.float32):
-#        kwargs["dtype"] = tf.bfloat16
-#        kwargs["initializer"] = _EncodingInitializer(
-#            kwargs["initializer"], self)
-#        ret = self._decode_with_identity_gradient(getter(*args, **kwargs))
-#        return tf.cast(ret, activation_dtype)
-#      return getter(*args, **kwargs)
-#    return getter_fn
-
   def custom_getter(self, activation_dtype=tf.bfloat16):
-    """
+    """A custom getter that uses the encoding for bfloat16 and float32 vars.
+
+    When a bfloat16 or float32 variable is requsted, an encoded float16
+    varaible is created, which is then decoded and cast to a bfloat16
+    activation.
 
     Args:
       activation_dtype: a dtype to which to convert the decoded value.
@@ -266,10 +246,7 @@ class ParameterEncoding(object):
     """
     def getter_fn(getter, *args, **kwargs):
       requested_dtype = kwargs["dtype"]
-      assert requested_dtype, 'requested_dtype should be specified'
-      if requested_dtype == tf.float32:
-          kwargs['dtype'] = tf.float16
-      elif requested_dtype == tf.bfloat16:
+      if requested_dtype in (tf.bfloat16, tf.float32):
         kwargs["dtype"] = tf.bfloat16
         kwargs["initializer"] = _EncodingInitializer(
             kwargs["initializer"], self)
@@ -277,6 +254,29 @@ class ParameterEncoding(object):
         return tf.cast(ret, activation_dtype)
       return getter(*args, **kwargs)
     return getter_fn
+
+#  def custom_getter(self, activation_dtype=tf.bfloat16):
+#    """
+#
+#    Args:
+#      activation_dtype: a dtype to which to convert the decoded value.
+#
+#    Returns:
+#      a function.
+#    """
+#    def getter_fn(getter, *args, **kwargs):
+#      requested_dtype = kwargs["dtype"]
+#      assert requested_dtype, 'requested_dtype should be specified'
+#      if requested_dtype == tf.float32:
+#          kwargs['dtype'] = tf.float16
+#      elif requested_dtype == tf.bfloat16:
+#        kwargs["dtype"] = tf.bfloat16
+#        kwargs["initializer"] = _EncodingInitializer(
+#            kwargs["initializer"], self)
+#        ret = self._decode_with_identity_gradient(getter(*args, **kwargs))
+#        return tf.cast(ret, activation_dtype)
+#      return getter(*args, **kwargs)
+#    return getter_fn
 
 
 class _EncodingInitializer(object):

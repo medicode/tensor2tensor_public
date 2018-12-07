@@ -123,7 +123,7 @@ class ConditionalOptimizer(tf.train.Optimizer):
       from tensor2tensor.utils.automatic_loss_scaler import AutomaticLossScaler
       assert hparams.weight_decay == 0
       self._opt = mp_wrapper.MixedPrecisionOptimizerWrapper(
-        self._opt, loss_scaling=AutomaticLossScaler(algorithm='Backoff'))
+        self._opt, loss_scale=AutomaticLossScaler(algorithm='Backoff'))
       # TODO: move to hparams
 #      loss_scale_manager = tf.contrib.mixed_precision.ExponentialUpdateLossScaleManager(
 #          init_loss_scale=2**15,

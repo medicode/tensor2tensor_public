@@ -266,6 +266,7 @@ class ParameterEncoding(object):
     """
     def getter_fn(getter, *args, **kwargs):
       requested_dtype = kwargs["dtype"]
+      assert requested_dtype, 'requested_dtype should be specified'
       if requested_dtype == tf.float32:
           kwargs['dtype'] = tf.float16
       elif requested_dtype == tf.bfloat16:

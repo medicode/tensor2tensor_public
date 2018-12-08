@@ -25,6 +25,7 @@ from tensorflow.python.ops import math_ops
 from tensorflow.python.training import optimizer
 import tensorflow as tf
 
+from tensor2tensor.layers.common_attention import print_op_make
 
 class LossScaleOptimizer(optimizer.Optimizer):
   # TODO(jamesqin): move mixed precision training explanation to __init__
@@ -158,8 +159,14 @@ class LossScaleOptimizer(optimizer.Optimizer):
     def true_apply_gradients_fn():
       return self._opt.apply_gradients(grads_and_vars, global_step, name)
 
-    update_vars = control_flow_ops.cond(
-        is_overall_finite, true_apply_gradients_fn, gen_control_flow_ops.no_op)
+    print_ops = [
+        print_op_make('is_overall_finite', is_overall_finite),
+        print_op_make('true_apply_gradients_fn', true_apply_gradients_fn),
+        print_op_make('gen_control_flow_ops.no_op', gen_control_flow_ops.no_op)
+    ]
+    with tf.control_dependencies(print_ops):
+        update_vars = control_flow_ops.cond(
+            is_overall_finite, true_apply_gradients_fn, gen_control_flow_ops.no_op)
     # Potentially adjust gradient scale in case of finite gradients.
     return control_flow_ops.group(
         update_vars,

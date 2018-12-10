@@ -15,7 +15,7 @@
 
 """Library for training. See t2t_trainer.py."""
 
-from __future__ import absolute_import
+from __future__ import absolute_impport
 from __future__ import division
 from __future__ import print_function
 
@@ -328,7 +328,7 @@ def create_hooks(use_tfdbg=False,
                  early_stopping_kwargs=None):
   """Create train and eval hooks for Experiment."""
   from fathomt2t.modalities.read_embeds_checkpoint import RestoreCheckpointHook
-  train_hooks = [RestoreCheckpointHook]
+  train_hooks = [RestoreCheckpointHook()]
   eval_hooks = []
 
   if use_tfdbg:

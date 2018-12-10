@@ -15,30 +15,24 @@
 
 """Library for training. See t2t_trainer.py."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import json
 import os
 import random
+
 import numpy as np
-
-from tensor2tensor.data_generators.problem import Problem
-from tensor2tensor.utils import decoding
-from tensor2tensor.utils import devices
-from tensor2tensor.utils import metrics_hook
-from tensor2tensor.utils import registry
-from tensor2tensor.utils import t2t_model
-
 import tensorflow as tf
-from tensorflow.python.training.session_run_hook import SessionRunHook, SessionRunArgs
-
+from __future__ import absolute_import, division, print_function
+from fathomt2t.problems.fprecord_text_problem import FPRecordTextProblem
 from tensorflow.core.protobuf import rewriter_config_pb2
 from tensorflow.python import debug
+from tensorflow.python.training.session_run_hook import SessionRunArgs, \
+    SessionRunHook
 
-# Fathom imports
-from fathomt2t.problems.fprecord_text_problem import FPRecordTextProblem
+from tensor2tensor.data_generators.problem import Problem
+from tensor2tensor.layers import modalities
+from tensor2tensor.utils import decoding, devices, metrics_hook, registry, \
+    t2t_model
+from tensor2tensor.utils.trainer_lib import restore_checkpoint
 
 
 def next_checkpoint(model_dir, timeout_mins=120):
@@ -327,7 +321,8 @@ def create_hooks(use_tfdbg=False,
                  use_early_stopping=False,
                  early_stopping_kwargs=None):
   """Create train and eval hooks for Experiment."""
-  train_hooks = []
+  from fathomt2t.modalities.read_embeds_checkpoint import RestoreCheckpointHook
+  train_hooks = [RestoreCheckpointHook()]
   eval_hooks = []
 
   if use_tfdbg:

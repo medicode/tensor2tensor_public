@@ -327,8 +327,13 @@ def create_hooks(use_tfdbg=False,
                  use_early_stopping=False,
                  early_stopping_kwargs=None):
   """Create train and eval hooks for Experiment."""
-  from fathomt2t.modalities.read_embeds_checkpoint import RestoreCheckpointHook
-  train_hooks = [RestoreCheckpointHook()]
+  train_hooks = []
+  flags = tf.flags
+  FLAGS = flags.FLAGS
+  print(f"Use dist monitor flag is {FLAGS.optionally_use_dist_strat}")
+  if FLAGS.optionally_use_dist_strat:
+    from fathomt2t.modalities.read_embeds_checkpoint import RestoreCheckpointHook
+    train_hooks.append(RestoreCheckpointHook())
   eval_hooks = []
 
   if use_tfdbg:
@@ -348,8 +353,6 @@ def create_hooks(use_tfdbg=False,
     tf.logging.info("Using ValidationMonitor")
     # Fathom
     # continuous_train_and_eval breaks early stopping
-    flags = tf.flags
-    FLAGS = flags.FLAGS
     assert FLAGS.schedule != 'continuous_train_and_eval'
     
     train_hooks.append(

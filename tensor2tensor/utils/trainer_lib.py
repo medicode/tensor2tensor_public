@@ -290,7 +290,7 @@ class MemoryReportingHook(SessionRunHook):
 
     Based on https://stackoverflow.com/questions/45719176/how-to-display-runtime-statistics-in-tensorboard-using-estimator-api-in-a-distri.
 
-    TF, when OOM occurs, talks about setting 
+    TF, when OOM occurs, talks about setting
     report_tensor_allocations_upon_oom=True to get more diagnostics.
 
     When running things through Estimator/Experiment, however,
@@ -332,8 +332,9 @@ def create_hooks(use_tfdbg=False,
   FLAGS = flags.FLAGS
   print(f"Use dist monitor flag is {FLAGS.optionally_use_dist_strat}")
   if FLAGS.optionally_use_dist_strat:
-    from fathomt2t.modalities.read_embeds_checkpoint import RestoreCheckpointHook
-    train_hooks.append(RestoreCheckpointHook())
+    #from fathomt2t.modalities.read_embeds_checkpoint import RestoreCheckpointHook
+    #train_hooks.append(RestoreCheckpointHook())
+    pass
   eval_hooks = []
 
   if use_tfdbg:
@@ -354,7 +355,7 @@ def create_hooks(use_tfdbg=False,
     # Fathom
     # continuous_train_and_eval breaks early stopping
     assert FLAGS.schedule != 'continuous_train_and_eval'
-    
+
     train_hooks.append(
         tf.contrib.learn.monitors.ValidationMonitor(
             hooks=eval_hooks, **validation_monitor_kwargs))
@@ -365,7 +366,7 @@ def create_hooks(use_tfdbg=False,
     # Adding to both training and eval so that eval aborts as well
     train_hooks.append(hook)
     eval_hooks.append(hook)
-  
+
   # NOTE:
   # Attempt at adding better OOM feedback--although doesn't seem to work.
   # (See MemoryReportingHook)

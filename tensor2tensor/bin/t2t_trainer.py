@@ -34,7 +34,7 @@ from tensor2tensor.utils import usr_dir
 import tensorflow as tf
 
 # Fathom
-import fathomt2t_dependencies.t2t_trainer_utils as fathom
+#import fathomt2t_dependencies.t2t_trainer_utils as fathom
 
 from tensorflow.contrib.tpu.python.tpu import tpu_config
 

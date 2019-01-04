@@ -2455,6 +2455,14 @@ def transformer_fairseq_fp16():
     hparams.batch_size = 3584
     hparams.activation_dtype = 'float16'
     return hparams
+
+@registry.register_hparams
+def transformer_fairseq_fp16_tiny():
+    hparams = transformer_tiny()
+    hparams.batch_size = 3584
+    hparams.activation_dtype = 'float16'
+    return hparams
+
 #
 #
 #@registry.register_hparams

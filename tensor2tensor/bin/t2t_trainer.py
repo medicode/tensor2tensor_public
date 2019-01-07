@@ -289,8 +289,8 @@ def generate_data():
 
 @contextlib.contextmanager
 def profile_context():
-  #if FLAGS.profile:
-  if True:
+  if FLAGS.profile:
+  # if True:
     with tf.contrib.tfprof.ProfileContext(
         #"t2tprof", trace_steps=range(100), dump_steps=range(100)) as pctx:
         FLAGS.output_dir + "t2tprof", trace_steps=[500], dump_steps=[500]) as pctx:

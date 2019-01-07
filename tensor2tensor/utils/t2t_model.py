@@ -133,6 +133,15 @@ class T2TModel(base.Layer):
           target_modality.top_dimensionality):
         log_info("Unsetting shared_embedding_and_softmax_weights.")
         hparams.shared_embedding_and_softmax_weights = 0
+      # Fathom
+      # we can force sharing to be on
+      # hparams.force_shared_embedding_and_softmax_weights
+      if hparams.get("force_shared_embedding_and_softmax_weights"):
+        log_info("Keeping shared_embedding_and_softmax_weights "
+                 "to remain on.")
+        hparams.shared_embedding_and_softmax_weights = True
+        log_info("Forcing shared_embedding_and_softmax_weights to be on.")
+      # End Fathom
     self._original_hparams = hparams
     self.set_mode(mode)
 

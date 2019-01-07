@@ -38,7 +38,7 @@ from tensorflow.core.protobuf import rewriter_config_pb2
 from tensorflow.python import debug
 
 # Fathom imports
-#from fathomt2t.problems.fprecord_text_problem import FPRecordTextProblem
+from fathomt2t.problems.fprecord_text_problem import FPRecordTextProblem
 
 
 def next_checkpoint(model_dir, timeout_mins=120):
@@ -568,12 +568,12 @@ def create_experiment(
 
   # Fathom
   # TODO: removed for now so we don't import the problem
-#  if isinstance(problem, FPRecordTextProblem):
-#    problem.sanity_check_tfproto(hparams)
-#  else:
-#    tf.logging.warning(
-#      'No tfproto sanity checks to be performed. '
-#      'Tfproto sanity checks only exist for FPRecordTextProblem.')
+  if isinstance(problem, FPRecordTextProblem):
+    problem.sanity_check_tfproto(hparams)
+  else:
+    tf.logging.warning(
+      'No tfproto sanity checks to be performed. '
+      'Tfproto sanity checks only exist for FPRecordTextProblem.')
 
   # Export
   exporter = None

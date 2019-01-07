@@ -46,13 +46,9 @@ def large_compatible_negative(tensor):
     return tf.float16.min
   return -1e9
 
-def mixed_precision_is_enabled(activation_dtype=None,
-                               weight_dtype=None,
-                               hparams=None):
-
-  if hparams and (activation_dtype or weight_dtype):
-    raise AssertionError(
-        "Provide only hparams or activation_dtype and weight_dtype")
+def mixed_precision_is_enabled(activation_dtype=None, weight_dtype=None, hparams=None):
+  assert not (hparams and (activation_dtype or weight_dtype)), (
+              "Provide only hparams or activation_dtype and weight_dtype")
 
   if hparams:
     activation_dtype = hparams.activation_dtype
@@ -60,8 +56,7 @@ def mixed_precision_is_enabled(activation_dtype=None,
 
   return activation_dtype == tf.float16 and weight_dtype == tf.float32
 
-def maybe_upcast(
-    logits, activation_dtype=None, weight_dtype=None, hparams=None):
+def maybe_upcast(logits, activation_dtype=None, weight_dtype=None, hparams=None):
   if mixed_precision_is_enabled(activation_dtype, weight_dtype, hparams):
     return tf.cast(logits, tf.float32)
   return logits
@@ -908,11 +903,13 @@ def attention_bias_same_segment(query_segment_id, memory_segment_id):
   Returns:
     a `Tensor` with shape [batch, 1, query_length, memory_length].
   """
-  ret = tf.to_float(
+  
+  ret = (tf.to_float(
       tf.not_equal(
           tf.expand_dims(query_segment_id, 2),
-          (tf.expand_dims(memory_segment_id, 1))) *
-      large_compatible_negative(memory_segment_id))
+          tf.expand_dims(memory_segment_id, 1))) *
+          large_compatible_negative(memory_segment_id))
+
   return tf.expand_dims(ret, axis=1)
 
 
@@ -926,7 +923,9 @@ def attention_bias_ignore_padding(memory_padding):
   Returns:
     a `Tensor` with shape [batch, 1, 1, memory_length].
   """
+  
   ret = memory_padding * large_compatible_negative(memory_padding)
+
   return tf.expand_dims(tf.expand_dims(ret, axis=1), axis=1)
 
 
@@ -3306,7 +3305,6 @@ def compute_qkv(query_antecedent,
       "v",
       vars_3d_num_heads=vars_3d_num_heads)
   return q, k, v
-
 
 def multihead_attention(query_antecedent,
                         memory_antecedent,

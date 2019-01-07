@@ -31,6 +31,7 @@ from tensor2tensor.data_generators import multi_problem
 from tensor2tensor.data_generators import text_encoder
 from tensor2tensor.data_generators.problem import problem_hparams_to_features
 from tensor2tensor.layers import common_layers
+from tensor2tensor.layers.common_attention import mixed_precision_is_enabled
 from tensor2tensor.utils import beam_search
 from tensor2tensor.utils import decoding
 from tensor2tensor.utils import expert_utils as eu
@@ -210,7 +211,7 @@ class T2TModel(base.Layer):
           if self.hparams.activation_dtype == "bfloat16" else tf.float32)
     elif self.hparams.activation_dtype == "bfloat16":
       return quantization.bfloat16_activations_var_getter
-    elif self.hparams.activation_dtype == "float16":
+    elif mixed_precision_is_enabled(hparams=self.hparams):
       return quantization.float16_activations_var_getter
     else:
       return None

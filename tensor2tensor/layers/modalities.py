@@ -29,6 +29,10 @@ from tensor2tensor.utils import registry
 
 import tensorflow as tf
 
+# Fathom
+#from fathomt2t_dependencies.common_t2t_utils import get_tf_activation_dtype
+from tensor2tensor.layers.common_attention import get_tf_activation_dtype
+
 class SymbolModality(modality.Modality):
   """Modality for sets of discrete symbols.
 
@@ -158,6 +162,8 @@ class SymbolModality(modality.Modality):
         return common_layers.FactoredTensor(body_output, var)
       else:
         body_output = tf.reshape(body_output, [-1, body_output_shape[-1]])
+        if get_tf_activation_dtype(self._model_hparams) == 'float16':
+          var = tf.cast(var, tf.float16)
         logits = tf.matmul(body_output, var, transpose_b=True)
         if (common_layers.is_xla_compiled() and
             self._model_hparams.mode == tf.estimator.ModeKeys.TRAIN):

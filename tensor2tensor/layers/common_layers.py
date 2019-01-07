@@ -1725,7 +1725,12 @@ def padded_cross_entropy(logits,
         logits,
         shape_list(labels) + [vocab_size],
         name="padded_cross_entropy_size_check")
+#    print_op = tf.print('is_nan(logits) before cast', logits.dtype, tf.math.count_nonzero(tf.debugging.is_nan(logits)))
+#    with tf.control_dependencies([print_op]):
+    #logits = tf.identity(logits)
     logits = tf.cast(logits, tf.float32)
+#    print_op = tf.print('is_nan(logits) after cast', logits.dtype, tf.math.count_nonzero(tf.debugging.is_nan(logits)))
+#    with tf.control_dependencies([print_op]):
     xent = smoothing_cross_entropy(
         logits, labels, vocab_size, confidence, gaussian=gaussian)
     weights = weights_fn(labels)
@@ -3209,8 +3214,11 @@ def cast_like(x, y):
 
   cast_x = tf.cast(x, y.dtype)
   if cast_x.device != x.device:
-    tf.logging.warning("Cast for %s may induce copy from '%s' to '%s'", x.name,
-                       x.device, cast_x.device)
+    tf.logging.warning(
+        "Cast for (%s) [ %s ] to (%s) [ %s ] "
+        "may induce copy from '%s' to '%s'",
+        x.dtype, x.name, y.dtype, y.name,
+        x.device, cast_x.device)
   return cast_x
 
 

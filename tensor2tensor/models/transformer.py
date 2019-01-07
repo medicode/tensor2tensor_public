@@ -42,6 +42,11 @@ import tensorflow as tf
 from tensorflow.python.ops import inplace_ops
 from tensorflow.python.util import nest
 
+# Fathom
+#from fathomt2t_dependencies.common_t2t_utils import get_tf_activation_dtype
+from tensor2tensor.layers.common_attention import get_tf_activation_dtype
+
+print_op_make = common_attention.print_op_make
 
 @registry.register_model
 class Transformer(t2t_model.T2TModel):
@@ -1137,8 +1142,7 @@ def transformer_prepare_encoder(inputs, target_space, hparams, features=None):
         32,
         ishape_static[-1],
         name="target_space_embedding",
-        dtype=tf.bfloat16
-        if hparams.activation_dtype == "bfloat16" else tf.float32)
+        dtype=get_tf_activation_dtype(hparams))
     emb_target_space = tf.reshape(emb_target_space, [1, 1, -1])
     encoder_input += emb_target_space
   if hparams.pos == "timing":
@@ -1151,11 +1155,11 @@ def transformer_prepare_encoder(inputs, target_space, hparams, features=None):
     encoder_input = common_attention.add_positional_embedding(
         encoder_input, hparams.max_length, "inputs_positional_embedding",
         inputs_position)
-  if hparams.activation_dtype == "bfloat16":
+  if get_tf_activation_dtype(hparams) != tf.float32:
     encoder_self_attention_bias = tf.cast(encoder_self_attention_bias,
-                                          tf.bfloat16)
+                                          get_tf_activation_dtype(hparams))
     encoder_decoder_attention_bias = tf.cast(encoder_decoder_attention_bias,
-                                             tf.bfloat16)
+                                             get_tf_activation_dtype(hparams))
   return (encoder_input, encoder_self_attention_bias,
           encoder_decoder_attention_bias)
 
@@ -1212,9 +1216,9 @@ def transformer_prepare_decoder(targets, hparams, features=None):
         decoder_input, hparams.max_length, "targets_positional_embedding",
         targets_position)
 
-  if hparams.activation_dtype == "bfloat16":
+  if get_tf_activation_dtype(hparams) != tf.float32:
     decoder_self_attention_bias = tf.cast(decoder_self_attention_bias,
-                                          tf.bfloat16)
+                                          get_tf_activation_dtype(hparams))
   return (decoder_input, decoder_self_attention_bias)
 
 
@@ -1285,6 +1289,7 @@ def transformer_encoder(encoder_input,
               dropout_broadcast_dims=attention_dropout_broadcast_dims,
               max_length=hparams.get("max_length"),
               vars_3d=hparams.get("attention_variables_3d"))
+          #print_op = print_op_make('encoder layer_%d' % layer, y)
           x = common_layers.layer_postprocess(x, y, hparams)
         with tf.variable_scope("ffn"):
           y = transformer_ffn_layer(
@@ -1342,6 +1347,7 @@ def transformer_decoder(decoder_input,
   Returns:
     y: a Tensors
   """
+  #print_op = print_op_make('decoder input', decoder_input)
   x = decoder_input
   attention_dropout_broadcast_dims = (
       common_layers.comma_separated_string_to_integer_list(
@@ -1373,6 +1379,7 @@ def transformer_decoder(decoder_input,
               max_length=hparams.get("max_length"),
               decode_loop_step=decode_loop_step,
               vars_3d=hparams.get("attention_variables_3d"))
+          #print_op = print_op_make('decoder y self attention' + layer_name, y)
           x = common_layers.layer_postprocess(x, y, hparams)
         if encoder_output is not None:
           with tf.variable_scope("encdec_attention"):
@@ -1395,6 +1402,13 @@ def transformer_decoder(decoder_input,
                 dropout_broadcast_dims=attention_dropout_broadcast_dims,
                 max_length=hparams.get("max_length"),
                 vars_3d=hparams.get("attention_variables_3d"))
+#            print_ops = [
+#              print_op_make('decoder y encdec attention' + layer_name, y),
+#              print_op_make('decoder y encdec bias' + layer_name, encoder_decoder_attention_bias),
+#              print_op_make('decoder encoder output' + layer_name, encoder_output),
+#              print_op_make('decoder encoder output' + layer_name, encoder_output)
+#            ]
+            #with tf.control_dependencies(print_ops):
             x = common_layers.layer_postprocess(x, y, hparams)
         with tf.variable_scope("ffn"):
           y = transformer_ffn_layer(
@@ -1405,6 +1419,8 @@ def transformer_decoder(decoder_input,
               losses=losses,
               cache=layer_cache,
               decode_loop_step=decode_loop_step)
+          #print_op = print_op_make('decoder y ffn' + layer_name, y)
+          #with tf.control_dependencies([print_op]):
           x = common_layers.layer_postprocess(x, y, hparams)
     # if normalization is done in layer_preprocess, then it should also be done
     # on the output, since the output can grow very large, being the sum of
@@ -2418,3 +2434,31 @@ def transformer_tpu_1b():
   # maximize number of parameters relative to computation by not sharing.
   hparams.shared_embedding_and_softmax_weights = False
   return hparams
+#
+#
+#@registry.register_hparams
+#def transformer_base_fp16():
+#    hparams = transformer_base()
+#    hparams.activation_dtype = 'float16'
+#    return hparams
+#
+#
+#@registry.register_hparams
+#def transformer_base_no_fp16():
+#    hparams = transformer_base()
+#    return hparams
+#
+#
+@registry.register_hparams
+def transformer_fairseq_fp16():
+    hparams = transformer_big()
+    hparams.batch_size = 3584
+    hparams.activation_dtype = 'float16'
+    return hparams
+#
+#
+#@registry.register_hparams
+#def transformer_fairseq_fp32():
+#    hparams = transformer_big()
+#    hparams.batch_size = 3584
+#    return hparams

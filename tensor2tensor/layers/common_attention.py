@@ -36,6 +36,17 @@ import tensorflow as tf
 from tensorflow.python.framework import function
 from tensorflow.python.ops import inplace_ops
 
+# Fathom
+#from fathomt2t_dependencies.common_t2t_utils import get_tf_activation_dtype
+
+def get_tf_activation_dtype(hparams):
+    if hparams.activation_dtype == 'float16':
+        return tf.float16
+    elif hparams.activation_dtype == "bfloat16":
+        return tf.bfloat16
+    else:
+        return tf.float32
+
 # Struct containing the sequences ids and order on a batch (are send to the
 # expert to allow them to compute the bias mask)
 BatchInfo = collections.namedtuple("BatchInfo", "coordinates, order")
@@ -444,7 +455,8 @@ def add_timing_signal_1d(x,
   channels = common_layers.shape_list(x)[2]
   signal = get_timing_signal_1d(length, channels, min_timescale, max_timescale,
                                 start_index)
-  return x + signal
+  # TODO: better solution with hparams?
+  return x + tf.cast(signal, x.dtype)
 
 
 @expert_utils.add_name_scope()
@@ -882,7 +894,8 @@ def attention_bias_same_segment(query_segment_id, memory_segment_id):
   ret = tf.to_float(
       tf.not_equal(
           tf.expand_dims(query_segment_id, 2),
-          tf.expand_dims(memory_segment_id, 1))) * -1e9
+          #tf.expand_dims(memory_segment_id, 1))) * -1e9
+          tf.expand_dims(memory_segment_id, 1))) * tf.float16.min
   return tf.expand_dims(ret, axis=1)
 
 
@@ -896,7 +909,8 @@ def attention_bias_ignore_padding(memory_padding):
   Returns:
     a `Tensor` with shape [batch, 1, 1, memory_length].
   """
-  ret = memory_padding * -1e9
+  #ret = memory_padding * -1e9
+  ret = memory_padding * tf.float16.min
   return tf.expand_dims(tf.expand_dims(ret, axis=1), axis=1)
 
 
@@ -1463,15 +1477,35 @@ def dot_product_attention(q,
     if bias is not None:
       bias = common_layers.cast_like(bias, logits)
       logits += bias
-    weights = tf.nn.softmax(logits, name="attention_weights")
+
+#    print_ops = [
+#      print_op_make('logits before softmax', logits),
+#    ]
+#    with tf.control_dependencies(print_ops):
+#      logits_32 = tf.cast(logits, tf.float32)
+#      weights_32 = tf.nn.softmax(logits_32, name="attention_weights")
+#      weights = tf.cast(weights_32, tf.float16)
+    # TODO: pass hparams through so we can call get_tf_activation_dtype?
+    if logits.dtype == tf.float16:
+      weights = tf.cast(tf.nn.softmax(tf.cast(logits, tf.float32), name="attention_weights"), tf.float16)
+    else:
+      weights = tf.nn.softmax(logits, name="attention_weights")
     if save_weights_to is not None:
       save_weights_to[scope.name] = weights
       save_weights_to[scope.name + "/logits"] = logits
     # Drop out attention links for each head.
+#    print_ops = [
+#      print_op_make('before dropout with broadcast logits_32', logits_32),
+#      #tf.print('logits_32 values', logits_32),
+#      print_op_make('before dropout with broadcast weights_32', weights_32),
+#      print_op_make('before dropout with broadcast weights', weights),
+#    ]
+#    with tf.control_dependencies(print_ops):
     weights = common_layers.dropout_with_broadcast_dims(
         weights, 1.0 - dropout_rate, broadcast_dims=dropout_broadcast_dims)
     if common_layers.should_generate_summaries() and make_image_summary:
       attention_image_summary(weights, image_shapes)
+
     return tf.matmul(weights, v)
 
 
@@ -3270,6 +3304,16 @@ def compute_qkv(query_antecedent,
   return q, k, v
 
 
+def print_op_make(message, var):
+  return tf.print(
+    message,
+    'type:', var.dtype,
+    'inf:', tf.math.count_nonzero(tf.debugging.is_inf(var)),
+    'nan:', tf.math.count_nonzero(tf.debugging.is_nan(var)),
+    'size:', tf.size(var),
+    'name:', var.name)
+
+
 def multihead_attention(query_antecedent,
                         memory_antecedent,
                         bias,
@@ -3441,6 +3485,13 @@ def multihead_attention(query_antecedent,
       if isinstance(x, tuple):
         x, additional_returned_value = x  # Unpack
     elif attention_type == "dot_product":
+#      print_ops = [
+#        print_op_make('before dot_product q', q),
+#        print_op_make('before dot_product k', k),
+#        print_op_make('before dot_product v', v),
+#        print_op_make('before dot_product bias', bias)
+#      ]
+#      with tf.control_dependencies(print_ops):
       x = dot_product_attention(q, k, v, bias, dropout_rate, image_shapes,
                                 save_weights_to=save_weights_to,
                                 make_image_summary=make_image_summary,
@@ -3512,6 +3563,7 @@ def multihead_attention(query_antecedent,
       assert attention_type == "unmasked_dilated_1d"
       x = dilated_self_attention_1d(q, k, v, block_length, block_width,
                                     gap_size, num_memory_blocks)
+
     x = combine_heads(x)
 
     # Set last dim specifically.

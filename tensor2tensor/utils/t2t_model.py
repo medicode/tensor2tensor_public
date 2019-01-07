@@ -48,7 +48,8 @@ from tensorflow.python.ops import inplace_ops
 from tensorflow.python.ops import variable_scope
 
 # Fathom
-from fathomt2t_dependencies.common_t2t_utils import combine_shards, FATHOM_DICT_FORMAT
+#from fathomt2t_dependencies.common_t2t_utils import combine_shards, FATHOM_DICT_FORMAT, get_tf_activation_dtype
+from tensor2tensor.layers.common_attention import get_tf_activation_dtype
 
 _no_problem_err_str = (
     "The default implementation of %s requires that the "
@@ -209,6 +210,8 @@ class T2TModel(base.Layer):
           if self.hparams.activation_dtype == "bfloat16" else tf.float32)
     elif self.hparams.activation_dtype == "bfloat16":
       return quantization.bfloat16_activations_var_getter
+    elif self.hparams.activation_dtype == "float16":
+      return quantization.float16_activations_var_getter
     else:
       return None
 
@@ -231,21 +234,22 @@ class T2TModel(base.Layer):
       sharded_logits, losses = self.model_fn_sharded(sharded_features)
 
       # Fathom
-      if isinstance(sharded_logits, dict):
-        # skip FATHOM_DICT_FORMAT before passing to combine_shards
-        # TODO: figure out why this is needed here for multi gpu
-        # but handled inside combine_shards for 1 gpu
-        # https://app.asana.com/0/730593582890719/905516294620076/f
-        return (
-            {
-                k: combine_shards(v)
-                for k, v in sharded_logits.items()
-                if k != FATHOM_DICT_FORMAT
-            },
-            losses
-        )
-      else:
-        return combine_shards(sharded_logits), losses
+#      if isinstance(sharded_logits, dict):
+#        # skip FATHOM_DICT_FORMAT before passing to combine_shards
+#        # TODO: figure out why this is needed here for multi gpu
+#        # but handled inside combine_shards for 1 gpu
+#        # https://app.asana.com/0/730593582890719/905516294620076/f
+#        return (
+#            {
+#                k: combine_shards(v)
+#                for k, v in sharded_logits.items()
+#                if k != FATHOM_DICT_FORMAT
+#            },
+#            losses
+#        )
+#      else:
+#        return combine_shards(sharded_logits), losses
+      return sharded_logits, losses
 
   @staticmethod
   def has_symmetric_shards(model_name):
@@ -334,10 +338,10 @@ class T2TModel(base.Layer):
       self._add_variable_scope("model_fn", vs)
       transformed_features = self.bottom(features)
 
-      if self.hparams.activation_dtype == "bfloat16":
+      if get_tf_activation_dtype(self.hparams) != tf.float32:
         for k, v in sorted(six.iteritems(transformed_features)):
           if v.dtype == tf.float32:
-            transformed_features[k] = tf.cast(v, tf.bfloat16)
+            transformed_features[k] = tf.cast(v, get_tf_activation_dtype(self.hparams))
 
       with tf.variable_scope("body") as body_vs:
         self._add_variable_scope("body", body_vs)

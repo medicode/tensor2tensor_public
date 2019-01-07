@@ -38,7 +38,7 @@ from tensorflow.core.protobuf import rewriter_config_pb2
 from tensorflow.python import debug
 
 # Fathom imports
-from fathomt2t.problems.fprecord_text_problem import FPRecordTextProblem
+#from fathomt2t.problems.fprecord_text_problem import FPRecordTextProblem
 
 
 def next_checkpoint(model_dir, timeout_mins=120):
@@ -75,7 +75,8 @@ def create_session_config(log_device_placement=False,
           optimizer_options=tf.OptimizerOptions(
               opt_level=tf.OptimizerOptions.L1, do_function_inlining=False))
 
-  gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=gpu_mem_fraction)
+  #gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=gpu_mem_fraction)
+  gpu_options = tf.GPUOptions(allow_growth=True)
 
   config = tf.ConfigProto(
       allow_soft_placement=True,
@@ -339,7 +340,7 @@ def create_hooks(use_tfdbg=False,
     # Recorded traces can be visualized with chrome://tracing/
     # The memory/tensor lifetime is also profiled
     tf.logging.info("Using ProfilerHook")
-    defaults = dict(save_steps=10, show_dataflow=True, show_memory=True)
+    defaults = dict(save_steps=500, show_dataflow=True, show_memory=True)
     defaults.update(dbgprofile_kwargs)
     train_hooks.append(tf.train.ProfilerHook(**defaults))
 
@@ -566,12 +567,13 @@ def create_experiment(
                                                   hparams)
 
   # Fathom
-  if isinstance(problem, FPRecordTextProblem):
-    problem.sanity_check_tfproto(hparams)
-  else:
-    tf.logging.warning(
-      'No tfproto sanity checks to be performed. '
-      'Tfproto sanity checks only exist for FPRecordTextProblem.')
+  # TODO: removed for now so we don't import the problem
+#  if isinstance(problem, FPRecordTextProblem):
+#    problem.sanity_check_tfproto(hparams)
+#  else:
+#    tf.logging.warning(
+#      'No tfproto sanity checks to be performed. '
+#      'Tfproto sanity checks only exist for FPRecordTextProblem.')
 
   # Export
   exporter = None

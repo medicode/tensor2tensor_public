@@ -24,6 +24,10 @@ from tensor2tensor.utils import registry
 
 import tensorflow as tf
 
+# Fathom
+#from fathomt2t_dependencies.common_t2t_utils import get_tf_activation_dtype
+from tensor2tensor.layers.common_attention import get_tf_activation_dtype
+
 
 class Modality(object):
   """Abstract Modality class for data transformations.
@@ -183,6 +187,8 @@ class Modality(object):
     logits = top_out
     if weights_fn is None:
       weights_fn = self.targets_weights_fn
+    if get_tf_activation_dtype(self._model_hparams) == 'float16':
+      logits = tf.cast(logits, tf.float32)
     return common_layers.padded_cross_entropy(
         logits,
         targets,

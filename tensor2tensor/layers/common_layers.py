@@ -1210,7 +1210,7 @@ def maybe_zero_out_padding(inputs, kernel_size, nonpadding_mask):
       nonpadding_mask is not None):
     while nonpadding_mask.get_shape().ndims < inputs.get_shape().ndims:
       nonpadding_mask = tf.expand_dims(nonpadding_mask, -1)
-    return inputs * nonpadding_mask
+    return inputs * cast_like(nonpadding_mask, inputs)
 
   return inputs
 

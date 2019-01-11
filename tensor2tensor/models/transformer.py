@@ -2211,6 +2211,16 @@ def transformer_tpu_bf16_activation():
 
 
 @registry.register_hparams
+def transformer_fairseq_fp16_activation_big():
+  """
+  Hparams intended to mirror those used in https://arxiv.org/pdf/1806.00187.pdf
+  """
+  hparams = transformer_big()
+  hparams.activation_dtype = 'float16'
+  hparams.batch_size = 3584
+  return hparams
+
+@registry.register_hparams
 def transformer_packed_tpu():
   """Deprecated alias for transformer_tpu()."""
   return transformer_tpu()

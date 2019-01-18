@@ -1882,7 +1882,7 @@ def add_position_timing_signal(x, step, hparams):
       length, channels, start_index=index)
 
   if hparams.add_or_concat_timing_signal == "add":
-    x_with_timing = x + signal
+    x_with_timing = x + common_layers.cast_like(signal, x)
 
   elif hparams.add_or_concat_timing_signal == "concat":
     batch_size = common_layers.shape_list(x)[0]

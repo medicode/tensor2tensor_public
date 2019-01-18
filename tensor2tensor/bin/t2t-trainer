@@ -18,7 +18,7 @@ from __future__ import division
 from __future__ import print_function
 
 from tensor2tensor.bin import t2t_trainer
-#import fathomt2t
+import fathomt2t
 
 import tensorflow as tf
 

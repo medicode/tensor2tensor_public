@@ -36,6 +36,7 @@ from tensorflow.python.ops import control_flow_util
 from tensorflow.python.ops import inplace_ops
 
 
+
 @function.Defun(
     python_grad_func=lambda x, dy: tf.convert_to_tensor(dy),
     shape_func=lambda op: [op.inputs[0].get_shape()])
@@ -1210,7 +1211,7 @@ def maybe_zero_out_padding(inputs, kernel_size, nonpadding_mask):
       nonpadding_mask is not None):
     while nonpadding_mask.get_shape().ndims < inputs.get_shape().ndims:
       nonpadding_mask = tf.expand_dims(nonpadding_mask, -1)
-    return inputs * nonpadding_mask
+    return inputs * cast_like(nonpadding_mask, inputs)
 
   return inputs
 

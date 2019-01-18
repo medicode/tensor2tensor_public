@@ -36,8 +36,6 @@ import tensorflow as tf
 from tensorflow.python.framework import function
 from tensorflow.python.ops import inplace_ops
 
-# Fathom
-#from fathomt2t_dependencies.common_t2t_utils import get_tf_activation_dtype
 
 def get_tf_activation_dtype(hparams):
     if hparams.activation_dtype == 'float16':

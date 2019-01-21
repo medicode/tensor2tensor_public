@@ -154,7 +154,6 @@ class LossScaleOptimizer(optimizer.Optimizer):
     def true_apply_gradients_fn():
       return self._opt.apply_gradients(grads_and_vars, global_step, name)
     print("True apply grad fn", true_apply_gradients_fn())
-    return true_apply_gradients_fn()
     update_vars = control_flow_ops.cond(
         is_overall_finite, true_apply_gradients_fn, gen_control_flow_ops.no_op)
     # Potentially adjust gradient scale in case of finite gradients.

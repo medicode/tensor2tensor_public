@@ -143,7 +143,6 @@ class LossScaleOptimizer(optimizer.Optimizer):
 
   def apply_gradients(self, grads_and_vars, global_step=None, name=None):
     """Apply gradients. See base class `tf.train.Optimizer`."""
-    print("NOOT NOOT")
     grads = [g for (g, _) in grads_and_vars]
 
     is_finite_grad = []
@@ -154,7 +153,7 @@ class LossScaleOptimizer(optimizer.Optimizer):
     # Only update gradients when all grads are finite.
     def true_apply_gradients_fn():
       return self._opt.apply_gradients(grads_and_vars, global_step, name)
-
+    print("True apply grad fn", true_apply_gradients_fn())
     update_vars = control_flow_ops.cond(
         is_overall_finite, true_apply_gradients_fn, gen_control_flow_ops.no_op)
     # Potentially adjust gradient scale in case of finite gradients.

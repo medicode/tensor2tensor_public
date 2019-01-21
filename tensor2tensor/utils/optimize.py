@@ -23,7 +23,7 @@ from tensor2tensor.layers import common_layers
 from tensor2tensor.utils import adafactor
 from tensor2tensor.utils import multistep_optimizer
 from tensor2tensor.utils import yellowfin
-
+from tensor2tensor.utils.loss_scale_optimizer import *
 import tensorflow as tf
 
 from tensorflow.python.framework import dtypes
@@ -83,7 +83,7 @@ class ConditionalOptimizer(tf.train.Optimizer):
   def __init__(self, optimizer_name, lr, hparams, use_tpu=False):  # pylint: disable=super-init-not-called
     tf.logging.info("Using optimizer %s", optimizer_name)
 
-    if optimizer_name == "Adam" or 'float16':
+    if optimizer_name == "Adam":
       # We change the default epsilon for Adam.
       # Using LazyAdam as it's much faster for large vocabulary embeddings.
       self._opt = tf.contrib.opt.LazyAdamOptimizer(
@@ -117,7 +117,7 @@ class ConditionalOptimizer(tf.train.Optimizer):
     else:
       self._opt = tf.contrib.layers.OPTIMIZER_CLS_NAMES[optimizer_name](lr)
 
-    
+    if get_tf_activation_dtype(hparams) == 'float16':
 #      # NVIDIA OpenSeq2Seq wrapper
 #      from tensor2tensor.utils import mp_wrapper
 #      from tensor2tensor.utils.automatic_loss_scaler import AutomaticLossScaler
@@ -125,17 +125,13 @@ class ConditionalOptimizer(tf.train.Optimizer):
 #      self._opt = mp_wrapper.MixedPrecisionOptimizerWrapper(
 #        self._opt, loss_scale=AutomaticLossScaler(algorithm='Backoff'))
       # TODO: move to hparams
-
-
-  # if get_tf_activation_dtype(hparams) == 'float16':
-      # loss_scale_manager = tf.contrib.mixed_precision.ExponentialUpdateLossScaleManager(
-      #     init_loss_scale=2**15,
-      #     incr_every_n_steps=2000,
-      #     decr_every_n_nan_or_inf=2,
-      #     incr_ratio=2,
-      #     decr_ratio=0.5)
-      
-      # self._opt = tf.contrib.mixed_precision.LossScaleOptimizer(self._opt, loss_scale_manager)
+      loss_scale_manager = tf.contrib.mixed_precision.ExponentialUpdateLossScaleManager(
+          init_loss_scale=2**15,
+          incr_every_n_steps=2000,
+          decr_every_n_nan_or_inf=2,
+          incr_ratio=2,
+          decr_ratio=0.5)
+      self._opt = LossScaleOptimizer(self._opt, loss_scale_manager)
 
   def compute_gradients(self, loss, var_list=None, **kwargs):  # pylint: disable=arguments-differ
     gradients = self._opt.compute_gradients(loss, var_list, **kwargs)

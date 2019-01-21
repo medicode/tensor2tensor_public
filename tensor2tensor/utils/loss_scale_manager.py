@@ -141,11 +141,11 @@ class ExponentialUpdateLossScaleManager(LossScaleManager):
         name="loss_scale",
         initial_value=ops.convert_to_tensor(init_loss_scale, dtypes.float32),
         dtype=dtypes.float32,
-        trainable=False, aggregation=tf.VariableAggregation.ONLY_FIRST_TOWER)
+        trainable=False, aggregation=tf.VariableAggregation.MEAN)
     self._num_good_steps = variable_scope.variable(
-        name="good_steps", initial_value=0, dtype=dtypes.int32, trainable=False, aggregation=tf.VariableAggregation.ONLY_FIRST_TOWER)
+        name="good_steps", initial_value=0, dtype=dtypes.int32, trainable=False, aggregation=tf.VariableAggregation.MEAN)
     self._num_bad_steps = variable_scope.variable(
-        name="bad_steps", initial_value=0, dtype=dtypes.int32, trainable=False, aggregation=tf.VariableAggregation.ONLY_FIRST_TOWER)
+        name="bad_steps", initial_value=0, dtype=dtypes.int32, trainable=False, aggregation=tf.VariableAggregation.MEAN)
 
   def _reset_stats(self):
     return control_flow_ops.group(

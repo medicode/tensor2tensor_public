@@ -140,6 +140,7 @@ class ExponentialUpdateLossScaleManager(LossScaleManager):
     agg_type = tf.VariableAggregation.ONLY_FIRST_TOWER
     synch_type = None
     print("Agg type is {}".format(agg_type))
+    print("synch type is {}".format(synch_type))
     self._loss_scale = variable_scope.variable(
         name="loss_scale",
         initial_value=ops.convert_to_tensor(init_loss_scale, dtypes.float32),

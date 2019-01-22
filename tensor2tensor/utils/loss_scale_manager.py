@@ -138,16 +138,28 @@ class ExponentialUpdateLossScaleManager(LossScaleManager):
     self._incr_ratio = incr_ratio
     self._decr_ratio = decr_ratio
     agg_type = tf.VariableAggregation.MEAN
+    synch_type = None
     print("Agg type is {}".format(agg_type))
     self._loss_scale = variable_scope.variable(
         name="loss_scale",
         initial_value=ops.convert_to_tensor(init_loss_scale, dtypes.float32),
         dtype=dtypes.float32,
+        synchronization=synch_type,
         trainable=False, aggregation=agg_type)
     self._num_good_steps = variable_scope.variable(
-        name="good_steps", initial_value=0, dtype=dtypes.int32, trainable=False, aggregation=agg_type)
+        name="good_steps",
+        initial_value=0,
+        dtype=dtypes.int32,
+        trainable=False,
+        synchronization=synch_type,
+        aggregation=agg_type)
     self._num_bad_steps = variable_scope.variable(
-        name="bad_steps", initial_value=0, dtype=dtypes.int32, trainable=False, aggregation=agg_type)
+        name="bad_steps",
+        initial_value=0,
+        dtype=dtypes.int32,
+        trainable=False,
+        synchronization=synch_type,
+        aggregation=agg_type)
 
   def _reset_stats(self):
     return control_flow_ops.group(

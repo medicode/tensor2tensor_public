@@ -75,7 +75,9 @@ def create_session_config(log_device_placement=False,
           optimizer_options=tf.OptimizerOptions(
               opt_level=tf.OptimizerOptions.L1, do_function_inlining=False))
 
-  gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=gpu_mem_fraction)
+  # gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=gpu_mem_fraction)
+  #Literally just mysticism at this point
+  gpu_options = tf.GPUOptions(allow_growth=True)
 
   config = tf.ConfigProto(
       allow_soft_placement=True,

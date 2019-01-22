@@ -126,6 +126,7 @@ class ConditionalOptimizer(tf.train.Optimizer):
 #      self._opt = mp_wrapper.MixedPrecisionOptimizerWrapper(
 #        self._opt, loss_scale=AutomaticLossScaler(algorithm='Backoff'))
       # TODO: move to hparams
+      print("using contrib scaler")
       loss_scale_manager = tf.contrib.mixed_precision.ExponentialUpdateLossScaleManager(
           init_loss_scale=2**15,
           incr_every_n_steps=2000,

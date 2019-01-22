@@ -138,7 +138,7 @@ class ExponentialUpdateLossScaleManager(LossScaleManager):
     self._incr_ratio = incr_ratio
     self._decr_ratio = decr_ratio
     agg_type = tf.VariableAggregation.ONLY_FIRST_TOWER
-    synch_type = None
+    synch_type = variable_scope.VariableSynchronization.ON_READ
     print("Agg type is {}".format(agg_type))
     print("synch type is {}".format(synch_type))
     self._loss_scale = variable_scope.variable(

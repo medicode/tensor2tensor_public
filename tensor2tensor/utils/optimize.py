@@ -133,11 +133,12 @@ class ConditionalOptimizer(tf.train.Optimizer):
       #     decr_every_n_nan_or_inf=2,
       #     incr_ratio=2,
       #     decr_ratio=0.5)
-      print("Using fixed scaler")
-      loss_scale_manager = tf.contrib.mixed_precision.FixedLossScaleManager(loss_scale=1.0)
-      print("using contrib opt")
-      self._opt = tf.contrib.mixed_precision.LossScaleOptimizer(self._opt, loss_scale_manager)
-
+      # print("Using fixed scaler")
+      # loss_scale_manager = tf.contrib.mixed_precision.FixedLossScaleManager(loss_scale=1.0)
+      # print("using contrib opt")
+      # self._opt = tf.contrib.mixed_precision.LossScaleOptimizer(self._opt, loss_scale_manager)
+      print("Doing nothing")
+      pass
   def compute_gradients(self, loss, var_list=None, **kwargs):  # pylint: disable=arguments-differ
     gradients = self._opt.compute_gradients(loss, var_list, **kwargs)
     def cast_grad(g, v):

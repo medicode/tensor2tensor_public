@@ -156,14 +156,14 @@ class LossScaleOptimizer(optimizer.Optimizer):
       return self._opt.apply_gradients(grads_and_vars, global_step, name)
     print("True apply grad fn", true_apply_gradients_fn())
     #### Use this if dist strat is off
-      #update_vars = control_flow_ops.cond(
-      #  is_overall_finite, true_apply_gradients_fn, gen_control_flow_ops.no_op)
+      update_vars = control_flow_ops.cond(
+       is_overall_finite, true_apply_gradients_fn, gen_control_flow_ops.no_op)
     ####
     #### Use this if dist strat is on
-    def int_no_op():
-      return tf.zeros([1], tf.int64)
-    update_vars = control_flow_ops.cond(
-        is_overall_finite, true_apply_gradients_fn, int_no_op)
+    # def int_no_op():
+    #   return tf.zeros([1], tf.int64)
+    # update_vars = control_flow_ops.cond(
+    #     is_overall_finite, true_apply_gradients_fn, int_no_op)
     ####
     # Potentially adjust gradient scale in case of finite gradients.
     return control_flow_ops.group(

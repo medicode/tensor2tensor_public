@@ -137,7 +137,7 @@ class ExponentialUpdateLossScaleManager(LossScaleManager):
     self._decr_every_n_nan_or_inf = decr_every_n_nan_or_inf
     self._incr_ratio = incr_ratio
     self._decr_ratio = decr_ratio
-    agg_type = tf.VariableAggregation.MEAN
+    agg_type = tf.VariableAggregation.ONLY_FIRST_TOWER
     synch_type = None
     print("Agg type is {}".format(agg_type))
     self._loss_scale = variable_scope.variable(

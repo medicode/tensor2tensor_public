@@ -160,8 +160,8 @@ class LossScaleOptimizer(optimizer.Optimizer):
     #   is_overall_finite, true_apply_gradients_fn, gen_control_flow_ops.no_op)
     # ####
     #### Use this if dist strat is on
-    # def int_no_op():
-    #   return tf.zeros([1], tf.int64)
+    def int_no_op():
+      return tf.zeros([1], tf.int64)
     update_vars = control_flow_ops.cond(
         is_overall_finite, true_apply_gradients_fn, int_no_op)
     ###

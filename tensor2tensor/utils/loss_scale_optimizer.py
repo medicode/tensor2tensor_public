@@ -149,7 +149,8 @@ class LossScaleOptimizer(optimizer.Optimizer):
     is_finite_grad = []
     for g in grads:
       is_finite_grad.append(math_ops.reduce_all(gen_math_ops.is_finite(g)))
-    is_overall_finite = math_ops.reduce_all(is_finite_grad)
+    with tf.control_dependencies([tf.print(is_finite_grad, "Is finite")]):
+      is_overall_finite = math_ops.reduce_all(is_finite_grad)
     print("Self opt is: ", self._opt)
     # Only update gradients when all grads are finite.
     def true_apply_gradients_fn():

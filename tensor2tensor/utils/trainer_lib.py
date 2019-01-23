@@ -75,8 +75,10 @@ def create_session_config(log_device_placement=False,
           optimizer_options=tf.OptimizerOptions(
               opt_level=tf.OptimizerOptions.L1, do_function_inlining=False))
 
+  print("using fix gpu mem frac")
   gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=.9)
   #Literally just mysticism at this point
+  # print("using growth")
   # gpu_options = tf.GPUOptions(allow_growth=True)
 
   config = tf.ConfigProto(

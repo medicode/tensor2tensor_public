@@ -128,7 +128,7 @@ class ConditionalOptimizer(tf.train.Optimizer):
       # TODO: move to hparams
       print("using contrib exp scaler")
       loss_scale_manager = tf.contrib.mixed_precision.ExponentialUpdateLossScaleManager(
-          init_loss_scale=1,
+          init_loss_scale=2**15,
           incr_every_n_steps=2000,
           decr_every_n_nan_or_inf=2,
           incr_ratio=2,

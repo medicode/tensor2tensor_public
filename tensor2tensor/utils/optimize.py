@@ -23,7 +23,7 @@ from tensor2tensor.layers import common_layers
 from tensor2tensor.utils import adafactor
 from tensor2tensor.utils import multistep_optimizer
 from tensor2tensor.utils import yellowfin
-# from tensor2tensor.utils.loss_scale_optimizer import *
+from tensor2tensor.utils.loss_scale_optimizer import *
 # from tensor2tensor.utils.loss_scale_manager import *
 import tensorflow as tf
 
@@ -136,7 +136,7 @@ class ConditionalOptimizer(tf.train.Optimizer):
       print("Using fixed scaler")
       loss_scale_manager = tf.contrib.mixed_precision.FixedLossScaleManager(loss_scale=1.0)
       print("using contrib opt")
-      self._opt = tf.contrib.mixed_precision.LossScaleOptimizer(self._opt, loss_scale_manager)
+      self._opt = LossScaleOptimizer(self._opt, loss_scale_manager)
       # print("Doing nothing")
       pass
   def compute_gradients(self, loss, var_list=None, **kwargs):  # pylint: disable=arguments-differ

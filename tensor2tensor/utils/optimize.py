@@ -134,9 +134,9 @@ class ConditionalOptimizer(tf.train.Optimizer):
       #     incr_ratio=2,
       #     decr_ratio=0.5)
       print("Using fixed scaler")
-      loss_scale_manager = tf.contrib.mixed_precision.FixedLossScaleManager(loss_scale=1.0)
-      print("using print loss scale opt")
-      self._opt = LossScaleOptimizer(self._opt, loss_scale_manager)
+      loss_scale_manager = tf.contrib.mixed_precision.FixedLossScaleManager(loss_scale=128.0)
+      print("using contrib optimizer")
+      self._opt = tf.contrib.mixed_precision.LossScaleOptimizer(self._opt, loss_scale_manager)
       # print("Doing nothing")
       pass
   def compute_gradients(self, loss, var_list=None, **kwargs):  # pylint: disable=arguments-differ

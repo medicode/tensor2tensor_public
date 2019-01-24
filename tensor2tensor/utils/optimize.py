@@ -24,7 +24,7 @@ from tensor2tensor.utils import adafactor
 from tensor2tensor.utils import multistep_optimizer
 from tensor2tensor.utils import yellowfin
 from tensor2tensor.utils.loss_scale_optimizer import *
-# from tensor2tensor.utils.loss_scale_manager import *
+from tensor2tensor.utils.loss_scale_manager import *
 import tensorflow as tf
 
 from tensorflow.python.framework import dtypes

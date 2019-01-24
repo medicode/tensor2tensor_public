@@ -157,8 +157,8 @@ class LossScaleOptimizer(optimizer.Optimizer):
     def false_print_nan():
       return tf.print("One of the grads was not finite")
     #### Use this if dist strat is off
-    update_vars = control_flow_ops.cond(
-      is_overall_finite, true_apply_gradients_fn, false_print_nan)
+    # update_vars = control_flow_ops.cond(
+    #   is_overall_finite, true_apply_gradients_fn, false_print_nan)
     # ####
     #### Use this if dist strat is on
     def int_no_op():
@@ -166,9 +166,9 @@ class LossScaleOptimizer(optimizer.Optimizer):
     # print("Experimenting without cond")
     #Use this if using dist strat
     # update_vars = true_apply_gradients_fn()
-    # update_vars = control_flow_ops.cond(
-        # is_overall_finite, true_apply_gradients_fn, int_no_op)
-    ##
+    update_vars = control_flow_ops.cond(
+        is_overall_finite, true_apply_gradients_fn, int_no_op)
+    #
     # Potentially adjust gradient scale in case of finite gradients.
     return control_flow_ops.group(
         update_vars,

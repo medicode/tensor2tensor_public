@@ -2446,17 +2446,19 @@ def transformer_tpu_1b():
   return hparams
 #
 #
-#@registry.register_hparams
-#def transformer_base_fp16():
-#    hparams = transformer_base()
-#    hparams.activation_dtype = 'float16'
-#    return hparams
+@registry.register_hparams
+def transformer_base_fp16_4k():
+    hparams = transformer_base()
+    hparams.activation_dtype = 'float16'
+    hparams.batch_size = 4096
+    return hparams
 #
 #
-#@registry.register_hparams
-#def transformer_base_no_fp16():
-#    hparams = transformer_base()
-#    return hparams
+@registry.register_hparams
+def transformer_base_4k():
+    hparams = transformer_base()
+    hparams.batch_size = 4096
+    return hparams
 #
 #
 @registry.register_hparams

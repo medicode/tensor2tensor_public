@@ -163,7 +163,7 @@ class LossScaleOptimizer(optimizer.Optimizer):
     #### Use this if dist strat is on
     def int_no_op():
       return tf.zeros([1], tf.int64)
-    print("Experimenting without cond")
+    # print("Experimenting without cond")
     #Use this if using dist strat
     # update_vars = true_apply_gradients_fn()
     # update_vars = control_flow_ops.cond(

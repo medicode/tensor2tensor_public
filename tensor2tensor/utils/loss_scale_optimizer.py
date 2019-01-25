@@ -165,9 +165,9 @@ class LossScaleOptimizer(optimizer.Optimizer):
       return tf.zeros([1], tf.int64)
     # print("Experimenting without cond")
     #Use this if using dist strat
-    # update_vars = true_apply_gradients_fn()
-    update_vars = control_flow_ops.cond(
-        is_overall_finite, true_apply_gradients_fn, int_no_op)
+    update_vars = true_apply_gradients_fn()
+    # update_vars = control_flow_ops.cond(
+    #     is_overall_finite, true_apply_gradients_fn, int_no_op)
     #
     # Potentially adjust gradient scale in case of finite gradients.
     return control_flow_ops.group(

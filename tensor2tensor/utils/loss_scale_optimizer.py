@@ -161,7 +161,7 @@ class LossScaleOptimizer(optimizer.Optimizer):
     #### Use this if dist strat is off
     
 
-    if distribute_ctx.has_strategy():
+    if distribute_ctx.has_distribution_strategy():
       #TODO: Fix cond
       print("Dist strat on")
       update_vars = true_apply_gradients_fn()

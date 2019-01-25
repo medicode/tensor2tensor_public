@@ -23,7 +23,7 @@ from tensorflow.python.ops import gen_control_flow_ops
 from tensorflow.python.ops import gen_math_ops
 from tensorflow.python.ops import math_ops
 from tensorflow.python.training import optimizer
-from tensorflow.python.distribute import distribution_strategy_context as distribute_ctx
+from tensorflow.python.training import distribution_strategy_context as distribute_ctx
 
 import tensorflow as tf
 

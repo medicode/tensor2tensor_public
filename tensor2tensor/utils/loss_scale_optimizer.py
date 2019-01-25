@@ -23,6 +23,8 @@ from tensorflow.python.ops import gen_control_flow_ops
 from tensorflow.python.ops import gen_math_ops
 from tensorflow.python.ops import math_ops
 from tensorflow.python.training import optimizer
+from tensorflow.python.distribute import distribution_strategy_context as distribute_ctx
+
 import tensorflow as tf
 
 
@@ -157,18 +159,16 @@ class LossScaleOptimizer(optimizer.Optimizer):
     def false_print_nan():
       return tf.print("One of the grads was not finite")
     #### Use this if dist strat is off
-    # update_vars = control_flow_ops.cond(
-    #   is_overall_finite, true_apply_gradients_fn, false_print_nan)
-    # ####
-    #### Use this if dist strat is on
-    def int_no_op():
-      return tf.zeros([1], tf.int64)
-    # print("Experimenting without cond")
-    #Use this if using dist strat
-    update_vars = true_apply_gradients_fn()
-    # update_vars = control_flow_ops.cond(
-    #     is_overall_finite, true_apply_gradients_fn, int_no_op)
-    #
+    
+
+    if distribute_ctx.has_strategy():
+      #TODO: Fix cond
+      print("Dist strat on")
+      update_vars = true_apply_gradients_fn()
+    else:
+      print("Dist strat off")
+      update_vars = control_flow_ops.cond(
+        is_overall_finite, true_apply_gradients_fn, false_print_nan)
     # Potentially adjust gradient scale in case of finite gradients.
     return control_flow_ops.group(
         update_vars,

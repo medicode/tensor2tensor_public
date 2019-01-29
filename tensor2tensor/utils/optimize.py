@@ -126,7 +126,7 @@ class ConditionalOptimizer(tf.train.Optimizer):
 #      self._opt = mp_wrapper.MixedPrecisionOptimizerWrapper(
 #        self._opt, loss_scale=AutomaticLossScaler(algorithm='Backoff'))
       # TODO: move to hparams
-      init_scale = 1
+      init_scale = 2**15
       print("using contrib exp scaler with init val {}".format(init_scale))
       loss_scale_manager = ExponentialUpdateLossScaleManager(
           init_loss_scale=init_scale,

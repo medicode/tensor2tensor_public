@@ -123,14 +123,16 @@ class ConditionalOptimizer(tf.train.Optimizer):
         raise ValueError(("Mixed precision training only supports the ",
                          "exponential loss scaler"))
       else:
-        tf.logging.info("Using Exponential Update Loss Scaler")
-        loss_scale_manager = FathomDistributedExponentialUpdateLossScaleManager(
-            init_loss_scale=2**15,
+        tf.logging.info(("Using Exponential Update Loss Scaler with",
+                         "init loss scale of {}".format(
+                           hparams.mixed_precision_optimizer_init_loss_scale)))
+        manager = FathomDistributedExponentialUpdateLossScaleManager(
+            init_loss_scale=hparams.mixed_precision_optimizer_init_loss_scale,
             incr_every_n_steps=2000,
             decr_every_n_nan_or_inf=2,
             incr_ratio=2,
             decr_ratio=0.5)
-        self._opt = DistributedLossScaleOptimizer(self._opt, loss_scale_manager)
+        self._opt = DistributedLossScaleOptimizer(self._opt, manager)
 
 
     self._zero_grads = hparams.optimizer_zero_grads

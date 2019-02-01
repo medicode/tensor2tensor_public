@@ -36,7 +36,6 @@ from tensorflow.python.ops import control_flow_util
 from tensorflow.python.ops import inplace_ops
 
 
-
 @function.Defun(
     python_grad_func=lambda x, dy: tf.convert_to_tensor(dy),
     shape_func=lambda op: [op.inputs[0].get_shape()])
@@ -1726,12 +1725,7 @@ def padded_cross_entropy(logits,
         logits,
         shape_list(labels) + [vocab_size],
         name="padded_cross_entropy_size_check")
-#    print_op = tf.print('is_nan(logits) before cast', logits.dtype, tf.math.count_nonzero(tf.debugging.is_nan(logits)))
-#    with tf.control_dependencies([print_op]):
-    #logits = tf.identity(logits)
     logits = tf.cast(logits, tf.float32)
-#    print_op = tf.print('is_nan(logits) after cast', logits.dtype, tf.math.count_nonzero(tf.debugging.is_nan(logits)))
-#    with tf.control_dependencies([print_op]):
     xent = smoothing_cross_entropy(
         logits, labels, vocab_size, confidence, gaussian=gaussian)
     weights = weights_fn(labels)

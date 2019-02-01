@@ -1504,18 +1504,10 @@ def dot_product_attention(q,
       save_weights_to[scope.name] = weights
       save_weights_to[scope.name + "/logits"] = logits
     # Drop out attention links for each head.
-#    print_ops = [
-#      print_op_make('before dropout with broadcast logits_32', logits_32),
-#      #tf.print('logits_32 values', logits_32),
-#      print_op_make('before dropout with broadcast weights_32', weights_32),
-#      print_op_make('before dropout with broadcast weights', weights),
-#    ]
-#    with tf.control_dependencies(print_ops):
     weights = common_layers.dropout_with_broadcast_dims(
         weights, 1.0 - dropout_rate, broadcast_dims=dropout_broadcast_dims)
     if common_layers.should_generate_summaries() and make_image_summary:
       attention_image_summary(weights, image_shapes)
-
     return tf.matmul(weights, v)
 
 
@@ -3563,7 +3555,6 @@ def multihead_attention(query_antecedent,
       assert attention_type == "unmasked_dilated_1d"
       x = dilated_self_attention_1d(q, k, v, block_length, block_width,
                                     gap_size, num_memory_blocks)
-
     x = combine_heads(x)
 
     # Set last dim specifically.

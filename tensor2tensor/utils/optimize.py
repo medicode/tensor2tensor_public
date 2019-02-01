@@ -137,8 +137,6 @@ class ConditionalOptimizer(tf.train.Optimizer):
   
   def compute_gradients(self, loss, var_list=None, **kwargs):  # pylint: disable=arguments-differ
     gradients = self._opt.compute_gradients(loss, var_list, **kwargs)
-    # print("var list:", var_list)
-    # print("Gradients before cast", gradients)
     def cast_grad(g, v):
       """
       below is old code.
@@ -165,9 +163,7 @@ class ConditionalOptimizer(tf.train.Optimizer):
         #g = common_layers.cast_like(g, v)
       #return (g, v)
     gradients = [cast_grad(g, v) for g, v in gradients]
-    # print("Gradients after cast", gradients)
     return gradients
-    # return self._opt.compute_gradients(loss, var_list, **kwargs)
 
   def apply_gradients(self, grads_and_vars, global_step=None, name=None):
     return self._opt.apply_gradients(

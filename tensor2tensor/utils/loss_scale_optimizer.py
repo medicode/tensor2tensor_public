@@ -37,12 +37,12 @@ class DistributedLossScaleOptimizer(LossScaleOptimizer):
   See https://github.com/tensorflow/tensorflow/issues/25080
   """
 
-  def apply_gradients(self, args, **kwargs):
+  def apply_gradients(self, grads_and_vars, global_step=None, name=None):
     """Overriding parent apply_gradients to call distribution if necessary"""
     if distribute_ctx.has_distribution_strategy():
-      return self.distributed_apply_gradients(*args, **kwargs)
+      return self.distributed_apply_gradients(grads_and_vars, global_step, name)
     else:
-      return super().apply_gradients(*args, **kwargs)
+      return super().apply_gradients(grads_and_vars, global_step, name)
  
   def distributed_apply_gradients(self, grads_and_vars, global_step=None, name=None):
     grads = [g for (g, _) in grads_and_vars]

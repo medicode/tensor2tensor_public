@@ -1210,9 +1210,6 @@ def transformer_prepare_decoder(targets, hparams, features=None):
         decoder_input, hparams.max_length, "targets_positional_embedding",
         targets_position)
 
-  if get_tf_activation_dtype(hparams) != tf.float32:
-    decoder_self_attention_bias = tf.cast(decoder_self_attention_bias,
-                                          get_tf_activation_dtype(hparams))
   return (decoder_input, decoder_self_attention_bias)
 
 
@@ -2195,6 +2192,15 @@ def transformer_tpu_bf16_activation():
   """HParams for Transformer model with BF16 activation on TPU."""
   hparams = transformer_tpu()
   hparams.activation_dtype = "bfloat16"
+  return hparams
+
+@registry.register_hparams
+def transformer_fairseq_big():
+  """
+  Hparams intended to mirror those used in https://arxiv.org/pdf/1806.00187.pdf
+  """
+  hparams = transformer_big()
+  hparams.batch_size = 3584
   return hparams
 
 @registry.register_hparams

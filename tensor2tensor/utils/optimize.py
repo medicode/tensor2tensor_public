@@ -134,30 +134,7 @@ class ConditionalOptimizer(tf.train.Optimizer):
             incr_ratio=2,
             decr_ratio=0.5)
         self._opt = LossScaleOptimizer(self._opt, loss_scale_manager)
-
-
-    if get_tf_activation_dtype(hparams) == 'float16':
-#      # NVIDIA OpenSeq2Seq wrapper
-#      from tensor2tensor.utils import mp_wrapper
-#      from tensor2tensor.utils.automatic_loss_scaler import AutomaticLossScaler
-#      assert hparams.weight_decay == 0
-#      self._opt = mp_wrapper.MixedPrecisionOptimizerWrapper(
-#        self._opt, loss_scale=AutomaticLossScaler(algorithm='Backoff'))
-      # TODO: move to hparams
-      init_scale = 2**15
-      print("using contrib exp scaler with init val {}".format(init_scale))
-      loss_scale_manager = ExponentialUpdateLossScaleManager(
-          init_loss_scale=init_scale,
-          incr_every_n_steps=2000,
-          decr_every_n_nan_or_inf=2,
-          incr_ratio=2,
-          decr_ratio=0.5)
-      # print("Using fixed scaler")
-      # loss_scale_manager = tf.contrib.mixed_precision.FixedLossScaleManager(loss_scale=128.0)
-      print("using contrib optimizer")
-      self._opt = LossScaleOptimizer(self._opt, loss_scale_manager)
-      # print("Doing nothing")
-      pass
+  
   def compute_gradients(self, loss, var_list=None, **kwargs):  # pylint: disable=arguments-differ
     gradients = self._opt.compute_gradients(loss, var_list, **kwargs)
     # print("var list:", var_list)

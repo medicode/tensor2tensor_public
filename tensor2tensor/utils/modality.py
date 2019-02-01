@@ -20,7 +20,6 @@ from __future__ import print_function
 
 import re
 from tensor2tensor.layers import common_layers
-from tensor2tensor.utils import misc_utils
 from tensor2tensor.layers.common_attention import maybe_upcast
 
 import tensorflow as tf

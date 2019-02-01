@@ -3476,13 +3476,6 @@ def multihead_attention(query_antecedent,
       if isinstance(x, tuple):
         x, additional_returned_value = x  # Unpack
     elif attention_type == "dot_product":
-#      print_ops = [
-#        print_op_make('before dot_product q', q),
-#        print_op_make('before dot_product k', k),
-#        print_op_make('before dot_product v', v),
-#        print_op_make('before dot_product bias', bias)
-#      ]
-#      with tf.control_dependencies(print_ops):
       x = dot_product_attention(q, k, v, bias, dropout_rate, image_shapes,
                                 save_weights_to=save_weights_to,
                                 make_image_summary=make_image_summary,

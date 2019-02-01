@@ -29,9 +29,6 @@ from tensor2tensor.utils import registry
 
 import tensorflow as tf
 
-# Fathom
-#from fathomt2t_dependencies.common_t2t_utils import get_tf_activation_dtype
-from tensor2tensor.layers.common_attention import get_tf_activation_dtype
 
 class SymbolModality(modality.Modality):
   """Modality for sets of discrete symbols.

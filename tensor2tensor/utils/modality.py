@@ -24,10 +24,6 @@ from tensor2tensor.layers.common_attention import maybe_upcast
 
 import tensorflow as tf
 
-# Fathom
-#from fathomt2t_dependencies.common_t2t_utils import get_tf_activation_dtype
-from tensor2tensor.layers.common_attention import get_tf_activation_dtype
-
 
 class Modality(object):
   """Abstract Modality class for data transformations.

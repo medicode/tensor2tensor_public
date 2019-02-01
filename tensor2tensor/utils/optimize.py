@@ -31,10 +31,6 @@ from tensorflow.contrib.mixed_precision import LossScaleOptimizer
 from tensorflow.python.framework import dtypes
 from tensor2tensor.layers.common_attention import mixed_precision_is_enabled
 
-# Fathom
-#from fathomt2t_dependencies.common_t2t_utils import get_tf_activation_dtype
-from tensor2tensor.layers.common_attention import get_tf_activation_dtype
-
 
 def optimize(loss, learning_rate, hparams, use_tpu=False):
   """Minimize loss."""

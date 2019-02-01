@@ -42,9 +42,6 @@ import tensorflow as tf
 from tensorflow.python.ops import inplace_ops
 from tensorflow.python.util import nest
 
-# Fathom
-#from fathomt2t_dependencies.common_t2t_utils import get_tf_activation_dtype
-from tensor2tensor.layers.common_attention import get_tf_activation_dtype
 
 print_op_make = common_attention.print_op_make
 

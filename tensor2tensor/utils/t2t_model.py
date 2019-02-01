@@ -49,8 +49,7 @@ from tensorflow.python.ops import inplace_ops
 from tensorflow.python.ops import variable_scope
 
 # Fathom
-from fathomt2t_dependencies.common_t2t_utils import combine_shards, FATHOM_DICT_FORMAT, get_tf_activation_dtype
-from tensor2tensor.layers.common_attention import get_tf_activation_dtype
+from fathomt2t_dependencies.common_t2t_utils import combine_shards, FATHOM_DICT_FORMAT
 
 _no_problem_err_str = (
     "The default implementation of %s requires that the "

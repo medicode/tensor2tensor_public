@@ -24,10 +24,11 @@ from tensor2tensor.layers.common_attention import mixed_precision_is_enabled
 from tensor2tensor.utils import adafactor, multistep_optimizer, yellowfin
 from tensor2tensor.utils.loss_scale_manager import *
 from tensor2tensor.utils.loss_scale_manager import (
-  FathomDistributedExponentialUpdateLossScaleManager)
-from tensor2tensor.utils.loss_scale_optimizer import *
-from tensorflow.contrib.mixed_precision import LossScaleOptimizer
+    FathomDistributedExponentialUpdateLossScaleManager)
+from tensor2tensor.utils.loss_scale_optimizer import (
+    DistributedLossScaleOptimizer)
 from tensorflow.python.framework import dtypes
+
 
 def optimize(loss, learning_rate, hparams, use_tpu=False):
   """Minimize loss."""
@@ -126,7 +127,7 @@ class ConditionalOptimizer(tf.train.Optimizer):
             decr_every_n_nan_or_inf=2,
             incr_ratio=2,
             decr_ratio=0.5)
-        self._opt = LossScaleOptimizer(self._opt, loss_scale_manager)
+        self._opt = DistributedLossScaleOptimizer(self._opt, loss_scale_manager)
   
   def compute_gradients(self, loss, var_list=None, **kwargs):  # pylint: disable=arguments-differ
     gradients = self._opt.compute_gradients(loss, var_list, **kwargs)

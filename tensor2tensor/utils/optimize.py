@@ -14,23 +14,20 @@
 # limitations under the License.
 
 """Optimization."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
+
 import numpy as np
 
-from tensor2tensor.layers import common_layers
-from tensor2tensor.utils import adafactor
-from tensor2tensor.utils import multistep_optimizer
-from tensor2tensor.utils import yellowfin
-from tensor2tensor.utils.loss_scale_optimizer import *
-from tensor2tensor.utils.loss_scale_manager import *
 import tensorflow as tf
-
+from tensor2tensor.layers import common_layers
+from tensor2tensor.layers.common_attention import mixed_precision_is_enabled
+from tensor2tensor.utils import adafactor, multistep_optimizer, yellowfin
+from tensor2tensor.utils.loss_scale_manager import *
+from tensor2tensor.utils.loss_scale_manager import (
+  FathomDistributedExponentialUpdateLossScaleManager)
+from tensor2tensor.utils.loss_scale_optimizer import *
 from tensorflow.contrib.mixed_precision import LossScaleOptimizer
 from tensorflow.python.framework import dtypes
-from tensor2tensor.layers.common_attention import mixed_precision_is_enabled
-
 
 def optimize(loss, learning_rate, hparams, use_tpu=False):
   """Minimize loss."""
@@ -123,7 +120,7 @@ class ConditionalOptimizer(tf.train.Optimizer):
                          "exponential loss scaler"))
       else:
         tf.logging.info("Using Exponential Update Loss Scaler")
-        loss_scale_manager = tf.contrib.mixed_precision.ExponentialUpdateLossScaleManager(
+        loss_scale_manager = FathomDistributedExponentialUpdateLossScaleManager(
             init_loss_scale=2**15,
             incr_every_n_steps=2000,
             decr_every_n_nan_or_inf=2,

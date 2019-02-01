@@ -122,7 +122,7 @@ class ConditionalOptimizer(tf.train.Optimizer):
       else:
         tf.logging.info("Using Exponential Update Loss Scaler")
         loss_scale_manager = FathomDistributedExponentialUpdateLossScaleManager(
-            init_loss_scale=2**15,
+            init_loss_scale=1,
             incr_every_n_steps=2000,
             decr_every_n_nan_or_inf=2,
             incr_ratio=2,

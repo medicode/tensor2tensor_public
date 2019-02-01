@@ -43,8 +43,6 @@ from tensorflow.python.ops import inplace_ops
 from tensorflow.python.util import nest
 
 
-print_op_make = common_attention.print_op_make
-
 @registry.register_model
 class Transformer(t2t_model.T2TModel):
   """Attention net.  See file docstring."""
@@ -1344,7 +1342,6 @@ def transformer_decoder(decoder_input,
   Returns:
     y: a Tensors
   """
-  #print_op = print_op_make('decoder input', decoder_input)
   x = decoder_input
   attention_dropout_broadcast_dims = (
       common_layers.comma_separated_string_to_integer_list(
@@ -1412,8 +1409,6 @@ def transformer_decoder(decoder_input,
               losses=losses,
               cache=layer_cache,
               decode_loop_step=decode_loop_step)
-          #print_op = print_op_make('decoder y ffn' + layer_name, y)
-          #with tf.control_dependencies([print_op]):
           x = common_layers.layer_postprocess(x, y, hparams)
     # if normalization is done in layer_preprocess, then it should also be done
     # on the output, since the output can grow very large, being the sum of
@@ -2441,52 +2436,7 @@ def transformer_tpu_1b():
 
 @registry.register_hparams
 def transformer_big_fp16_4k():
-    hparams = transformer_big()
-    hparams.activation_dtype = 'float16'
-    hparams.batch_size = 4096
-    return hparams
-
-
-@registry.register_hparams
-def transformer_big_4k():
-    hparams = transformer_big()
-    hparams.batch_size = 4096
-    return hparams
-
-
-@registry.register_hparams
-def transformer_base_fp16_4k():
-    hparams = transformer_base()
-    hparams.activation_dtype = 'float16'
-    hparams.batch_size = 4096
-    return hparams
-
-
-@registry.register_hparams
-def transformer_base_4k():
-    hparams = transformer_base()
-    hparams.batch_size = 4096
-    return hparams
-#
-#
-@registry.register_hparams
-def transformer_fairseq_fp16():
-    hparams = transformer_big()
-    hparams.batch_size = 3584
-    hparams.activation_dtype = 'float16'
-    return hparams
-
-@registry.register_hparams
-def transformer_fairseq_fp16_tiny():
-    hparams = transformer_tiny()
-    hparams.batch_size = 3584
-    hparams.activation_dtype = 'float16'
-    return hparams
-
-#
-#
-#@registry.register_hparams
-#def transformer_fairseq_fp32():
-#    hparams = transformer_big()
-#    hparams.batch_size = 3584
-#    return hparams
+  hparams = transformer_big()
+  hparams.activation_dtype = 'float16'
+  hparams.batch_size = 4096
+  return hparams

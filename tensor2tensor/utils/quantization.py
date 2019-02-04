@@ -47,6 +47,7 @@ def bfloat16_activations_var_getter(getter, *args, **kwargs):
     var = tf.cast(var, requested_dtype)
   return var
 
+# pylint: disable=line-too-long
 def float16_activations_var_getter(getter, *args, **kwargs):
   """A custom getter function for float32 parameters and float16 activations.
    Args:

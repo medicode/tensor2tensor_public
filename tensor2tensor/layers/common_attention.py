@@ -903,13 +903,11 @@ def attention_bias_same_segment(query_segment_id, memory_segment_id):
   Returns:
     a `Tensor` with shape [batch, 1, query_length, memory_length].
   """
-  
   ret = (tf.to_float(
       tf.not_equal(
           tf.expand_dims(query_segment_id, 2),
           tf.expand_dims(memory_segment_id, 1))) *
           large_compatible_negative(memory_segment_id))
-
   return tf.expand_dims(ret, axis=1)
 
 
@@ -923,7 +921,6 @@ def attention_bias_ignore_padding(memory_padding):
   Returns:
     a `Tensor` with shape [batch, 1, 1, memory_length].
   """
-  
   ret = memory_padding * large_compatible_negative(memory_padding)
   return tf.expand_dims(tf.expand_dims(ret, axis=1), axis=1)
 
@@ -3304,6 +3301,7 @@ def compute_qkv(query_antecedent,
       "v",
       vars_3d_num_heads=vars_3d_num_heads)
   return q, k, v
+
 
 def multihead_attention(query_antecedent,
                         memory_antecedent,

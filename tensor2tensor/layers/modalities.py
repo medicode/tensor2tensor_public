@@ -29,7 +29,6 @@ from tensor2tensor.utils import registry
 
 import tensorflow as tf
 
-
 class SymbolModality(modality.Modality):
   """Modality for sets of discrete symbols.
 

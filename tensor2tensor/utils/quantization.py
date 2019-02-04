@@ -65,11 +65,12 @@ def float16_activations_var_getter(getter, *args, **kwargs):
   """
   requested_dtype = kwargs["dtype"]
 
-   if requested_dtype == tf.float16:
+  if requested_dtype == tf.float16:
     kwargs["dtype"] = tf.float32
 
-   if requested_dtype == tf.float32:
+  if requested_dtype == tf.float32:
     requested_dtype = tf.float16
+
   var = getter(*args, **kwargs)
   # This if statement is needed to guard the cast, because batch norm
   # assigns directly to the return value of this custom getter. The cast

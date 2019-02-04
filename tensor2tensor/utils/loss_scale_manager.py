@@ -40,28 +40,21 @@ class FathomDistributedExponentialUpdateLossScaleManager(
     #Fathom | For dist strat
     agg_type = tf.VariableAggregation.ONLY_FIRST_TOWER
 
-    #Fathom | TODO: Is this the right synch type?
-    #synch_type = variable_scope.VariableSynchronization.ON_READ
-
     print("Agg type is {}".format(agg_type))
-    #print("synch type is {}".format(synch_type))
     self._loss_scale = variable_scope.variable(
         name="loss_scale",
         initial_value=ops.convert_to_tensor(init_loss_scale, dtypes.float32),
         dtype=dtypes.float32,
-        #synchronization=synch_type,
         trainable=False, aggregation=agg_type)
     self._num_good_steps = variable_scope.variable(
         name="good_steps",
         initial_value=0,
         dtype=dtypes.int32,
         trainable=False,
-        #synchronization=synch_type,
         aggregation=agg_type)
     self._num_bad_steps = variable_scope.variable(
         name="bad_steps",
         initial_value=0,
         dtype=dtypes.int32,
         trainable=False,
-        #synchronization=synch_type,
         aggregation=agg_type)

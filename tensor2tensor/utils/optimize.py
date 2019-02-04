@@ -42,7 +42,7 @@ def optimize(loss, learning_rate, hparams, use_tpu=False):
   log_variable_sizes(verbose=hparams.summarize_vars)
   if hparams.summarize_vars:
     summarize_variables()
-diet_vars = [
+  diet_vars = [
       v for v in tf.global_variables() if v.dtype == dtypes.float16_ref
   ]
   log_variable_sizes(

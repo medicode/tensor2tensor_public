@@ -2419,4 +2419,3 @@ def transformer_tpu_1b():
   # maximize number of parameters relative to computation by not sharing.
   hparams.shared_embedding_and_softmax_weights = False
   return hparams
-

@@ -337,10 +337,10 @@ class T2TModel(base.Layer):
       self._add_variable_scope("model_fn", vs)
       transformed_features = self.bottom(features)
 
-      if self.hparams.activation_dtype != tf.float32:
+      if self.hparams.activation_dtype == "bfloat16":
         for k, v in sorted(six.iteritems(transformed_features)):
           if v.dtype == tf.float32:
-            transformed_features[k] = tf.cast(v, self.hparams.activation_dtype)
+            transformed_features[k] = tf.cast(v, tf.bfloat16)
 
       with tf.variable_scope("body") as body_vs:
         self._add_variable_scope("body", body_vs)

@@ -6,8 +6,6 @@ from tensorflow.python.ops import math_ops
 from tensorflow.python.training import distribution_strategy_context as distribute_ctx
 from tensorflow.contrib.mixed_precision import LossScaleOptimizer
 
-import tensorflow as tf
-
 
 class DistributedLossScaleOptimizer(LossScaleOptimizer):
   # TODO(jamesqin): move mixed precision training explanation to __init__
@@ -20,15 +18,15 @@ class DistributedLossScaleOptimizer(LossScaleOptimizer):
   def apply_gradients(self, grads_and_vars, global_step=None, name=None):
     """
       Fathom: Overriding parent apply_gradients to call
-        distributed_apply_gradients if necessary
+        dist_apply_gradients if necessary
     """
     if distribute_ctx.has_distribution_strategy():
       # Use Fathom built distribtued_apply_gradients
-      return self.distributed_apply_gradients(grads_and_vars, global_step, name)
+      return self.dist_apply_gradients(grads_and_vars, global_step, name)
     else:
       return super().apply_gradients(grads_and_vars, global_step, name)
 
-  def distributed_apply_gradients(self, grads_and_vars, global_step=None, name=None):
+  def dist_apply_gradients(self, grads_and_vars, global_step=None, name=None):
     """
       This code is necessary because control_flow_ops.cond does not work with
       Distribution Strategies.

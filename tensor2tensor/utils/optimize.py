@@ -14,20 +14,23 @@
 # limitations under the License.
 
 """Optimization."""
-from __future__ import absolute_import, division, print_function
-
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import numpy as np
 
-import tensorflow as tf
 from tensor2tensor.layers import common_layers
 from tensor2tensor.layers.common_attention import mixed_precision_is_enabled
-from tensor2tensor.utils import adafactor, multistep_optimizer, yellowfin
-from tensor2tensor.utils.loss_scale_manager import *
 from tensor2tensor.utils.loss_scale_manager import (
     FathomDistributedExponentialUpdateLossScaleManager)
 from tensor2tensor.utils.loss_scale_optimizer import (
     DistributedLossScaleOptimizer)
 from tensorflow.python.framework import dtypes
+from tensor2tensor.utils import adafactor
+from tensor2tensor.utils import multistep_optimizer
+from tensor2tensor.utils import yellowfin
+
+import tensorflow as tf
 
 
 def optimize(loss, learning_rate, hparams, use_tpu=False):

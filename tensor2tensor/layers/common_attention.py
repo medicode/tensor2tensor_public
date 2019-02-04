@@ -49,8 +49,10 @@ def large_compatible_negative(tensor):
 def mixed_precision_is_enabled(activation_dtype=None,
                                weight_dtype=None,
                                hparams=None):
-  assert not (hparams and (activation_dtype or weight_dtype)
-                ), "Provide only hparams or activation_dtype and weight_dtype"
+
+  if hparams and (activation_dtype or weight_dtype):
+    raise AssertionError(
+      "Provide only hparams or activation_dtype and weight_dtype")
 
   if hparams:
     activation_dtype = hparams.activation_dtype

@@ -3209,11 +3209,8 @@ def cast_like(x, y):
 
   cast_x = tf.cast(x, y.dtype)
   if cast_x.device != x.device:
-    tf.logging.warning(
-        "Cast for (%s) [ %s ] to (%s) [ %s ] "
-        "may induce copy from '%s' to '%s'",
-        x.dtype, x.name, y.dtype, y.name,
-        x.device, cast_x.device)
+    tf.logging.warning("Cast for %s may induce copy from '%s' to '%s'", x.name,
+                       x.device, cast_x.device)	
   return cast_x
 
 

@@ -1003,12 +1003,12 @@ class SigmoidMaxPoolingClassLabelModality(ClassLabelModality):
 
   def top(self, body_output, _):
     """Transform inputs from model space to target space.
-
+    
     Average over inner dims and a linear layer to logits.
-
+    
     Args:
       body_output: A Tensor with shape [batch, timesteps, 1, body_output_size].
-
+    
     Returns:
       a Tensors, each with shape [batch_size, 1, 1, vocab_size]
     """

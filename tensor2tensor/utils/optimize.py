@@ -32,8 +32,6 @@ from tensor2tensor.utils import yellowfin
 
 import tensorflow as tf
 
-from tensorflow.python.framework import dtypes
-
 
 def optimize(loss, learning_rate, hparams, use_tpu=False):
   """Minimize loss."""

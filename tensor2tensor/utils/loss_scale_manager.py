@@ -1,18 +1,4 @@
-# Copyright 2018 The TensorFlow Authors. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# ==============================================================================
-"""Distributed LossScaleManager classes for mixed precision training."""
+"""A mixed precision LossScaleManager with Distribution Strategy support added by Fathom."""
 
 import tensorflow as tf
 from tensorflow.contrib.mixed_precision import ExponentialUpdateLossScaleManager
@@ -49,27 +35,27 @@ class FathomDistributedExponentialUpdateLossScaleManager(ExponentialUpdateLossSc
     self._decr_every_n_nan_or_inf = decr_every_n_nan_or_inf
     self._incr_ratio = incr_ratio
     self._decr_ratio = decr_ratio
-    agg_type = tf.VariableAggregation.ONLY_FIRST_TOWER #Fathom
-    synch_type = variable_scope.VariableSynchronization.ON_READ #Fathom
-    print("Agg type is {}".format(agg_type)) #Fathom
-    print("synch type is {}".format(synch_type)) #Fathom
+    agg_type = tf.VariableAggregation.ONLY_FIRST_TOWER #Fathom | Need for dist strat
+    synch_type = variable_scope.VariableSynchronization.ON_READ #Fathom | TODO: Is this the right synch type?
+    print("Agg type is {}".format(agg_type))
+    print("synch type is {}".format(synch_type))
     self._loss_scale = variable_scope.variable(
         name="loss_scale",
         initial_value=ops.convert_to_tensor(init_loss_scale, dtypes.float32),
         dtype=dtypes.float32,
         synchronization=synch_type,
-        trainable=False, aggregation=agg_type) #Fathom
+        trainable=False, aggregation=agg_type)
     self._num_good_steps = variable_scope.variable(
         name="good_steps",
         initial_value=0,
         dtype=dtypes.int32,
         trainable=False,
         synchronization=synch_type,
-        aggregation=agg_type) #Fathom
+        aggregation=agg_type)
     self._num_bad_steps = variable_scope.variable(
         name="bad_steps",
         initial_value=0,
         dtype=dtypes.int32,
         trainable=False,
         synchronization=synch_type,
-        aggregation=agg_type) #Fathom
+        aggregation=agg_type)

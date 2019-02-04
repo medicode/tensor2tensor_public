@@ -75,12 +75,11 @@ def create_session_config(log_device_placement=False,
           optimizer_options=tf.OptimizerOptions(
               opt_level=tf.OptimizerOptions.L1, do_function_inlining=False))
 
-  print("using fix gpu mem frac")
+  tf.logging.warning("Warning: GPU Memory Fraction is fixed at 0.9")
   gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=.9)
-  #Literally just mysticism at this point
-  # print("using growth")
-  # gpu_options = tf.GPUOptions(allow_growth=True)
-
+  # Setting gpu mem frac to 0.9 fixed crashes on v100s
+  # The fix was inspired by:
+  # https://github.com/tensorflow/tensorflow/issues/6698#issuecomment-297179317
   config = tf.ConfigProto(
       allow_soft_placement=True,
       graph_options=graph_options,

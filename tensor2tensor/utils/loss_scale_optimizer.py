@@ -48,6 +48,7 @@ class DistributedLossScaleOptimizer(LossScaleOptimizer):
     ##### Fathom changes begin #####
 
     #TODO:(elias) Fix cond below
+    #Potentially See: https://github.com/tensorflow/tensorflow/issues/4094
     print("Dist strat on")
     update_vars = true_apply_gradients_fn()
 

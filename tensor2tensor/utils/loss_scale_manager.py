@@ -13,17 +13,11 @@
 # limitations under the License.
 # ==============================================================================
 """Distributed LossScaleManager classes for mixed precision training."""
-from __future__ import absolute_import, division, print_function
-
-import abc
-
-import six
 
 import tensorflow as tf
 from tensorflow.contrib.mixed_precision import ExponentialUpdateLossScaleManager
 from tensorflow.python.framework import dtypes, ops
-from tensorflow.python.ops import (control_flow_ops, gen_control_flow_ops,
-                                   gen_math_ops, state_ops, variable_scope)
+from tensorflow.python.ops import variable_scope
 
 
 class FathomDistributedExponentialUpdateLossScaleManager(ExponentialUpdateLossScaleManager):
@@ -39,7 +33,7 @@ class FathomDistributedExponentialUpdateLossScaleManager(ExponentialUpdateLossSc
                decr_every_n_nan_or_inf=2,
                incr_ratio=2,
                decr_ratio=0.8):
-    """Constructor of exponential-update loss scale manager.
+    """Constructor of distribution strategy exp-update loss scale manager.
 
     Args:
       init_loss_scale: A Python float.  The loss scale to use at the beginning.

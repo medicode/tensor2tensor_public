@@ -183,7 +183,7 @@ class Modality(object):
     logits = top_out
     if weights_fn is None:
       weights_fn = self.targets_weights_fn
-    logits = maybe_upcast(logits,hparams=self._model_hparams)
+    logits = maybe_upcast(logits, hparams=self._model_hparams)
     return common_layers.padded_cross_entropy(
         logits,
         targets,

@@ -59,7 +59,7 @@ def mixed_precision_is_enabled(activation_dtype=None,
   return activation_dtype == tf.float16 and weight_dtype == tf.float32
 
 def maybe_upcast(
-  logits, activation_dtype=None, weight_dtype=None, hparams=None):
+    logits, activation_dtype=None, weight_dtype=None, hparams=None):
   if mixed_precision_is_enabled(activation_dtype, weight_dtype, hparams):
     return tf.cast(logits, tf.float32)
   return logits
@@ -907,9 +907,10 @@ def attention_bias_same_segment(query_segment_id, memory_segment_id):
     a `Tensor` with shape [batch, 1, query_length, memory_length].
   """
   ret = tf.to_float(
-                    tf.not_equal(tf.expand_dims(query_segment_id, 2),
-                    (tf.expand_dims(memory_segment_id, 1))) *
-                     large_compatible_negative(memory_segment_id))
+      tf.not_equal(
+          tf.expand_dims(query_segment_id, 2),
+          (tf.expand_dims(memory_segment_id, 1))) *
+      large_compatible_negative(memory_segment_id))
   return tf.expand_dims(ret, axis=1)
 
 

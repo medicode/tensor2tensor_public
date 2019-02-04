@@ -1151,9 +1151,9 @@ def transformer_prepare_encoder(inputs, target_space, hparams, features=None):
         encoder_input, hparams.max_length, "inputs_positional_embedding",
         inputs_position)
   encoder_self_attention_bias = common_layers.cast_like(
-    encoder_self_attention_bias, encoder_input)
+      encoder_self_attention_bias, encoder_input)
   encoder_decoder_attention_bias = common_layers.cast_like(
-    encoder_decoder_attention_bias, encoder_input)
+      encoder_decoder_attention_bias, encoder_input)
   return (encoder_input, encoder_self_attention_bias,
           encoder_decoder_attention_bias)
 

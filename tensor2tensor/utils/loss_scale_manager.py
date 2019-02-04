@@ -1,4 +1,5 @@
-"""A mixed precision LossScaleManager with Distribution Strategy support added by Fathom."""
+"""A mixed precision LossScaleManager with Distribution Strategy support
+    added by Fathom."""
 
 import tensorflow as tf
 from tensorflow.contrib.mixed_precision import ExponentialUpdateLossScaleManager
@@ -6,8 +7,9 @@ from tensorflow.python.framework import dtypes, ops
 from tensorflow.python.ops import variable_scope
 
 
-class FathomDistributedExponentialUpdateLossScaleManager(ExponentialUpdateLossScaleManager):
-  """ 
+class FathomDistributedExponentialUpdateLossScaleManager(
+    ExponentialUpdateLossScaleManager):
+  """
   This class is necessary because the base LossScaleManager doesn't suport
     distribution strategies, and there are no plans to fix that.
     See https://github.com/tensorflow/tensorflow/issues/25080
@@ -35,8 +37,12 @@ class FathomDistributedExponentialUpdateLossScaleManager(ExponentialUpdateLossSc
     self._decr_every_n_nan_or_inf = decr_every_n_nan_or_inf
     self._incr_ratio = incr_ratio
     self._decr_ratio = decr_ratio
-    agg_type = tf.VariableAggregation.ONLY_FIRST_TOWER #Fathom | Need for dist strat
-    synch_type = variable_scope.VariableSynchronization.ON_READ #Fathom | TODO: Is this the right synch type?
+    #Fathom | For dist strat
+    agg_type = tf.VariableAggregation.ONLY_FIRST_TOWER
+
+    #Fathom | TODO: Is this the right synch type?
+    synch_type = variable_scope.VariableSynchronization.ON_READ
+
     print("Agg type is {}".format(agg_type))
     print("synch type is {}".format(synch_type))
     self._loss_scale = variable_scope.variable(

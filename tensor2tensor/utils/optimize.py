@@ -42,7 +42,7 @@ def optimize(loss, learning_rate, hparams, use_tpu=False):
   log_variable_sizes(verbose=hparams.summarize_vars)
   if hparams.summarize_vars:
     summarize_variables()
-  diet_vars = [
+diet_vars = [
       v for v in tf.global_variables() if v.dtype == dtypes.float16_ref
   ]
   log_variable_sizes(
@@ -120,10 +120,10 @@ class ConditionalOptimizer(tf.train.Optimizer):
     if mixed_precision_is_enabled(hparams=hparams):
       if not hparams.mixed_precision_optimizer_loss_scaler:
         tf.logging.warning(("Using mixed precision without a loss scaler will ",
-                           "likely cause numerical errors."))
+                            "likely cause numerical errors."))
       elif hparams.mixed_precision_optimizer_loss_scaler != 'exponential':
         raise ValueError(("Mixed precision training only supports the ",
-                         "exponential loss scaler"))
+                          "exponential loss scaler"))
       else:
         tf.logging.info("Using Exponential Update Loss Scaler")
         loss_scale_manager = FathomDistributedExponentialUpdateLossScaleManager(
@@ -133,7 +133,7 @@ class ConditionalOptimizer(tf.train.Optimizer):
             incr_ratio=2,
             decr_ratio=0.5)
         self._opt = DistributedLossScaleOptimizer(self._opt, loss_scale_manager)
-  
+
   def compute_gradients(self, loss, var_list=None, **kwargs):  # pylint: disable=arguments-differ
     gradients = self._opt.compute_gradients(loss, var_list, **kwargs)
     def cast_grad(g, v):

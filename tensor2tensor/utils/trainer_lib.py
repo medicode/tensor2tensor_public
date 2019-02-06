@@ -71,12 +71,17 @@ def create_session_config(log_device_placement=False,
       rewrite_options.layout_optimizer = rewriter_config_pb2.RewriterConfig.ON
       graph_options = tf.GraphOptions(rewrite_options=rewrite_options)
     else:
+      flags = tf.flags
+      FLAGS = flags.FLAGS
+      print("Using options")
+      jit_level = 1 if FLAGS.xla_compile else 0
+      if jit_level:
+        print("Compiling w XLA")
       graph_options = tf.GraphOptions(
           optimizer_options=tf.OptimizerOptions(
-              opt_level=tf.OptimizerOptions.L1, do_function_inlining=False))
+              opt_level=tf.OptimizerOptions.L1, do_function_inlining=False, global_jit_level=jit_level))
 
   gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=gpu_mem_fraction)
-
   config = tf.ConfigProto(
       allow_soft_placement=True,
       graph_options=graph_options,
@@ -84,6 +89,7 @@ def create_session_config(log_device_placement=False,
       log_device_placement=log_device_placement,
       inter_op_parallelism_threads=inter_op_parallelism_threads,
       intra_op_parallelism_threads=intra_op_parallelism_threads)
+
   return config
 
 

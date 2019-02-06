@@ -1337,7 +1337,7 @@ class T2TModel(base.Layer):
       logits, losses_dict = model.eval_autoregressive(features)
     else:
       logits, losses_dict = model(features)  # pylint: disable=not-callable
-
+    print(params)
     # Set known shapes
     if common_layers.is_xla_compiled():
       if isinstance(logits, dict):
@@ -1347,14 +1347,14 @@ class T2TModel(base.Layer):
 
           shape = v.get_shape().as_list()
           if shape[0] is None:
-            shape[0] = params["batch_size"]
+            shape[0] = hparams.batch_size
           if shape[1] is None:
             shape[1] = hparams.max_length
           v.set_shape(shape)
       else:
         shape = logits.get_shape().as_list()
         if shape[0] is None:
-          shape[0] = params["batch_size"]
+          shape[0] = hparams.batch_size
         if shape[1] is None:
           shape[1] = hparams.max_length
         logits.set_shape(shape)

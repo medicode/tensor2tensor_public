@@ -71,6 +71,7 @@ def is_xla_compiled():
   Returns:
     bool, whether the current graph will be compiled for XLA.
   """
+  print("Is xla compiled {}".format(control_flow_util.GetContainingXLAContext(ctxt) is not None))
   ctxt = tf.get_default_graph()._get_control_flow_context()  # pylint: disable=protected-access
   return control_flow_util.GetContainingXLAContext(ctxt) is not None
 

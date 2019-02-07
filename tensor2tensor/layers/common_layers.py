@@ -76,7 +76,8 @@ def is_xla_compiled():
   ctxt = tf.get_default_graph()._get_control_flow_context()  # pylint: disable=protected-access
   # print("Is xla compiled {}".format(FLAGS.xla_compile or control_flow_util.GetContainingXLAContext(ctxt) is not None))
   print("Xla compiled will return false")
-  print("Graph compilation is enabled {}".format(FLAGS.xla_compile))
+  if 'xla_compile' in FLAGS:
+    print("Graph compilation is enabled {}".format(FLAGS.xla_compile))
   return False #FLAGS.xla_compile or control_flow_util.GetContainingXLAContext(ctxt) is not None
 
 

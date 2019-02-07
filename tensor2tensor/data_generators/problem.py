@@ -887,7 +887,7 @@ class Problem(object):
         tf.logging.warning(
             "Shapes are not fully defined. Assuming batch_size means tokens.")
         batch_size_means_tokens = True
-
+    print("Batch size means tokens: {}".format(batch_size_means_tokens))
     # Batching
     if not batch_size_means_tokens:
       # Batch size means examples per datashard.

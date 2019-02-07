@@ -926,6 +926,7 @@ class Problem(object):
         # On GPU, bucket by length
         dataset = dataset.filter(gpu_valid_size)
         if hparams.max_length and hparams.batch_size and hparams.pad_batch:
+          batch_size = hparams.batch_size
           padded_shapes = self._pad_for_tpu(dataset.output_shapes, hparams)
           dataset = dataset.padded_batch(
               batch_size, padded_shapes, drop_remainder=False)

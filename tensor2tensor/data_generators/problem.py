@@ -922,20 +922,29 @@ class Problem(object):
           dataset = dataset.padded_batch(
               batch_size, padded_shapes, drop_remainder=True)
       else:
+
         # On GPU, bucket by length
         dataset = dataset.filter(gpu_valid_size)
-        batching_scheme = data_reader.hparams_to_batching_scheme(
-            hparams,
-            shard_multiplier=num_shards,
-            length_multiplier=self.get_hparams().batch_size_multiplier)
-        if hparams.use_fixed_batch_size:
-          # Here  batch_size really means examples per datashard.
-          batching_scheme["batch_sizes"] = [hparams.batch_size]
-          batching_scheme["boundaries"] = []
-        dataset = dataset.apply(
-            tf.contrib.data.bucket_by_sequence_length(
-                data_reader.example_length, batching_scheme["boundaries"],
-                batching_scheme["batch_sizes"]))
+        if hparams.max_length and hparams.batch_size and hparams.pad_batch:
+          padded_shapes = self._pad_for_tpu(dataset.output_shapes, hparams)
+          dataset = dataset.padded_batch(
+              batch_size, padded_shapes, drop_remainder=False)
+          dataset = dataset.map(
+              functools.partial(pad_batch, batch_multiple=batch_size),
+              num_parallel_calls=num_threads)
+        else:
+          batching_scheme = data_reader.hparams_to_batching_scheme(
+              hparams,
+              shard_multiplier=num_shards,
+              length_multiplier=self.get_hparams().batch_size_multiplier)
+          if hparams.use_fixed_batch_size:
+            # Here  batch_size really means examples per datashard.
+            batching_scheme["batch_sizes"] = [hparams.batch_size]
+            batching_scheme["boundaries"] = []
+          dataset = dataset.apply(
+              tf.contrib.data.bucket_by_sequence_length(
+                  data_reader.example_length, batching_scheme["boundaries"],
+                  batching_scheme["batch_sizes"]))
 
         if not is_training:
           batch_multiple = num_shards

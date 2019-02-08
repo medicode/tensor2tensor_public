@@ -929,11 +929,14 @@ class Problem(object):
           batch_size = hparams.batch_size
           padded_shapes = self._pad_for_tpu(dataset.output_shapes, hparams)
           print("Padded shapes {}".format(padded_shapes))
+          print("Params {}".format(params))
           print("Dataset before {}".format(dataset))
           dataset = dataset.padded_batch(
-              batch_size, padded_shapes, drop_remainder=True)
+              4, padded_shapes, drop_remainder=True)
           print("Dataset after {}".format(dataset))
         else:
+          # print("Padded shapes {}".format(padded_shapes))
+          print("Dataset before {}".format(dataset))
           batching_scheme = data_reader.hparams_to_batching_scheme(
               hparams,
               shard_multiplier=num_shards,
@@ -946,6 +949,7 @@ class Problem(object):
               tf.contrib.data.bucket_by_sequence_length(
                   data_reader.example_length, batching_scheme["boundaries"],
                   batching_scheme["batch_sizes"]))
+          print("Dataset after {}".format(dataset))
 
         if not is_training:
           batch_multiple = num_shards

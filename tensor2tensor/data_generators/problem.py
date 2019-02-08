@@ -927,12 +927,9 @@ class Problem(object):
         dataset = dataset.filter(gpu_valid_size)
         if hparams.max_length and hparams.batch_size and hparams.pad_batch:
           batch_size = hparams.batch_size
-          padded_shapes = self._pad_for_tpu(dataset.output_shapes, hparams)
+          print("In custom padding")
           dataset = dataset.padded_batch(
-              batch_size, padded_shapes, drop_remainder=False)
-          dataset = dataset.map(
-              functools.partial(pad_batch, batch_multiple=batch_size),
-              num_parallel_calls=num_threads)
+              batch_size, padded_shapes, drop_remainder=True)
         else:
           batching_scheme = data_reader.hparams_to_batching_scheme(
               hparams,

@@ -567,7 +567,8 @@ def create_evaluation_metrics(problems, model_hparams):
       # "features".
       kwargs = {}
       print(metric_fn)
-      args, _, keywords, _ = inspect.getfullargspec(metric_fn) #getargspec(metric_fn)
+      #args, _, keywords, _ = inspect.getfullargspec(metric_fn)
+      args, _, keywords, _ = inspect.getargspec(metric_fn)
       if ("features" in args) or keywords:
         kwargs["features"] = features
 

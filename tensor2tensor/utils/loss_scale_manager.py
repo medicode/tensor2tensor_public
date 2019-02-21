@@ -58,3 +58,46 @@ class FathomDistributedExponentialUpdateLossScaleManager(
         dtype=dtypes.int32,
         trainable=False,
         aggregation=agg_type)
+
+  def update_loss_scale(self, finite_grads):
+    """Updates loss scale based on if gradients are finite in current step."""
+    next_step = self._num_good_steps + 1
+    def update_if_finite_grads():
+      """Branch function when grads are all finite."""
+
+      def incr_loss_scale():
+        new_loss_scale = control_flow_ops.cond(
+            gen_math_ops.is_finite(self._loss_scale * self._incr_ratio),
+            lambda: self._loss_scale * self._incr_ratio,
+            lambda: self._loss_scale)
+        update_op = state_ops.assign(self._loss_scale, new_loss_scale)
+        # When loss_scale is updated, both good and bad steps are reset.
+        return control_flow_ops.group(update_op, self._reset_stats())
+
+      return control_flow_ops.cond(
+          next_step >= self._incr_every_n_steps,
+          incr_loss_scale,
+          lambda: state_ops.assign_add(self._num_good_steps, 1).op)
+
+    def update_if_not_finite_grads():
+      """Branch function when any grad is not finite."""
+
+      def decr_loss_scale():
+        update_op = state_ops.assign(
+            self._loss_scale,
+            gen_math_ops.maximum(1., self._loss_scale * self._decr_ratio))
+        # When loss_scale is updated, both good and bad steps are reset.
+        return control_flow_ops.group(update_op, self._reset_stats())
+
+      def just_update_steps():
+        # When bad_steps is incremented, good_step is reset.
+        return control_flow_ops.group(
+            state_ops.assign_add(self._num_bad_steps, 1),
+            state_ops.assign(self._num_good_steps, 0))
+
+      return control_flow_ops.cond(
+          next_step >= self._decr_every_n_nan_or_inf,
+          decr_loss_scale, just_update_steps)
+
+    return control_flow_ops.cond(finite_grads, update_if_finite_grads,
+                                 update_if_not_finite_grads)

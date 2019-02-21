@@ -5,6 +5,11 @@ import tensorflow as tf
 from tensorflow.contrib.mixed_precision import ExponentialUpdateLossScaleManager
 from tensorflow.python.framework import dtypes, ops
 from tensorflow.python.ops import variable_scope
+from tensorflow.python.ops import control_flow_ops
+from tensorflow.python.ops import gen_control_flow_ops
+from tensorflow.python.ops import gen_math_ops
+from tensorflow.python.ops import state_ops
+from tensorflow.python.ops import variable_scope
 
 
 class FathomDistributedExponentialUpdateLossScaleManager(

@@ -22,8 +22,10 @@ class DistributedLossScaleOptimizer(LossScaleOptimizer):
     """
     if distribute_ctx.has_distribution_strategy():
       # Use Fathom built distribtued_apply_gradients
+      print("Using our dist")
       return self.dist_apply_gradients(grads_and_vars, global_step, name)
     else:
+      print("Using super")
       return super().apply_gradients(grads_and_vars, global_step, name)
 
   def dist_apply_gradients(self, grads_and_vars, global_step=None, name=None):

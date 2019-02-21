@@ -68,6 +68,7 @@ class FathomDistributedExponentialUpdateLossScaleManager(
     """Updates loss scale based on if gradients are finite in current step."""
     #TODO: Fix
     pass
+    return
     next_step = self._num_good_steps + 1
     # self._loss_scale = tf.cond(finite_grads, )
     def update_if_finite_grads():

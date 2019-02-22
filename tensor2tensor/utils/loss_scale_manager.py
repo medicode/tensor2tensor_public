@@ -69,42 +69,45 @@ class FathomDistributedExponentialUpdateLossScaleManager(
     #TODO: Fix
     next_step = self._num_good_steps + 1
     # self._loss_scale = tf.cond(finite_grads, )
-    def update_if_finite_grads():
-      """Branch function when grads are all finite."""
+    new_loss_scale = control_flow_ops.cond(
+        gen_math_ops.is_finite(self._loss_scale * self._incr_ratio),
+        lambda: self._loss_scale * self._incr_ratio,
+        lambda: self._loss_scale)
+    finite_update_op = state_ops.assign(self._loss_scale, new_loss_scale)
+    # Incr loss scale
 
-      def incr_loss_scale():
-        new_loss_scale = control_flow_ops.cond(
-            gen_math_ops.is_finite(self._loss_scale * self._incr_ratio),
-            lambda: self._loss_scale * self._incr_ratio,
-            lambda: self._loss_scale)
-        update_op = state_ops.assign(self._loss_scale, new_loss_scale)
-        # When loss_scale is updated, both good and bad steps are reset.
-        return control_flow_ops.group(update_op, self._reset_stats())
+    next_step_bigger = next_step >= self._incr_every_n_steps
+    next_step_and_finite = tf.math.logical_and(finite_grads, next_step_bigger)
+    self._num_good_steps = tf.cond(next_step_bigger, self._num_good_steps, self._num_good_steps + 1)
+    self._loss_scale = tf.cond(next_step_and_finite, new_loss_scale, self._loss_scale)
+    self._num_good_steps = tf.cond(next_step_and_finite, 0, self._num_good_steps)
+    self._num_bad_steps = tf.cond(next_step_and_finite, 0, self._num_bad_steps)
+    #next_step >= self._incr_every_n_steps
+    # Incr the loss scale
+    # Else, 
+    # If all grads are finite
+    
+    # Do below if above is good
+    
+    # def update_if_not_finite_grads():
+    #   """Branch function when any grad is not finite."""
 
-      return control_flow_ops.cond(
-          next_step >= self._incr_every_n_steps,
-          incr_loss_scale,
-          lambda: state_ops.assign_add(self._num_good_steps, 1).op)
+    #   def decr_loss_scale():
+    #     update_op = state_ops.assign(
+    #         self._loss_scale,
+    #         gen_math_ops.maximum(1., self._loss_scale * self._decr_ratio))
+    #     # When loss_scale is updated, both good and bad steps are reset.
+    #     return control_flow_ops.group(update_op, self._reset_stats())
 
-    def update_if_not_finite_grads():
-      """Branch function when any grad is not finite."""
+    #   def just_update_steps():
+    #     # When bad_steps is incremented, good_step is reset.
+    #     return control_flow_ops.group(
+    #         state_ops.assign_add(self._num_bad_steps, 1),
+    #         state_ops.assign(self._num_good_steps, 0))
 
-      def decr_loss_scale():
-        update_op = state_ops.assign(
-            self._loss_scale,
-            gen_math_ops.maximum(1., self._loss_scale * self._decr_ratio))
-        # When loss_scale is updated, both good and bad steps are reset.
-        return control_flow_ops.group(update_op, self._reset_stats())
-
-      def just_update_steps():
-        # When bad_steps is incremented, good_step is reset.
-        return control_flow_ops.group(
-            state_ops.assign_add(self._num_bad_steps, 1),
-            state_ops.assign(self._num_good_steps, 0))
-
-      return control_flow_ops.cond(
-          next_step >= self._decr_every_n_nan_or_inf,
-          decr_loss_scale, just_update_steps)
-
-    return control_flow_ops.cond(finite_grads, update_if_finite_grads,
-                                 update_if_not_finite_grads)
+    #   return control_flow_ops.cond(
+    #       next_step >= self._decr_every_n_nan_or_inf,
+    #       decr_loss_scale, just_update_steps)
+    return 
+    # return control_flow_ops.cond(finite_grads, update_if_finite_grads,
+                                #  update_if_not_finite_grads)

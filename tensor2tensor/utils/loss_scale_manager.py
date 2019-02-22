@@ -73,7 +73,6 @@ class FathomDistributedExponentialUpdateLossScaleManager(
         gen_math_ops.is_finite(self._loss_scale * self._incr_ratio),
         lambda: self._loss_scale * self._incr_ratio,
         lambda: self._loss_scale)
-    finite_update_op = state_ops.assign(self._loss_scale, new_loss_scale)
     # Incr loss scale
 
     next_step_bigger = next_step >= self._incr_every_n_steps

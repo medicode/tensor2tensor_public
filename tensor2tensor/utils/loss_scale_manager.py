@@ -107,6 +107,6 @@ class FathomDistributedExponentialUpdateLossScaleManager(
     #   return control_flow_ops.cond(
     #       next_step >= self._decr_every_n_nan_or_inf,
     #       decr_loss_scale, just_update_steps)
-    return 
+    return tf.no_op()
     # return control_flow_ops.cond(finite_grads, update_if_finite_grads,
                                 #  update_if_not_finite_grads)

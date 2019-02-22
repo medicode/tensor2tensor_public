@@ -77,10 +77,10 @@ class FathomDistributedExponentialUpdateLossScaleManager(
 
     next_step_bigger = next_step >= self._incr_every_n_steps
     next_step_and_finite = tf.math.logical_and(finite_grads, next_step_bigger)
-    self._num_good_steps = tf.cond(next_step_bigger, self._num_good_steps, self._num_good_steps + 1)
-    self._loss_scale = tf.cond(next_step_and_finite, new_loss_scale, self._loss_scale)
-    self._num_good_steps = tf.cond(next_step_and_finite, 0, self._num_good_steps)
-    self._num_bad_steps = tf.cond(next_step_and_finite, 0, self._num_bad_steps)
+    self._num_good_steps = tf.cond(next_step_bigger, lambda: self._num_good_steps, lambda: self._num_good_steps + 1)
+    self._loss_scale = tf.cond(next_step_and_finite, lambda: new_loss_scale, lambda: self._loss_scale)
+    self._num_good_steps = tf.cond(next_step_and_finite, lambda: 0, lambda: self._num_good_steps)
+    self._num_bad_steps = tf.cond(next_step_and_finite, lambda: 0, lambda: self._num_bad_steps)
     #next_step >= self._incr_every_n_steps
     # Incr the loss scale
     # Else, 

@@ -83,10 +83,9 @@ class FathomDistributedExponentialUpdateLossScaleManager(
     self._num_bad_steps = tf.cond(next_step_and_finite, lambda: 0, lambda: self._num_bad_steps)
     print_op = tf.print(
     "This actually ran",
-    output_stream=sys.stdout,
-    )
-    with tf.control_dependencies([print_op]):
-      self._num_bad_steps = tf.identity(self._num_bad_steps)
+    output_stream=sys.stdout)
+    with tf.control_flow_ops.with_dependencies([print_op]):
+      self._loss_scale = tf.identity(self._num_bad_steps)
     #next_step >= self._incr_every_n_steps
     # Incr the loss scale
     # Else, 

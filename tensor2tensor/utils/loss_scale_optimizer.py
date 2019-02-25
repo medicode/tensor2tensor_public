@@ -26,7 +26,7 @@ class DistributedLossScaleOptimizer(LossScaleOptimizer):
     return self.dist_apply_gradients(grads_and_vars, global_step, name)
     # else:
     #   print("Using super")
-    #   return super().apply_gradients(grads_and_vars, global_step, name)
+      # return super().apply_gradients(grads_and_vars, global_step, name)
 
   def dist_apply_gradients(self, grads_and_vars, global_step=None, name=None):
     """
@@ -51,7 +51,7 @@ class DistributedLossScaleOptimizer(LossScaleOptimizer):
     #Potentially See: https://github.com/tensorflow/tensorflow/issues/4094
     print("Dist strat on")
     update_vars = self._opt.apply_gradients(grads_and_vars, global_step, name)#true_apply_gradients_fn()
-    # print("ret early")
+  # print("ret early")
     # return update_vars
     # This cond fails when distribution strategies are enabled, we need it on
     # to be robust to overflows.

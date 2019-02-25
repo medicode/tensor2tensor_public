@@ -132,8 +132,7 @@ class FathomDistributedExponentialUpdateLossScaleManager(
         next_step_past_threshold_and_grads_finite = tf.math.logical_and(
             finite_grads, next_step_past_incr_thresh)
         # This incr won't matter if next step past thresh, since we'll reset
-        self._num_good_steps = tf.cond(
-            finite_grads and not next_step_past_incr_thresh,
+        self._num_good_steps = tf.cond(tf.math.logical_and(finite_grads, tf.math.logical_not(next_step_past_incr_thresh)),
             lambda: self._num_good_steps, lambda: self._num_good_steps + 1)
         # Update loss scale and reset stats
         # Update loss scale
@@ -159,7 +158,7 @@ class FathomDistributedExponentialUpdateLossScaleManager(
         bad_steps_past_threshold = self._num_bad_steps + 1 >= self._decr_every_n_nan_or_inf
 
         # Step book keeping if we're not changing the scale
-        should_just_update_steps = not bad_steps_past_threshold and should_execute
+        should_just_update_steps = tf.math.logical_and(should_execute, tf.math.logical_not(bad_steps_past_threshold))
         self._num_bad_steps = tf.cond(should_just_update_steps,
                                       self._num_bad_steps + 1,
                                       self._num_bad_steps)
@@ -167,7 +166,7 @@ class FathomDistributedExponentialUpdateLossScaleManager(
                                        self._num_good_steps)
 
         # Change the loss scale and reset stats
-        should_reset_loss_scale = bad_steps_past_threshold and should_execute
+        should_reset_loss_scale = tf.math.logical_and(bad_steps_past_threshold, should_execute)
         self._loss_scale = tf.cond(
             should_reset_loss_scale,
             gen_math_ops.maximum(1., self._loss_scale * self._decr_ratio),

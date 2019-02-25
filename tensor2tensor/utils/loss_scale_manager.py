@@ -117,34 +117,42 @@ class FathomDistributedExponentialUpdateLossScaleManager(
             trainable=False,
             aggregation=agg_type)
 
+    def update_self_if_grads_are_finite(self, finite_grads):
+      """This method is necessary, because we cannot wrap changes to self functions in tf conds
+      
+      Arguments:
+        finite_grads {[type]} -- [description]
+      """
+      next_step = self._num_good_steps + 1
+      new_loss_scale = control_flow_ops.cond(
+                  gen_math_ops.is_finite(self._loss_scale * self._incr_ratio),
+                  lambda: self._loss_scale * self._incr_ratio,
+                  lambda: self._loss_scale)
+      next_step_bigger = next_step >= self._incr_every_n_steps
+      next_step_and_finite = tf.math.logical_and(finite_grads,
+                                                next_step_bigger)
+      self._num_good_steps = tf.cond(next_step_bigger,
+                                    lambda: self._num_good_steps,
+                                    lambda: self._num_good_steps + 1)
+      self._loss_scale = tf.cond(next_step_and_finite,
+                                lambda: new_loss_scale,
+                                lambda: self._loss_scale)
+      self._num_good_steps = tf.cond(next_step_and_finite, lambda: 0,
+                                    lambda: self._num_good_steps)
+      self._num_bad_steps = tf.cond(next_step_and_finite, lambda: 0,
+                                    lambda: self._num_bad_steps)
+      self._loss_scale = debug_tfprint(
+          message="This actually ran",
+          tvar=self._loss_scale,
+          print_fn=tf.shape)
+
     def update_loss_scale(self, finite_grads):
         """Updates loss scale based on if gradients are finite in current step."""
         #TODO: Fix
-        next_step = self._num_good_steps + 1
         # self._loss_scale = tf.cond(finite_grads, )
-        new_loss_scale = control_flow_ops.cond(
-            gen_math_ops.is_finite(self._loss_scale * self._incr_ratio),
-            lambda: self._loss_scale * self._incr_ratio,
-            lambda: self._loss_scale)
+        
+        self.update_self_if_grads_are_finite(finite_grads)
         # Incr loss scale
-
-        next_step_bigger = next_step >= self._incr_every_n_steps
-        next_step_and_finite = tf.math.logical_and(finite_grads,
-                                                   next_step_bigger)
-        self._num_good_steps = tf.cond(next_step_bigger,
-                                       lambda: self._num_good_steps,
-                                       lambda: self._num_good_steps + 1)
-        self._loss_scale = tf.cond(next_step_and_finite,
-                                   lambda: new_loss_scale,
-                                   lambda: self._loss_scale)
-        self._num_good_steps = tf.cond(next_step_and_finite, lambda: 0,
-                                       lambda: self._num_good_steps)
-        self._num_bad_steps = tf.cond(next_step_and_finite, lambda: 0,
-                                      lambda: self._num_bad_steps)
-        self._loss_scale = debug_tfprint(
-            message="This actually ran",
-            tvar=self._loss_scale,
-            print_fn=tf.shape)
         #next_step >= self._incr_every_n_steps
         # Incr the loss scale
         # Else,

@@ -154,7 +154,7 @@ class FathomDistributedExponentialUpdateLossScaleManager(
 
     def update_self_if_grads_not_finite(self, finite_grads):
         """Branch function when any grad is not finite."""
-        should_execute = not finite_grads
+        should_execute = tf.math.logical_not(finite_grads)
         bad_steps_past_threshold = self._num_bad_steps + 1 >= self._decr_every_n_nan_or_inf
 
         # Step book keeping if we're not changing the scale

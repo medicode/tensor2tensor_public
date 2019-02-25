@@ -160,8 +160,8 @@ class FathomDistributedExponentialUpdateLossScaleManager(
         # Step book keeping if we're not changing the scale
         should_just_update_steps = tf.math.logical_and(should_execute, tf.math.logical_not(bad_steps_past_threshold))
         self._num_bad_steps = tf.cond(should_just_update_steps,
-                                      self._num_bad_steps + 1,
-                                      self._num_bad_steps)
+                                      lambda: self._num_bad_steps + 1,
+                                      lambda: self._num_bad_steps)
         self._num_good_steps = tf.cond(should_just_update_steps, 0,
                                        self._num_good_steps)
 
@@ -169,8 +169,8 @@ class FathomDistributedExponentialUpdateLossScaleManager(
         should_reset_loss_scale = tf.math.logical_and(bad_steps_past_threshold, should_execute)
         self._loss_scale = tf.cond(
             should_reset_loss_scale,
-            gen_math_ops.maximum(1., self._loss_scale * self._decr_ratio),
-            self._loss_scale,
+            lambda: gen_math_ops.maximum(1., self._loss_scale * self._decr_ratio),
+            lambda: self._loss_scale,
         )
         # When loss_scale is updated, both good and bad steps are reset.
         self._num_good_steps = tf.cond(should_reset_loss_scale, lambda: 0,
@@ -180,7 +180,7 @@ class FathomDistributedExponentialUpdateLossScaleManager(
 
         self._num_good_steps = debug_tfprint(
             message="These are good steps in the neg",
-            tvar=self._num,
+            tvar=self._num_bad_steps,
             print_fn=tf.shape)
 
     def update_loss_scale(self, finite_grads):

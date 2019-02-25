@@ -147,10 +147,10 @@ class FathomDistributedExponentialUpdateLossScaleManager(
             next_step_past_threshold_and_grads_finite, lambda: 0,
             lambda: self._num_bad_steps)
         # For debugging
-        self._loss_scale = debug_tfprint(
-            message="This actually ran",
-            tvar=self._loss_scale,
-            print_fn=tf.shape)
+        # self._loss_scale = debug_tfprint(
+        #     message="This actually ran",
+        #     tvar=self._loss_scale,
+        #     print_fn=tf.shape)
 
     def update_self_if_grads_not_finite(self, finite_grads):
         """Branch function when any grad is not finite."""
@@ -162,8 +162,8 @@ class FathomDistributedExponentialUpdateLossScaleManager(
         self._num_bad_steps = tf.cond(should_just_update_steps,
                                       lambda: self._num_bad_steps + 1,
                                       lambda: self._num_bad_steps)
-        self._num_good_steps = tf.cond(should_just_update_steps, 0,
-                                       self._num_good_steps)
+        self._num_good_steps = tf.cond(should_just_update_steps, lambda: 0,
+                                       lambda: self._num_good_steps)
 
         # Change the loss scale and reset stats
         should_reset_loss_scale = tf.math.logical_and(bad_steps_past_threshold, should_execute)
@@ -178,10 +178,10 @@ class FathomDistributedExponentialUpdateLossScaleManager(
         self._num_bad_steps = tf.cond(should_reset_loss_scale, lambda: 0,
                                       lambda: self._num_bad_steps)
 
-        self._num_good_steps = debug_tfprint(
-            message="These are good steps in the neg",
-            tvar=self._num_bad_steps,
-            print_fn=tf.shape)
+        # self._num_good_steps = debug_tfprint(
+        #     message="These are good steps in the neg",
+        #     tvar=self._num_bad_steps,
+        #     print_fn=tf.shape)
 
     def update_loss_scale(self, finite_grads):
         """Updates loss scale based on if gradients are finite in current step."""

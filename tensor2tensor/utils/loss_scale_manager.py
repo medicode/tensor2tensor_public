@@ -124,33 +124,41 @@ class FathomDistributedExponentialUpdateLossScaleManager(
       Arguments:
         finite_grads {[type]} -- [description]
       """
+        print(self._num_good_steps)
         next_step_past_incr_thresh = self._num_good_steps + 1 >= self._incr_every_n_steps
-        new_loss_scale = control_flow_ops.cond(
-            gen_math_ops.is_finite(self._loss_scale * self._incr_ratio),
-            lambda: self._loss_scale * self._incr_ratio,
-            lambda: self._loss_scale)
         next_step_past_threshold_and_grads_finite = tf.math.logical_and(
             finite_grads, next_step_past_incr_thresh)
+        new_loss_scale = control_flow_ops.cond(
+            tf.math.logical_and(
+                gen_math_ops.is_finite(self._loss_scale * self._incr_ratio),
+                next_step_past_threshold_and_grads_finite),
+            lambda: self._loss_scale * self._incr_ratio,
+            lambda: self._loss_scale)
         # This incr won't matter if next step past thresh, since we'll reset
-        self._num_good_steps = tf.cond(tf.math.logical_and(finite_grads, tf.math.logical_not(next_step_past_incr_thresh)),
-            lambda: self._num_good_steps, lambda: self._num_good_steps + 1)
+        # incr_num_good_steps = control_flow_ops.cond(tf.math.logical_and(finite_grads, tf.math.logical_not(next_step_past_incr_thresh)),
+        #     lambda: 1, lambda: 0)
         # Update loss scale and reset stats
         # Update loss scale
-        self._loss_scale = tf.cond(next_step_past_threshold_and_grads_finite,
-                                   lambda: new_loss_scale,
-                                   lambda: self._loss_scale)
+
         #Reset stats
-        self._num_good_steps = tf.cond(
+        new_num_good_steps = control_flow_ops.cond(
             next_step_past_threshold_and_grads_finite, lambda: 0,
-            lambda: self._num_good_steps)
-        self._num_bad_steps = tf.cond(
+            lambda: self._num_good_steps + 1)
+        new_num_bad_steps = control_flow_ops.cond(
             next_step_past_threshold_and_grads_finite, lambda: 0,
             lambda: self._num_bad_steps)
+
         # For debugging
         # self._loss_scale = debug_tfprint(
         #     message="This actually ran",
-        #     tvar=self._loss_scale,
-        #     print_fn=tf.shape)
+        #     tvar=self._loss_scale)
+
+        return control_flow_ops.group(
+            state_ops.assign(self._loss_scale, new_loss_scale),
+            # state_ops.assign_add(self._num_good_steps, incr_num_good_steps),
+            state_ops.assign(self._num_good_steps, new_num_good_steps),
+            state_ops.assign(self._num_bad_steps, new_num_bad_steps),
+        )
 
     def update_self_if_grads_not_finite(self, finite_grads):
         """Branch function when any grad is not finite."""
@@ -158,66 +166,121 @@ class FathomDistributedExponentialUpdateLossScaleManager(
         bad_steps_past_threshold = self._num_bad_steps + 1 >= self._decr_every_n_nan_or_inf
 
         # Step book keeping if we're not changing the scale
-        should_just_update_steps = tf.math.logical_and(should_execute, tf.math.logical_not(bad_steps_past_threshold))
-        self._num_bad_steps = tf.cond(should_just_update_steps,
-                                      lambda: self._num_bad_steps + 1,
-                                      lambda: self._num_bad_steps)
-        self._num_good_steps = tf.cond(should_just_update_steps, lambda: 0,
-                                       lambda: self._num_good_steps)
+        should_just_update_steps = tf.math.logical_and(
+            should_execute, tf.math.logical_not(bad_steps_past_threshold))
+        self._num_bad_steps = control_flow_ops.cond(
+            should_just_update_steps, lambda: self._num_bad_steps + 1,
+            lambda: self._num_bad_steps)
+        self._num_good_steps = control_flow_ops.cond(
+            should_just_update_steps, lambda: 0, lambda: self._num_good_steps)
 
         # Change the loss scale and reset stats
-        should_reset_loss_scale = tf.math.logical_and(bad_steps_past_threshold, should_execute)
-        self._loss_scale = tf.cond(
+        should_reset_loss_scale = tf.math.logical_and(bad_steps_past_threshold,
+                                                      should_execute)
+        self._loss_scale = control_flow_ops.cond(
             should_reset_loss_scale,
             lambda: gen_math_ops.maximum(1., self._loss_scale * self._decr_ratio),
             lambda: self._loss_scale,
         )
         # When loss_scale is updated, both good and bad steps are reset.
-        self._num_good_steps = tf.cond(should_reset_loss_scale, lambda: 0,
-                                       lambda: self._num_good_steps)
-        self._num_bad_steps = tf.cond(should_reset_loss_scale, lambda: 0,
-                                      lambda: self._num_bad_steps)
+        self._num_good_steps = control_flow_ops.cond(
+            should_reset_loss_scale, lambda: 0, lambda: self._num_good_steps)
+        self._num_bad_steps = control_flow_ops.cond(
+            should_reset_loss_scale, lambda: 0, lambda: self._num_bad_steps)
 
         # self._num_good_steps = debug_tfprint(
         #     message="These are good steps in the neg",
         #     tvar=self._num_bad_steps,
         #     print_fn=tf.shape)
 
-    def update_loss_scale(self, finite_grads):
+    def _update_loss_scale(self, finite_grads):
         """Updates loss scale based on if gradients are finite in current step."""
         #TODO: Fix
         # self._loss_scale = tf.cond(finite_grads, )
+        should_update = tf.cond(finite_grads, lambda: True, lambda: False)
+        self.update_self_if_grads_are_finite(should_update)
 
-        self.update_self_if_grads_are_finite(finite_grads)
-        self.update_self_if_grads_not_finite(finite_grads)
-        # Incr loss scale
-        #next_step >= self._incr_every_n_steps
-        # Incr the loss scale
-        # Else,
-        # If all grads are finite
+        # self.update_self_if_grads_not_finite(finite_grads)
 
-        # Do below if above is good
+        def update_if_not_finite_grads():
+            """Branch function when any grad is not finite."""
 
-        # def update_if_not_finite_grads():
-        #   """Branch function when any grad is not finite."""
+            def decr_loss_scale():
+                update_op = state_ops.assign(
+                    self._loss_scale,
+                    gen_math_ops.maximum(1.,
+                                         self._loss_scale * self._decr_ratio))
+                # When loss_scale is updated, both good and bad steps are reset.
+                return control_flow_ops.group(update_op, self._reset_stats())
 
-        #   def decr_loss_scale():
-        #     update_op = state_ops.assign(
-        #         self._loss_scale,
-        #         gen_math_ops.maximum(1., self._loss_scale * self._decr_ratio))
-        #     # When loss_scale is updated, both good and bad steps are reset.
-        #     return control_flow_ops.group(update_op, self._reset_stats())
+            def just_update_steps():
+                # When bad_steps is incremented, good_step is reset.
+                return control_flow_ops.group(
+                    state_ops.assign_add(self._num_bad_steps, 1),
+                    state_ops.assign(self._num_good_steps, 0))
 
-        #   def just_update_steps():
-        #     # When bad_steps is incremented, good_step is reset.
-        #     return control_flow_ops.group(
-        #         state_ops.assign_add(self._num_bad_steps, 1),
-        #         state_ops.assign(self._num_good_steps, 0))
+            return control_flow_ops.cond(
+                self._num_bad_steps + 1 >= self._decr_every_n_nan_or_inf,
+                decr_loss_scale, just_update_steps)
+
+        # self._loss_scale *= 2
+        return control_flow_ops.cond(
+            finite_grads,
+            tf.
+            no_op,  #lambda: control_flow_ops.group(self._num_good_steps, self._loss_scale,self._num_bad_steps),                        
+            update_if_not_finite_grads)
 
         #   return control_flow_ops.cond(
         #       next_step >= self._decr_every_n_nan_or_inf,
         #       decr_loss_scale, just_update_steps)
-        return tf.group(self._num_good_steps, self._loss_scale,
-                        self._num_bad_steps)
         # return control_flow_ops.cond(finite_grads, update_if_finite_grads,
         #                              update_if_not_finite_grads)
+
+    def update_loss_scale(self, finite_grads):
+        """Updates loss scale based on if gradients are finite in current step."""
+
+        incr_on_next_step = self._num_good_steps + 1 >= self._incr_every_n_steps
+        should_execute = tf.math.logical_and(incr_on_next_step, finite_grads)
+        new_loss_scale = control_flow_ops.cond(
+            tf.math.logical_and(
+                should_execute,
+                gen_math_ops.is_finite(self._loss_scale * self._incr_ratio)),
+            lambda: self._loss_scale * self._incr_ratio,
+            lambda: self._loss_scale)
+
+        new_num_good_steps = control_flow_ops.cond(
+            should_execute, lambda: 0, lambda: self._num_good_steps + 1)
+        new_num_good_steps = control_flow_ops.cond(
+            finite_grads, lambda: new_num_good_steps,
+            lambda: self._num_good_steps)
+
+        new_num_bad_steps = control_flow_ops.cond(should_execute, lambda: 0,
+                                                  lambda: self._num_bad_steps)
+
+        # ret_ops = control_flow_ops.group(
+        #     state_ops.assign(self._loss_scale, new_loss_scale),
+        #     state_ops.assign(self._num_good_steps, new_num_good_steps),
+        #     state_ops.assign(self._num_bad_steps, new_num_bad_steps))
+
+        
+        """Branch function when any grad is not finite."""
+        decr_on_next_step = self._num_bad_steps + 1 >= self._decr_every_n_nan_or_inf
+        grads_not_finite = tf.math.logical_not(finite_grads)
+        non_finite_new_decr_loss_scale = control_flow_ops.cond(
+            decr_on_next_step,
+            lambda: gen_math_ops.maximum(1., self._loss_scale * self._decr_ratio),
+            lambda: self._loss_scale)
+        new_loss_scale = control_flow_ops.cond(grads_not_finite, lambda: non_finite_new_decr_loss_scale, lambda: new_loss_scale)
+        # When loss_scale is updated, both good and bad steps are reset.
+        non_finite_new_num_good_steps = control_flow_ops.cond(decr_on_next_step,
+                                                    lambda: 0, lambda: 0)
+        new_num_good_steps = control_flow_ops.cond(grads_not_finite, lambda: non_finite_new_num_good_steps, lambda: new_num_good_steps)
+
+        decr_num_bad_steps = control_flow_ops.cond(
+            decr_on_next_step, lambda: 0, lambda: self._num_bad_steps + 1)
+        new_num_bad_steps = control_flow_ops.cond(grads_not_finite, lambda: decr_num_bad_steps, lambda: new_num_bad_steps)
+        ret_ops = control_flow_ops.group(
+            state_ops.assign(self._loss_scale, new_loss_scale),
+            state_ops.assign(self._num_good_steps, new_num_good_steps),
+            state_ops.assign(self._num_bad_steps, new_num_bad_steps))
+        return ret_ops

@@ -54,7 +54,7 @@ class DistributedLossScaleOptimizer(LossScaleOptimizer):
 
         # Only update gradients when all grads are finite.
     def true_apply_gradients_fn():
-      return control_flow_ops.group(self._opt.apply_gradients(grads_and_vars, global_step, name))
+      return self._opt.apply_gradients(grads_and_vars, global_step, name)
 
     update_vars = control_flow_ops.cond(
         is_overall_finite, true_apply_gradients_fn, gen_control_flow_ops.no_op)

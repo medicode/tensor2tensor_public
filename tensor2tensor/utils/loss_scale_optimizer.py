@@ -63,3 +63,17 @@ class DistributedLossScaleOptimizer(LossScaleOptimizer):
         update_vars,
         self._loss_scale_manager.update_loss_scale(is_overall_finite))
 
+  # print("ret early")
+    # return update_vars
+    # This cond fails when distribution strategies are enabled, we need it on
+    # to be robust to overflows.
+
+    # update_vars = control_flow_ops.cond(
+      # is_overall_finite, true_apply_gradients_fn, gen_control_flow_ops.no_op)
+
+    ##### Fathom changes end #####
+
+    # Potentially adjust gradient scale in case of finite gradients.
+    return control_flow_ops.group(
+        update_vars,
+        self._loss_scale_manager.update_loss_scale(is_overall_finite))

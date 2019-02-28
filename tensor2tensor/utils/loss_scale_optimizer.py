@@ -1,10 +1,10 @@
 """Loss scaling optimizer with distribution strategy support added by Fathom."""
 
-from tensorflow.python.ops import control_flow_ops
-from tensorflow.python.ops import gen_math_ops
-from tensorflow.python.ops import math_ops
-from tensorflow.python.training import distribution_strategy_context as distribute_ctx
 from tensorflow.contrib.mixed_precision import LossScaleOptimizer
+from tensorflow.python.ops import (control_flow_ops, gen_control_flow_ops,
+                                   gen_math_ops, math_ops)
+from tensorflow.python.training import \
+    distribution_strategy_context as distribute_ctx
 
 
 class DistributedLossScaleOptimizer(LossScaleOptimizer):
@@ -42,22 +42,27 @@ class DistributedLossScaleOptimizer(LossScaleOptimizer):
       is_finite_grad.append(math_ops.reduce_all(gen_math_ops.is_finite(g)))
     is_overall_finite = math_ops.reduce_all(is_finite_grad)
     # Only update gradients when all grads are finite.
-    # def true_apply_gradients_fn():
-      # return self._opt.apply_gradients(grads_and_vars, global_step, name)
-
+    apply_grads = self._opt.apply_gradients
+    no_op = gen_control_flow_ops.no_op
     ##### Fathom changes begin #####
 
     #TODO:(elias) Fix cond below
     #Potentially See: https://github.com/tensorflow/tensorflow/issues/4094
-    print("Dist strat on")
-    update_vars = self._opt.apply_gradients(grads_and_vars, global_step, name)#true_apply_gradients_fn()
+    # print("Dist strat on")
+    # update_vars = self._opt.apply_gradients(grads_and_vars, global_step, name)#true_apply_gradients_fn()
   # print("ret early")
     # return update_vars
     # This cond fails when distribution strategies are enabled, we need it on
     # to be robust to overflows.
 
+    update_vars = control_flow_ops.cond(
+      is_overall_finite, lambda: control_flow_ops.group(apply_grads(grads_and_vars, global_step, name)), lambda: control_flow_ops.group(no_op()))
+
+    # def true_apply_gradients_fn():
+    #   return self._opt.apply_gradients(grads_and_vars, global_step, name)
+
     # update_vars = control_flow_ops.cond(
-    #   is_overall_finite, true_apply_gradients_fn, gen_control_flow_ops.no_op)
+    #     is_overall_finite, true_apply_gradients_fn, gen_control_flow_ops.no_op)
 
     ##### Fathom changes end #####
 

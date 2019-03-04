@@ -163,7 +163,7 @@ class FathomDistributedExponentialUpdateLossScaleManager(
         new_num_bad_steps = control_flow_ops.cond(grads_not_finite, lambda: decr_num_bad_steps, lambda: new_num_bad_steps)
 
         #TODO: Fix this hack
-        new_loss_scale = control_flow_ops.cond(new_loss_scale >= 8388608, lambda: 8388608 / 2, lambda: new_loss_scale)
+        new_loss_scale = 2**15#control_flow_ops.cond(new_loss_scale >= 8388608, lambda: 8388608 / 2, lambda: new_loss_scale)
         ret_ops = control_flow_ops.group(
             state_ops.assign(self._loss_scale, new_loss_scale),
             state_ops.assign(self._num_good_steps, new_num_good_steps),

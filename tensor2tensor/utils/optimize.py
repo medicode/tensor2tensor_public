@@ -125,7 +125,7 @@ class ConditionalOptimizer(tf.train.Optimizer):
         tf.logging.info(("Using Exponential Update Loss Scaler with",
                          "init loss scale of {}".format(
                            hparams.mixed_precision_optimizer_init_loss_scale)))
-        manager = FixedLossScaleManger(
+        manager = FixedLossScaleManager(
             loss_scale=hparams.mixed_precision_optimizer_init_loss_scale)
         self._opt = DistributedLossScaleOptimizer(self._opt, manager)
 

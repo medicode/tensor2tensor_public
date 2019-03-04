@@ -29,9 +29,8 @@ from tensorflow.python.framework import dtypes
 from tensor2tensor.utils import adafactor
 from tensor2tensor.utils import multistep_optimizer
 from tensor2tensor.utils import yellowfin
-
 import tensorflow as tf
-
+from tf.contrib.mixed_precision import FixedLossScaleManager
 
 def optimize(loss, learning_rate, hparams, use_tpu=False):
   """Minimize loss."""
@@ -126,12 +125,8 @@ class ConditionalOptimizer(tf.train.Optimizer):
         tf.logging.info(("Using Exponential Update Loss Scaler with",
                          "init loss scale of {}".format(
                            hparams.mixed_precision_optimizer_init_loss_scale)))
-        manager = FathomDistributedExponentialUpdateLossScaleManager(
-            init_loss_scale=hparams.mixed_precision_optimizer_init_loss_scale,
-            incr_every_n_steps=2000,
-            decr_every_n_nan_or_inf=2,
-            incr_ratio=2,
-            decr_ratio=0.5)
+        manager = FixedLossScaleManger(
+            loss_scale=hparams.mixed_precision_optimizer_init_loss_scale)
         self._opt = DistributedLossScaleOptimizer(self._opt, manager)
 
 

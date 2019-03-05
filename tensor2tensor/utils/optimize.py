@@ -30,7 +30,7 @@ from tensor2tensor.utils import adafactor
 from tensor2tensor.utils import multistep_optimizer
 from tensor2tensor.utils import yellowfin
 import tensorflow as tf
-from tf.contrib.mixed_precision import FixedLossScaleManager
+from tensorflow.contrib.mixed_precision import FixedLossScaleManager
 
 def optimize(loss, learning_rate, hparams, use_tpu=False):
   """Minimize loss."""

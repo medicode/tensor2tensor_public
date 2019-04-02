@@ -53,7 +53,7 @@ SEP_FF = "-"
 
 
 @registry.register_model
-class TransformerMoeF(t2t_model.T2TModel):
+class TransformerMoe(t2t_model.T2TModel):
   """Attention net.  See file docstring."""
 
   @staticmethod

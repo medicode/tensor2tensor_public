@@ -263,6 +263,7 @@ class TransformerMoe(t2t_model.T2TModel):
 
     return final_layers
 
+
 @registry.register_hparams
 def transformer_moe_base():
   """Set of hyperparameters."""

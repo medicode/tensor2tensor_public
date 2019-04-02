@@ -171,10 +171,11 @@ class TransformerMoe(t2t_model.T2TModel):
               x,
               name="ff_{}".format(ff_type)
           )
-      # If normalization is done in layer_preprocess, then it should also be
-      # done on the output, since the output can grow very large, being the sum
-      # of a whole stack of unnormalized layer outputs.
-      x = dp_preprocess(x)
+      if decoder_input:
+        # If normalization is done in layer_preprocess, then it should also be
+        # done on the output, since the output can grow very large, being the sum
+        # of a whole stack of unnormalized layer outputs.
+        x = dp_preprocess(x)
 
     decoder_output = dp(tf.expand_dims, x, 2)
     return decoder_output, cache["extra_loss"]

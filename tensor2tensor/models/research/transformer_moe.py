@@ -104,7 +104,6 @@ class TransformerMoe(t2t_model.T2TModel):
     # ========= Compute the transformer architecture =========
 
 
-
     layers = common_attention.get_standardized_layers(
         hparams=hparams,
         dp=dp,

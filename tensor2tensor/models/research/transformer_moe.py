@@ -69,7 +69,6 @@ class TransformerMoe(t2t_model.T2TModel):
     # Process input
     inputs = sharded_features["inputs"]
     target_space = sharded_features["target_space_id"]
-
     (
         encoder_input,
         encoder_self_attention_bias,

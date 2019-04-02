@@ -126,7 +126,7 @@ class TransformerMoe(t2t_model.T2TModel):
     # ========= Construct the transformer encoder and decoder =========
 
     encoder_outputs = []
-    if encoder_layers:
+    if encoder_input:
       x = encoder_input
     with tf.variable_scope("encoder"):
       for layer_num, block_types in enumerate(encoder_layers):

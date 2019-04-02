@@ -65,11 +65,12 @@ class TransformerMoe(t2t_model.T2TModel):
 
     hparams = self._hparams
     dp = self._data_parallelism
-    encoder_input, decoder_input = None, None
     encoder_layers, decoder_layers = self._extract_layer_types()
     # Process input
     inputs = sharded_features["inputs"]
     target_space = sharded_features["target_space_id"]
+
+    encoder_input = None
     if encoder_layers:
       (
           encoder_input,
@@ -79,6 +80,7 @@ class TransformerMoe(t2t_model.T2TModel):
 
     # Process output
     targets = sharded_features["targets"]
+    decoder_input = None
     if decoder_layers:
       decoder_input, decoder_self_attention_bias = dp(
         self._prepare_decoder, targets

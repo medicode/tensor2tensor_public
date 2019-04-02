@@ -53,7 +53,7 @@ SEP_FF = "-"
 
 
 @registry.register_model
-class TransformerMoe(t2t_model.T2TModel):
+class TransformerMoeF(t2t_model.T2TModel):
   """Attention net.  See file docstring."""
 
   @staticmethod
@@ -65,21 +65,23 @@ class TransformerMoe(t2t_model.T2TModel):
 
     hparams = self._hparams
     dp = self._data_parallelism
-
+    encoder_layers, decoder_layers = self._extract_layer_types()
     # Process input
     inputs = sharded_features["inputs"]
     target_space = sharded_features["target_space_id"]
-    (
-        encoder_input,
-        encoder_self_attention_bias,
-        encoder_decoder_attention_bias,
-    ) = dp(self._prepare_encoder, inputs, target_space)
+    if encoder_layers:
+      (
+          encoder_input,
+          encoder_self_attention_bias,
+          encoder_decoder_attention_bias,
+      ) = dp(self._prepare_encoder, inputs, target_space)
 
     # Process output
     targets = sharded_features["targets"]
-    decoder_input, decoder_self_attention_bias = dp(
+    if decoder_layers:
+      decoder_input, decoder_self_attention_bias = dp(
         self._prepare_decoder, targets
-    )
+      )
 
     def dp_preprocess(x):
       return dp(common_layers.layer_preprocess, x, hparams)
@@ -101,12 +103,11 @@ class TransformerMoe(t2t_model.T2TModel):
 
     # ========= Compute the transformer architecture =========
 
-    encoder_layers, decoder_layers = self._extract_layer_types()
+
 
     layers = common_attention.get_standardized_layers(
         hparams=hparams,
         dp=dp,
-        ps_devices=self._ps_devices,
     )
 
     if hparams.mode == tf.estimator.ModeKeys.TRAIN:
@@ -122,58 +123,59 @@ class TransformerMoe(t2t_model.T2TModel):
     # ========= Construct the transformer encoder and decoder =========
 
     encoder_outputs = []
-
-    x = encoder_input
-    with tf.variable_scope("encoder"):
-      for layer_num, block_types in enumerate(encoder_layers):
-        # Each encoder layers is composed of two blocks:
-        # * self-attention block
-        # * feed-forward block
-        att_type, ff_type = block_types
-        with tf.variable_scope("layer_{}".format(layer_num)):
-          x = prepostprocess(layers[att_type])(
-              x,
-              bias=encoder_self_attention_bias,
-              name="att_{}".format(att_type),
-          )
-          x = prepostprocess(layers[ff_type])(
-              x,
-              name="ff_{}".format(ff_type)
-          )
-        encoder_outputs.append(x)
-      if encoder_outputs:
-        encoder_outputs[-1] = dp_preprocess(x)
-
-    x = decoder_input
-    with tf.variable_scope("decoder"):
-      for layer_num, block_types in enumerate(decoder_layers):
-        # Each decoder layers is composed of three blocks:
-        # * self-attention block
-        # * enco-deco attention block (optional)
-        # * feed-forward block
-        self_att_type, att_ende_type, ff_type = block_types
-        with tf.variable_scope("layer_{}".format(layer_num)):
-          x = prepostprocess(layers[self_att_type])(
-              x,
-              bias=decoder_self_attention_bias,
-              name="self_att_{}".format(self_att_type),
-          )
-          # Only add the enco-deco attention layer if there is an encoder
-          if encoder_outputs:
-            x = prepostprocess(layers[att_ende_type])(
+    if encoder_layers:
+      x = encoder_input
+      with tf.variable_scope("encoder"):
+        for layer_num, block_types in enumerate(encoder_layers):
+          # Each encoder layers is composed of two blocks:
+          # * self-attention block
+          # * feed-forward block
+          att_type, ff_type = block_types
+          with tf.variable_scope("layer_{}".format(layer_num)):
+            x = prepostprocess(layers[att_type])(
                 x,
-                memory_antecedent=encoder_outputs[-1],
-                bias=encoder_decoder_attention_bias,
-                name="att_ende_{}".format(att_ende_type),
+                bias=encoder_self_attention_bias,
+                name="att_{}".format(att_type),
             )
-          x = prepostprocess(layers[ff_type])(
-              x,
-              name="ff_{}".format(ff_type)
-          )
-      # If normalization is done in layer_preprocess, then it should also be
-      # done on the output, since the output can grow very large, being the sum
-      # of a whole stack of unnormalized layer outputs.
-      x = dp_preprocess(x)
+            x = prepostprocess(layers[ff_type])(
+                x,
+                name="ff_{}".format(ff_type)
+            )
+          encoder_outputs.append(x)
+        if encoder_outputs:
+          encoder_outputs[-1] = dp_preprocess(x)
+
+    if decoder_layers:
+      x = decoder_input
+      with tf.variable_scope("decoder"):
+        for layer_num, block_types in enumerate(decoder_layers):
+          # Each decoder layers is composed of three blocks:
+          # * self-attention block
+          # * enco-deco attention block (optional)
+          # * feed-forward block
+          self_att_type, att_ende_type, ff_type = block_types
+          with tf.variable_scope("layer_{}".format(layer_num)):
+            x = prepostprocess(layers[self_att_type])(
+                x,
+                bias=decoder_self_attention_bias,
+                name="self_att_{}".format(self_att_type),
+            )
+            # Only add the enco-deco attention layer if there is an encoder
+            if encoder_outputs:
+              x = prepostprocess(layers[att_ende_type])(
+                  x,
+                  memory_antecedent=encoder_outputs[-1],
+                  bias=encoder_decoder_attention_bias,
+                  name="att_ende_{}".format(att_ende_type),
+              )
+            x = prepostprocess(layers[ff_type])(
+                x,
+                name="ff_{}".format(ff_type)
+            )
+    # If normalization is done in layer_preprocess, then it should also be
+    # done on the output, since the output can grow very large, being the sum
+    # of a whole stack of unnormalized layer outputs.
+    x = dp_preprocess(x)
 
     decoder_output = dp(tf.expand_dims, x, 2)
     return decoder_output, cache["extra_loss"]
@@ -262,7 +264,6 @@ class TransformerMoe(t2t_model.T2TModel):
         final_layers[i].append(blocks_tuple)
 
     return final_layers
-
 
 @registry.register_hparams
 def transformer_moe_base():

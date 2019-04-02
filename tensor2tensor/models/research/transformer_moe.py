@@ -70,13 +70,11 @@ class TransformerMoe(t2t_model.T2TModel):
     inputs = sharded_features["inputs"]
     target_space = sharded_features["target_space_id"]
 
-    encoder_input = None
-    if encoder_layers:
-      (
-          encoder_input,
-          encoder_self_attention_bias,
-          encoder_decoder_attention_bias,
-      ) = dp(self._prepare_encoder, inputs, target_space)
+    (
+        encoder_input,
+        encoder_self_attention_bias,
+        encoder_decoder_attention_bias,
+    ) = dp(self._prepare_encoder, inputs, target_space)
 
     # Process output
     targets = sharded_features["targets"]
@@ -126,8 +124,7 @@ class TransformerMoe(t2t_model.T2TModel):
     # ========= Construct the transformer encoder and decoder =========
 
     encoder_outputs = []
-    if encoder_input:
-      x = encoder_input
+    x = encoder_input
     with tf.variable_scope("encoder"):
       for layer_num, block_types in enumerate(encoder_layers):
         # Each encoder layers is composed of two blocks:

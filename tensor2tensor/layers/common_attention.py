@@ -4536,6 +4536,7 @@ def multihead_self_attention_reduced(
   elif reduction_type == "conv":
     # With valid padding, the last block won't be computed (not attended anyway)
     if ignore_conv:
+        print("Ignoring conv")
         memory_x = x
     else:
         memory_x = conv_elems_1d(x, factor)
@@ -4548,6 +4549,7 @@ def multihead_self_attention_reduced(
     raise ValueError("Unknown non linearity {}".format(nonlinearity))
 
   if do_concat:
+    print("Doing concat")
     memory_x = tf.concat(
         # Add the first elem to make it attendable by everyone (otherwise the
         # first block cannot attend to anything)

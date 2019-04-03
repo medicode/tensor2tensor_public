@@ -4556,6 +4556,8 @@ def multihead_self_attention_reduced(
         [x[:, :1, :], memory_x],
         axis=1,
     )
+  else:
+      print("skipping concat")
 
   # Construct the bias
   @expert_utils.add_name_scope()

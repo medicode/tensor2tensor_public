@@ -205,6 +205,7 @@ def get_standardized_layers(hparams, dp=None):
   compressed_attention_fn = partial(
       compressed_attention_masked_fn,
       add_mask=False,
+      ignore_conv = hparams.get('ignore_conv', default=False)
   )
 
   # Feed-forwards layers:
@@ -4497,6 +4498,7 @@ def multihead_self_attention_reduced(
     nonlinearity="none",
     reduction_type="conv",
     add_mask=True,
+    ignore_conv=False,
 ):
   """Reduce the length dimension by compressing with conv.
 
@@ -4533,7 +4535,11 @@ def multihead_self_attention_reduced(
     memory_x = local_reduction_attention(x, factor, multihead_params)
   elif reduction_type == "conv":
     # With valid padding, the last block won't be computed (not attended anyway)
-    memory_x = conv_elems_1d(x, factor)
+    if ignore_conv:
+        print("Ignoring conv")
+        memory_x = x
+    else:
+        memory_x = conv_elems_1d(x, factor)
   else:
     raise ValueError("Unknown reduction type {}".format(reduction_type))
 

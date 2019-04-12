@@ -1292,7 +1292,6 @@ def transformer_encoder(encoder_input,
                     max_length=hparams.get("max_length"),
                     vars_3d=hparams.get("attention_variables_3d")))
             y, extra_loss = y
-            print(y, extra_loss)
             x = common_layers.layer_postprocess(x, y, hparams)
         with tf.variable_scope("ffn"):
           y = transformer_ffn_layer(

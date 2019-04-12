@@ -179,6 +179,10 @@ class TransformerMoe(t2t_model.T2TModel):
         x = dp_preprocess(x)
 
     decoder_output = dp(tf.expand_dims, x, 2)
+    print("Returning now")
+    print(f"Decoder output {decoder_output}")
+
+    print("Extra loss, ", cache["extra_loss"])
     return decoder_output, cache["extra_loss"]
 
   @expert_utils.add_name_scope()

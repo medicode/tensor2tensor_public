@@ -4531,8 +4531,7 @@ def multihead_self_attention_reduced(
     memory_x = local_reduction_attention(x, factor, multihead_params)
   elif reduction_type == "conv":
     # With valid padding, the last block won't be computed (not attended anyway)
-    print("Ignoring conv")
-    memory_x = x
+    memory_x = conv_elems_1d(x, factor)
   else:
     raise ValueError("Unknown reduction type {}".format(reduction_type))
 
@@ -4541,12 +4540,11 @@ def multihead_self_attention_reduced(
   elif nonlinearity != "none":
     raise ValueError("Unknown non linearity {}".format(nonlinearity))
 
-  print("Doing concat")
   memory_x = tf.concat(
-    # Add the first elem to make it attendable by everyone (otherwise the
-    # first block cannot attend to anything)
-    [x[:, :1, :], memory_x],
-    axis=1,
+      # Add the first elem to make it attendable by everyone (otherwise the
+      # first block cannot attend to anything)
+      [x[:, :1, :], memory_x],
+      axis=1,
   )
 
   # Construct the bias
@@ -4573,7 +4571,7 @@ def multihead_self_attention_reduced(
     bias = tf.expand_dims(bias, axis=0)  # [1, 1, length_k, length_q]
   else:
     bias = None
-  print("Multi", multihead_params)
+
   return multihead_attention(
       query_antecedent=x,
       memory_antecedent=memory_x,

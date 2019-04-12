@@ -205,8 +205,6 @@ def get_standardized_layers(hparams, dp=None):
   compressed_attention_fn = partial(
       compressed_attention_masked_fn,
       add_mask=False,
-      do_concat = hparams.get('do_concat', default=True),
-      ignore_conv = hparams.get('ignore_conv', default=False),
   )
 
   # Feed-forwards layers:
@@ -4497,8 +4495,6 @@ def multihead_self_attention_reduced(
     nonlinearity="none",
     reduction_type="conv",
     add_mask=True,
-    ignore_conv = False,
-    do_concat = True,
 ):
   """Reduce the length dimension by compressing with conv.
 
@@ -4535,11 +4531,8 @@ def multihead_self_attention_reduced(
     memory_x = local_reduction_attention(x, factor, multihead_params)
   elif reduction_type == "conv":
     # With valid padding, the last block won't be computed (not attended anyway)
-    if ignore_conv:
-        print("Ignoring conv")
-        memory_x = x
-    else:
-        memory_x = conv_elems_1d(x, factor)
+    print("Ignoring conv")
+    memory_x = x
   else:
     raise ValueError("Unknown reduction type {}".format(reduction_type))
 
@@ -4548,16 +4541,13 @@ def multihead_self_attention_reduced(
   elif nonlinearity != "none":
     raise ValueError("Unknown non linearity {}".format(nonlinearity))
 
-  if do_concat:
-    print("Doing concat")
-    memory_x = tf.concat(
-        # Add the first elem to make it attendable by everyone (otherwise the
-        # first block cannot attend to anything)
-        [x[:, :1, :], memory_x],
-        axis=1,
-    )
-  else:
-      print("skipping concat")
+  print("Doing concat")
+  memory_x = tf.concat(
+    # Add the first elem to make it attendable by everyone (otherwise the
+    # first block cannot attend to anything)
+    [x[:, :1, :], memory_x],
+    axis=1,
+  )
 
   # Construct the bias
   @expert_utils.add_name_scope()
@@ -4583,7 +4573,7 @@ def multihead_self_attention_reduced(
     bias = tf.expand_dims(bias, axis=0)  # [1, 1, length_k, length_q]
   else:
     bias = None
-
+  print("Multi", multihead_params)
   return multihead_attention(
       query_antecedent=x,
       memory_antecedent=memory_x,

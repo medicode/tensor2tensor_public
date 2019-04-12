@@ -1290,7 +1290,7 @@ def transformer_encoder(encoder_input,
                     dropout_broadcast_dims=
                     attention_dropout_broadcast_dims,
                     max_length=hparams.get("max_length"),
-                    vars_3d=hparams.get("attention_variables_3d")))
+                    vars_3d=hparams.get("attention_variables_3d")))[0]
             x = common_layers.layer_postprocess(x, y, hparams)
         with tf.variable_scope("ffn"):
           y = transformer_ffn_layer(

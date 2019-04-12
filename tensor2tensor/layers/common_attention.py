@@ -3527,7 +3527,9 @@ def multihead_attention(query_antecedent,
       x = common_layers.dense(
           x, output_depth, use_bias=False, name="output_transform")
     if additional_returned_value is not None:
+      print("additional returned value")
       return x, additional_returned_value
+    print("normal exit")
     return x
 
 

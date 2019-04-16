@@ -205,7 +205,8 @@ def get_standardized_layers(hparams, dp=None):
   compressed_attention_fn = partial(
       compressed_attention_masked_fn,
       add_mask=False,
-      ignore_conv = hparams.get('ignore_conv', default=False)
+      ignore_conv = hparams.get('ignore_conv', default=False),
+      use_bias= hparams.get('use_bias', default=False),
   )
 
   # Feed-forwards layers:
@@ -4499,6 +4500,7 @@ def multihead_self_attention_reduced(
     reduction_type="conv",
     add_mask=True,
     ignore_conv=False,
+    use_bias = False,
 ):
   """Reduce the length dimension by compressing with conv.
 
@@ -4548,12 +4550,13 @@ def multihead_self_attention_reduced(
   elif nonlinearity != "none":
     raise ValueError("Unknown non linearity {}".format(nonlinearity))
 
-  memory_x = tf.concat(
-      # Add the first elem to make it attendable by everyone (otherwise the
-      # first block cannot attend to anything)
-      [x[:, :1, :], memory_x],
-      axis=1,
-  )
+  if not use_bias:
+    memory_x = tf.concat(
+        # Add the first elem to make it attendable by everyone (otherwise the
+        # first block cannot attend to anything)
+        [x[:, :1, :], memory_x],
+        axis=1,
+    )
 
   # Construct the bias
   @expert_utils.add_name_scope()
@@ -4578,8 +4581,14 @@ def multihead_self_attention_reduced(
     bias = tf.expand_dims(bias, axis=0)
     bias = tf.expand_dims(bias, axis=0)  # [1, 1, length_k, length_q]
   else:
-    bias = None
-
+    if not use_bias:
+        bias = None
+    else:
+        bias = tf.layers.max_pooling2d(tf.transpose(bias, perm=[0,1,3,2]), pool_size=[1,3], strides=[1,3])
+        bias = tf.transpose(bias, perm=[0, 1, 3, 2])
+  if use_bias:
+    print("bias shape", bias.get_shape())
+    print("memx shape", memory_x.get_shape())
   return multihead_attention(
       query_antecedent=x,
       memory_antecedent=memory_x,

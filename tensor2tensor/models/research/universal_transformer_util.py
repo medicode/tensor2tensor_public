@@ -247,9 +247,12 @@ def universal_transformer_layer(x,
 
       ut_function, initializer = get_ut_layer(x, hparams, ffn_unit,
                                               attention_unit, pad_remover)
-
+      def print_wrap(*args, **kwargs):
+          print("noot noot")
+          return ut_function(*args, **kwargs)
+      print(hparams.num_rec_steps)
       output, _, extra_output = tf.foldl(
-          ut_function, tf.range(hparams.num_rec_steps), initializer=initializer)
+          print_wrap, tf.range(hparams.num_rec_steps), initializer=initializer)
 
       # This is possible only when we are using lstm as transition function.
       if hparams.get("use_memory_as_final_state", False):

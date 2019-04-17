@@ -27,7 +27,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from six.moves import range  # pylint: disable=redefined-builtin
-from tensor2tensor.layers.common_attention import get_standardized_layers
 
 from tensor2tensor.data_generators import librispeech
 from tensor2tensor.layers import common_attention
@@ -1267,32 +1266,26 @@ def transformer_encoder(encoder_input,
     for layer in range(hparams.num_encoder_layers or hparams.num_hidden_layers):
       with tf.variable_scope("layer_%d" % layer):
         with tf.variable_scope("self_attention"):
-            y = get_standardized_layers(hparams)['red'](
-                x=common_layers.layer_preprocess(x, hparams),
-                memory_antecedent=None,
-                bias=encoder_self_attention_bias,
-                multihead_params=dict(
-                    total_key_depth=hparams.attention_key_channels
-                                    or hparams.hidden_size,
-                    total_value_depth=hparams.attention_value_channels
-                                      or hparams.hidden_size,
-                    num_heads=hparams.num_heads,
-                    dropout_rate=hparams.attention_dropout,
-                    attention_type=hparams.self_attention_type,
-                    max_relative_position=hparams.
-                        max_relative_position,
-                    heads_share_relative_embedding=(
-                        hparams.heads_share_relative_embedding),
-                    add_relative_to_values=hparams.
-                        add_relative_to_values,
-                    save_weights_to=save_weights_to,
-                    make_image_summary=make_image_summary,
-                    dropout_broadcast_dims=
-                    attention_dropout_broadcast_dims,
-                    max_length=hparams.get("max_length"),
-                    vars_3d=hparams.get("attention_variables_3d")))
-            y, extra_loss = y
-            x = common_layers.layer_postprocess(x, y, hparams)
+          y = common_attention.multihead_attention(
+              common_layers.layer_preprocess(x, hparams),
+              None,
+              encoder_self_attention_bias,
+              hparams.attention_key_channels or hparams.hidden_size,
+              hparams.attention_value_channels or hparams.hidden_size,
+              hparams.hidden_size,
+              hparams.num_heads,
+              hparams.attention_dropout,
+              attention_type=hparams.self_attention_type,
+              max_relative_position=hparams.max_relative_position,
+              heads_share_relative_embedding=(
+                  hparams.heads_share_relative_embedding),
+              add_relative_to_values=hparams.add_relative_to_values,
+              save_weights_to=save_weights_to,
+              make_image_summary=make_image_summary,
+              dropout_broadcast_dims=attention_dropout_broadcast_dims,
+              max_length=hparams.get("max_length"),
+              vars_3d=hparams.get("attention_variables_3d"))
+          x = common_layers.layer_postprocess(x, y, hparams)
         with tf.variable_scope("ffn"):
           y = transformer_ffn_layer(
               common_layers.layer_preprocess(x, hparams),

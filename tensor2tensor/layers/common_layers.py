@@ -35,7 +35,6 @@ from tensorflow.python.framework import ops
 from tensorflow.python.ops import control_flow_util
 from tensorflow.python.ops import inplace_ops
 
-FLAGS = tf.flags.FLAGS
 
 @function.Defun(
     python_grad_func=lambda x, dy: tf.convert_to_tensor(dy),
@@ -72,13 +71,8 @@ def is_xla_compiled():
   Returns:
     bool, whether the current graph will be compiled for XLA.
   """
-
   ctxt = tf.get_default_graph()._get_control_flow_context()  # pylint: disable=protected-access
-  # print("Is xla compiled {}".format(FLAGS.xla_compile or control_flow_util.GetContainingXLAContext(ctxt) is not None))
-  print("Xla compiled will return false")
-  if 'xla_compile' in FLAGS:
-    print("Graph compilation is enabled {}".format(FLAGS.xla_compile))
-  return False #FLAGS.xla_compile or control_flow_util.GetContainingXLAContext(ctxt) is not None
+  return control_flow_util.GetContainingXLAContext(ctxt) is not None
 
 
 def dropout_with_broadcast_dims(x, keep_prob, broadcast_dims=None, **kwargs):

@@ -39,6 +39,7 @@ from tensorflow.python import debug
 
 # Fathom imports
 from fathomt2t.problems.fprecord_text_problem import FPRecordTextProblem
+from fathomt2t.monitors import FathomValidationMonitor
 
 
 def next_checkpoint(model_dir, timeout_mins=120):
@@ -76,6 +77,7 @@ def create_session_config(log_device_placement=False,
               opt_level=tf.OptimizerOptions.L1, do_function_inlining=False))
 
   gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=gpu_mem_fraction)
+
   config = tf.ConfigProto(
       allow_soft_placement=True,
       graph_options=graph_options,
@@ -83,12 +85,6 @@ def create_session_config(log_device_placement=False,
       log_device_placement=log_device_placement,
       inter_op_parallelism_threads=inter_op_parallelism_threads,
       intra_op_parallelism_threads=intra_op_parallelism_threads)
-  
-  flags = tf.flags
-  FLAGS = flags.FLAGS
-  if FLAGS.xla_compile:
-    print("Compiling w XLA")
-    config.graph_options.optimizer_options.global_jit_level = tf.OptimizerOptions.ON_1
   return config
 
 
@@ -262,6 +258,7 @@ def create_estimator(model_name,
   model_fn = t2t_model.T2TModel.make_estimator_model_fn(
       model_name, hparams, decode_hparams=decode_hparams)
 
+  del use_xla
   if use_tpu or use_tpu_estimator:
     problem = hparams.problem
     batch_size = (
@@ -356,7 +353,7 @@ def create_hooks(use_tfdbg=False,
     assert FLAGS.schedule != 'continuous_train_and_eval'
     
     train_hooks.append(
-        tf.contrib.learn.monitors.ValidationMonitor(
+        FathomValidationMonitor(restart_after_eval=FLAGS.restart_after_eval,
             hooks=eval_hooks, **validation_monitor_kwargs))
 
   if use_early_stopping:

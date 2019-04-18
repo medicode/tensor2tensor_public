@@ -932,7 +932,7 @@ class Problem(object):
           print("Params {}".format(params))
           print("Dataset before {}".format(dataset))
           dataset = dataset.padded_batch(
-              4, padded_shapes, drop_remainder=True)
+              1, padded_shapes, drop_remainder=True)
           print("Dataset after {}".format(dataset))
         else:
           # print("Padded shapes {}".format(padded_shapes))

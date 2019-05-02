@@ -613,7 +613,9 @@ class Problem(object):
       ValueError: if num_partitions is greater than the number of data files.
     """
     is_training = mode == tf.estimator.ModeKeys.TRAIN
-    shuffle_files = shuffle_files or shuffle_files is None and is_training
+    #shuffle_files = shuffle_files or shuffle_files is None and is_training
+    shuffle_files = False
+    tf.logging.info('shuffle_files: %s', shuffle_files)
 
     dataset_split = dataset_split or mode
     assert data_dir

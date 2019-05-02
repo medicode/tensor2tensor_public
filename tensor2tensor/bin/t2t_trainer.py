@@ -240,8 +240,8 @@ def create_run_config(hp, output_dir=None):
       hp.daisy_chain_variables and
       hp.activation_dtype == "float32" and
       hp.weight_dtype == "float32")
-  tf.logging.info('inter_op_parallelism_threads': FLAGS.inter_op_parallelism_threads)
-  tf.logging.info('intra_op_parallelism_threads': FLAGS.intra_op_parallelism_threads)
+  tf.logging.info('inter_op_parallelism_threads: %s', FLAGS.inter_op_parallelism_threads)
+  tf.logging.info('intra_op_parallelism_threads: %s', FLAGS.intra_op_parallelism_threads)
   return trainer_lib.create_run_config(
       model_name=FLAGS.model,
       model_dir=output_dir or os.path.expanduser(FLAGS.output_dir),

@@ -1002,6 +1002,12 @@ class Problem(object):
       tf.add_to_collection(tf.GraphKeys.QUEUE_RUNNERS,
                            data_reader.DummyQueueRunner())
 
+    # Fathom
+    def _print_id(features):
+        tf.logging.info('example_id: %s', features['example_id'])
+        return features
+
+    dataset.map(_print_id, num_parallel_calls=1)
     return dataset
 
   @property

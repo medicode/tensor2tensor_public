@@ -62,10 +62,10 @@ flags.DEFINE_bool("generate_data", False, "Generate data before training?")
 flags.DEFINE_string("tmp_dir", "/tmp/t2t_datagen",
                     "Temporary storage directory, used if --generate_data.")
 flags.DEFINE_bool("profile", False, "Profile performance?")
-flags.DEFINE_integer("inter_op_parallelism_threads", 0,
+flags.DEFINE_integer("inter_op_parallelism_threads", 1,
                      "Number of inter_op_parallelism_threads to use for CPU. "
                      "See TensorFlow config.proto for details.")
-flags.DEFINE_integer("intra_op_parallelism_threads", 0,
+flags.DEFINE_integer("intra_op_parallelism_threads", 1,
                      "Number of intra_op_parallelism_threads to use for CPU. "
                      "See TensorFlow config.proto for details.")
 # TODO(hinsu): Enable DistributionStrategy by default once performance gap
@@ -240,6 +240,8 @@ def create_run_config(hp, output_dir=None):
       hp.daisy_chain_variables and
       hp.activation_dtype == "float32" and
       hp.weight_dtype == "float32")
+  tf.logging.info('inter_op_parallelism_threads': FLAGS.inter_op_parallelism_threads)
+  tf.logging.info('intra_op_parallelism_threads': FLAGS.intra_op_parallelism_threads)
   return trainer_lib.create_run_config(
       model_name=FLAGS.model,
       model_dir=output_dir or os.path.expanduser(FLAGS.output_dir),

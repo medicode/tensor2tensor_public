@@ -1003,7 +1003,7 @@ class Problem(object):
                            data_reader.DummyQueueRunner())
 
     # Fathom
-    def _print_id(features):
+    def _print_id(features, batch_size):
         tf.logging.info('example_id: %s', features['example_id'])
         return features
 

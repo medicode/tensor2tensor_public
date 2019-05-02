@@ -1004,7 +1004,8 @@ class Problem(object):
 
     # Fathom
     def _print_id(features, batch_size):
-        tf.logging.info('example_id: %s', features['example_id'])
+        with tf.Session() as sess:
+            tf.logging.info('example_id: %s', features['example_id'].eval(session=sess))
         return features
 
     dataset.map(_print_id, num_parallel_calls=1)

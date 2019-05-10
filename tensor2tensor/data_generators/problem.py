@@ -959,10 +959,15 @@ class Problem(object):
           # Here  batch_size really means examples per datashard.
           batching_scheme["batch_sizes"] = [hparams.batch_size]
           batching_scheme["boundaries"] = []
+
+        def chunk_example_length(example):
+            return tf.shape(example['input'])[1]
+
         dataset = dataset.apply(
             tf.contrib.data.bucket_by_sequence_length(
-                data_reader.example_length, batching_scheme["boundaries"],
-                batching_scheme["batch_sizes"]))
+                example_length=chunk_example_length,
+                boundaries=list(range(1, 32)),
+                bucket_batch_sizes=[32 // i for i in range(1, 32)] + [1]))
 
         if not is_training:
           batch_multiple = num_shards

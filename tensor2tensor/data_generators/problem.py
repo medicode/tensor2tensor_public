@@ -961,7 +961,11 @@ class Problem(object):
           batching_scheme["boundaries"] = []
 
         def chunk_example_length(example):
-            return tf.shape(example['inputs'])[1]
+            from fathomtf.utils.tfutils import debug_tfprint
+            inputs = example['inputs']
+            inputs = debug_tfprint('inputs shape', inputs, tf.shape)
+            #return tf.shape(example['inputs'])[1]
+            return tf.shape(inputs)[1]
 
         dataset = dataset.apply(
             tf.contrib.data.bucket_by_sequence_length(

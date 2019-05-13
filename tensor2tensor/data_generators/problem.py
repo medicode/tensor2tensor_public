@@ -965,8 +965,8 @@ class Problem(object):
 
         dataset = dataset.apply(
             tf.contrib.data.bucket_by_sequence_length(
-                example_length=chunk_example_length,
-                boundaries=list(range(1, 32)),
+                element_length_func=chunk_example_length,
+                bucket_boundaries=list(range(1, 32)),
                 bucket_batch_sizes=[32 // i for i in range(1, 32)] + [1]))
 
         if not is_training:

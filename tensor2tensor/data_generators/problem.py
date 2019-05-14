@@ -970,6 +970,7 @@ class Problem(object):
                 bucket_boundaries=list(range(1, 32)),
                 bucket_batch_sizes=[32 // i for i in range(1, 32)] + [1]))
         '''
+
         dataset = dataset.apply(
             tf.contrib.data.bucket_by_sequence_length(
                 data_reader.example_length,

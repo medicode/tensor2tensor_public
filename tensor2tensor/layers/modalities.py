@@ -83,8 +83,6 @@ class SymbolModality(modality.Modality):
       shard_size = (self._vocab_size // num_shards) + (
           1 if i < self._vocab_size % num_shards else 0)
       var_name = "weights_%d" % i
-      print('variables', [n.name for n in tf.get_default_graph().as_graph_def().node]
-              )
       shards.append(
           tf.get_variable(
               var_name, [shard_size, hidden_dim],

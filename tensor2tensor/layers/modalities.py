@@ -105,6 +105,7 @@ class SymbolModality(modality.Modality):
         x = tf.expand_dims(x, axis=-1)
 
       var = self._get_weights()
+      print('BOTTOM_SIMPLE VAR NAME:', var.name)
       x = common_layers.dropout_no_scaling(
           x, 1.0 - self._model_hparams.symbol_dropout)
       ret = common_layers.gather(var, x)
@@ -1001,12 +1002,12 @@ class SigmoidMaxPoolingClassLabelModality(ClassLabelModality):
 
   def top(self, body_output, _):
     """Transform inputs from model space to target space.
-    
+
     Average over inner dims and a linear layer to logits.
-    
+
     Args:
       body_output: A Tensor with shape [batch, timesteps, 1, body_output_size].
-    
+
     Returns:
       a Tensors, each with shape [batch_size, 1, 1, vocab_size]
     """

@@ -20,14 +20,17 @@ from __future__ import print_function
 import numpy as np
 
 from tensor2tensor.layers import common_layers
+from tensor2tensor.layers.common_attention import mixed_precision_is_enabled
+from tensor2tensor.utils.loss_scale_manager import (
+    FathomDistributedExponentialUpdateLossScaleManager)
+from tensor2tensor.utils.loss_scale_optimizer import (
+    DistributedLossScaleOptimizer)
+from tensorflow.python.framework import dtypes
 from tensor2tensor.utils import adafactor
 from tensor2tensor.utils import multistep_optimizer
 from tensor2tensor.utils import yellowfin
-
 import tensorflow as tf
-
-from tensorflow.python.framework import dtypes
-
+from tensorflow.contrib.mixed_precision import FixedLossScaleManager
 
 def optimize(loss, learning_rate, hparams, use_tpu=False):
   """Minimize loss."""
@@ -44,7 +47,6 @@ def optimize(loss, learning_rate, hparams, use_tpu=False):
   opt = ConditionalOptimizer(hparams.optimizer, learning_rate, hparams, use_tpu)
   if use_tpu:
     opt = tf.contrib.tpu.CrossShardOptimizer(opt)
-
   opt_summaries = []
   if common_layers.should_generate_summaries():
     tf.summary.scalar("learning_rate", learning_rate)
@@ -112,9 +114,28 @@ class ConditionalOptimizer(tf.train.Optimizer):
       self._opt = adafactor.adafactor_optimizer_from_hparams(hparams, lr)
     else:
       self._opt = tf.contrib.layers.OPTIMIZER_CLS_NAMES[optimizer_name](lr)
+    if mixed_precision_is_enabled(hparams=hparams):
+      if not hparams.mixed_precision_optimizer_loss_scaler:
+        tf.logging.warning(("Using mixed precision without a loss scaler will ",
+                           "likely cause numerical errors."))
+      elif hparams.mixed_precision_optimizer_loss_scaler != 'exponential':
+        raise ValueError(("Mixed precision training only supports the ",
+                         "exponential loss scaler"))
+      else:
+        tf.logging.info(("Using Exponential Update Loss Scaler with",
+                         "init loss scale of {}".format(
+                           hparams.mixed_precision_optimizer_init_loss_scale)))
+        manager = FixedLossScaleManager(
+            loss_scale=hparams.mixed_precision_optimizer_init_loss_scale)
+        self._opt = DistributedLossScaleOptimizer(self._opt, manager)
+
+
+    self._zero_grads = hparams.optimizer_zero_grads
 
   def compute_gradients(self, loss, var_list=None, **kwargs):  # pylint: disable=arguments-differ
     gradients = self._opt.compute_gradients(loss, var_list, **kwargs)
+    # print("var list:", var_list)
+    # print("Gradients before cast", gradients)
     def cast_grad(g, v):
       """
       below is old code.
@@ -141,8 +162,8 @@ class ConditionalOptimizer(tf.train.Optimizer):
         #g = common_layers.cast_like(g, v)
       #return (g, v)
     gradients = [cast_grad(g, v) for g, v in gradients]
+    # print("Gradients after cast", gradients)
     return gradients
-    # return self._opt.compute_gradients(loss, var_list, **kwargs)
 
   def apply_gradients(self, grads_and_vars, global_step=None, name=None):
     return self._opt.apply_gradients(

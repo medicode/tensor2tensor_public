@@ -1137,8 +1137,7 @@ def transformer_prepare_encoder(inputs, target_space, hparams, features=None):
         32,
         ishape_static[-1],
         name="target_space_embedding",
-        dtype=tf.bfloat16
-        if hparams.activation_dtype == "bfloat16" else tf.float32)
+        dtype=hparams.activation_dtype)
     emb_target_space = tf.reshape(emb_target_space, [1, 1, -1])
     encoder_input += emb_target_space
   if hparams.pos == "timing":
@@ -1151,11 +1150,10 @@ def transformer_prepare_encoder(inputs, target_space, hparams, features=None):
     encoder_input = common_attention.add_positional_embedding(
         encoder_input, hparams.max_length, "inputs_positional_embedding",
         inputs_position)
-  if hparams.activation_dtype == "bfloat16":
-    encoder_self_attention_bias = tf.cast(encoder_self_attention_bias,
-                                          tf.bfloat16)
-    encoder_decoder_attention_bias = tf.cast(encoder_decoder_attention_bias,
-                                             tf.bfloat16)
+  encoder_self_attention_bias = common_layers.cast_like(
+      encoder_self_attention_bias, encoder_input)
+  encoder_decoder_attention_bias = common_layers.cast_like(
+      encoder_decoder_attention_bias, encoder_input)
   return (encoder_input, encoder_self_attention_bias,
           encoder_decoder_attention_bias)
 
@@ -1212,9 +1210,6 @@ def transformer_prepare_decoder(targets, hparams, features=None):
         decoder_input, hparams.max_length, "targets_positional_embedding",
         targets_position)
 
-  if hparams.activation_dtype == "bfloat16":
-    decoder_self_attention_bias = tf.cast(decoder_self_attention_bias,
-                                          tf.bfloat16)
   return (decoder_input, decoder_self_attention_bias)
 
 
@@ -1284,7 +1279,9 @@ def transformer_encoder(encoder_input,
               make_image_summary=make_image_summary,
               dropout_broadcast_dims=attention_dropout_broadcast_dims,
               max_length=hparams.get("max_length"),
-              vars_3d=hparams.get("attention_variables_3d"))
+              vars_3d=hparams.get("attention_variables_3d"),
+              activation_dtype=hparams.activation_dtype,
+              weight_dtype=hparams.weight_dtype)
           x = common_layers.layer_postprocess(x, y, hparams)
         with tf.variable_scope("ffn"):
           y = transformer_ffn_layer(
@@ -1372,7 +1369,9 @@ def transformer_decoder(decoder_input,
               dropout_broadcast_dims=attention_dropout_broadcast_dims,
               max_length=hparams.get("max_length"),
               decode_loop_step=decode_loop_step,
-              vars_3d=hparams.get("attention_variables_3d"))
+              vars_3d=hparams.get("attention_variables_3d"),
+              activation_dtype=hparams.activation_dtype,
+              weight_dtype=hparams.weight_dtype)
           x = common_layers.layer_postprocess(x, y, hparams)
         if encoder_output is not None:
           with tf.variable_scope("encdec_attention"):
@@ -1394,7 +1393,9 @@ def transformer_decoder(decoder_input,
                 make_image_summary=make_image_summary,
                 dropout_broadcast_dims=attention_dropout_broadcast_dims,
                 max_length=hparams.get("max_length"),
-                vars_3d=hparams.get("attention_variables_3d"))
+                vars_3d=hparams.get("attention_variables_3d"),
+                activation_dtype=hparams.activation_dtype,
+                weight_dtype=hparams.weight_dtype)
             x = common_layers.layer_postprocess(x, y, hparams)
         with tf.variable_scope("ffn"):
           y = transformer_ffn_layer(
@@ -2193,6 +2194,15 @@ def transformer_tpu_bf16_activation():
   hparams.activation_dtype = "bfloat16"
   return hparams
 
+@registry.register_hparams
+def transformer_fairseq_fp16_activation_big():
+  """
+  Hparams intended to mirror those used in https://arxiv.org/pdf/1806.00187.pdf
+  """
+  hparams = transformer_big()
+  hparams.activation_dtype = 'float16'
+  hparams.batch_size = 3584
+  return hparams
 
 @registry.register_hparams
 def transformer_packed_tpu():

@@ -1337,13 +1337,6 @@ def standardize_shapes(features, batch_size=None):
       shape[0] = batch_size
       t.set_shape(t.get_shape().merge_with(shape))
       tf.logging.warn('feature', n, t.get_shape().as_list())
-
-      # Fathom
-      # skipping example_id or nonpadding assignment will not work
-      if n == 'example_id':
-        continue
-      # End Fathom
-
       # Assert shapes are fully known
       t.get_shape().assert_is_fully_defined()
 

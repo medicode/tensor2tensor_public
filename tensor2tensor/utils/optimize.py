@@ -18,6 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import numpy as np
+import os
 
 from tensor2tensor.layers import common_layers
 from tensor2tensor.utils import adafactor
@@ -28,6 +29,11 @@ import tensorflow as tf
 
 from tensorflow.python.framework import dtypes
 
+def _mixed_precision_is_enabled(hparams):
+  """Should be the same as in common_attention, avoiding import."""
+  activation_dtype = hparams.activation_dtype
+  weight_dtype = hparams.weight_dtype
+  return activation_dtype == tf.float16 and weight_dtype == tf.float32
 
 def optimize(loss, learning_rate, hparams, use_tpu=False):
   """Minimize loss."""
@@ -44,6 +50,15 @@ def optimize(loss, learning_rate, hparams, use_tpu=False):
   opt = ConditionalOptimizer(hparams.optimizer, learning_rate, hparams, use_tpu)
   if use_tpu:
     opt = tf.contrib.tpu.CrossShardOptimizer(opt)
+  if getattr(hparams, "gpu_automatic_mixed_precision", False):
+      if use_tpu:
+          raise(RuntimeError("GPU auto mixed precision cannot be used with TPU"))
+      elif _mixed_precision_is_enabled(hparams):
+          raise(RuntimeError("GPU auto mixed precision cannot be used with manual mixed precision"))
+      else:
+          setattr(opt, '_use_locking', 'True')
+          setattr(opt, '_name', 'ConditionalOptimizer')
+          opt = tf.train.experimental.enable_mixed_precision_graph_rewrite(opt)
 
   opt_summaries = []
   if common_layers.should_generate_summaries():

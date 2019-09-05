@@ -289,6 +289,8 @@ def basic_params1():
       tpu_enable_host_call=False,
       # Pad batch dim of inputs to nearest multiple of batch multiple.
       pad_batch=False,
+      # Whether to use GPU automatic mixed precision (via graph rewrite)
+      gpu_automatic_mixed_precision=False
   )
 
 

@@ -138,6 +138,9 @@ flags.DEFINE_bool('restart_after_eval', False,
                   "This flag also disables the first eval that occurs after "
                   "starting a training run with a checkpointed model")
 
+flags.DEFINE_bool("gpu_automatic_mixed_precision", False,
+                  "Whether to employ GPU automatic mixed precision training "
+                  "(via graph rewrite and dynamic loss scaling).")
 
 def set_hparams_from_args(args):
   """Set hparams overrides from unparsed args list."""
@@ -392,6 +395,9 @@ def main(argv):
   # Fathom
   hparams = fathom.adjust_params_for_scaling(hparams)
 
+
+  if FLAGS.gpu_automatic_mixed_precision:
+      setattr(hparams, "gpu_automatic_mixed_precision", True)
   exp_fn = create_experiment_fn()
   exp = exp_fn(create_run_config(hparams), hparams)
   if is_chief():

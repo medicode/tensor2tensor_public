@@ -29,12 +29,6 @@ import tensorflow as tf
 
 from tensorflow.python.framework import dtypes
 
-def _mixed_precision_is_enabled(hparams):
-  """Should be the same as in common_attention, avoiding import."""
-  activation_dtype = hparams.activation_dtype
-  weight_dtype = hparams.weight_dtype
-  return activation_dtype == tf.float16 and weight_dtype == tf.float32
-
 def optimize(loss, learning_rate, hparams, use_tpu=False):
   """Minimize loss."""
   loss = weight_decay_and_noise(loss, hparams, learning_rate)
@@ -53,8 +47,6 @@ def optimize(loss, learning_rate, hparams, use_tpu=False):
   if getattr(hparams, "gpu_automatic_mixed_precision", False):
       if use_tpu:
           raise(RuntimeError("GPU auto mixed precision cannot be used with TPU"))
-      elif _mixed_precision_is_enabled(hparams):
-          raise(RuntimeError("GPU auto mixed precision cannot be used with manual mixed precision"))
       else:
           setattr(opt, '_use_locking', 'True')
           setattr(opt, '_name', 'ConditionalOptimizer')

@@ -890,6 +890,7 @@ class Problem(object):
                                             max_length
                                             if drop_long_sequences else 10**9)
 
+    tf.logging.warn('params', params)
     def define_shapes(example):
       batch_size = config and config.use_tpu and params["batch_size"]
       return standardize_shapes(example, batch_size=batch_size)
@@ -1335,7 +1336,7 @@ def standardize_shapes(features, batch_size=None):
       shape[0] = batch_size
       t.set_shape(t.get_shape().merge_with(shape))
       # Assert shapes are fully known
-      #t.get_shape().assert_is_fully_defined()
+      t.get_shape().assert_is_fully_defined()
 
   return features
 

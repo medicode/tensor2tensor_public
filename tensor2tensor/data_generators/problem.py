@@ -1331,10 +1331,12 @@ def standardize_shapes(features, batch_size=None):
 
   if batch_size:
     # Ensure batch size is set on all features
-    for _, t in six.iteritems(features):
+    #for _, t in six.iteritems(features):
+    for n, t in six.iteritems(features):
       shape = t.get_shape().as_list()
       shape[0] = batch_size
       t.set_shape(t.get_shape().merge_with(shape))
+      tf.logging.warn('feature', n, t.get_shape().as_list())
       # Assert shapes are fully known
       t.get_shape().assert_is_fully_defined()
 

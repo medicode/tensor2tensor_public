@@ -1906,11 +1906,11 @@ def summarize_features(features, num_shards=1):
             continue
         tf.summary.scalar("%s_batch" % k, tf.shape(v)[0] // num_shards)
         tf.summary.scalar("%s_length" % k, tf.shape(v)[1])
-        nonpadding = tf.to_float(tf.not_equal(v, 0))
-        nonpadding_tokens = tf.reduce_sum(nonpadding)
-        tf.summary.scalar("%s_nonpadding_tokens" % k, nonpadding_tokens)
-        tf.summary.scalar("%s_nonpadding_fraction" % k,
-                          tf.reduce_mean(nonpadding))
+        # nonpadding = tf.to_float(tf.not_equal(v, 0))
+        # nonpadding_tokens = tf.reduce_sum(nonpadding)
+        # tf.summary.scalar("%s_nonpadding_tokens" % k, nonpadding_tokens)
+        # tf.summary.scalar("%s_nonpadding_fraction" % k,
+        #                   tf.reduce_mean(nonpadding))
 
 
 _already_logged = set()

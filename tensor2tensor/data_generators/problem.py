@@ -948,7 +948,9 @@ class Problem(object):
         dataset = dataset.batch(batch_size)
     else:
       # batch_size means tokens per datashard
-      if config and config.use_tpu:
+      #if config and config.use_tpu:
+      #if True:
+      if False:
         dataset = dataset.filter(tpu_valid_size)
         padded_shapes = self._pad_for_tpu(dataset.output_shapes, hparams)
         # on TPU, we use params["batch_size"], which specifies the number of
@@ -969,6 +971,7 @@ class Problem(object):
           dataset = dataset.padded_batch(
               batch_size, padded_shapes, drop_remainder=True)
       else:
+        tf.logging.warn('bucketing by seq length')
         # On GPU, bucket by length
         dataset = dataset.filter(gpu_valid_size)
         batching_scheme = self._get_batching_scheme(hparams, num_shards)

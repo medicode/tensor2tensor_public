@@ -1335,7 +1335,7 @@ def standardize_shapes(features, batch_size=None):
       shape[0] = batch_size
       t.set_shape(t.get_shape().merge_with(shape))
       # Assert shapes are fully known
-      t.get_shape().assert_is_fully_defined()
+      #t.get_shape().assert_is_fully_defined()
 
   return features
 

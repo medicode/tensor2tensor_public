@@ -1535,8 +1535,7 @@ def fh_bucket_by_sequence_length(element_length_func,
             shape = t.get_shape().as_list()
             print('before shape', shape)
             shape[0] = none_filler
-            shape = [None, 135]
-            #shape[1] = m[
+            shape = [2, 135]
             print('after shape', shape)
             print('get shape', t.get_shape())
             print('merge shape', t.get_shape().merge_with(shape))

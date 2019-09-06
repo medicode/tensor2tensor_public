@@ -37,6 +37,8 @@ def example_length(example):
   length = 0
   # Length of the example is the maximum length of the feature lengths
   for _, v in sorted(six.iteritems(example)):
+      if len(tf.shape(v)) == 1:
+          continue
     # For images the sequence length is the size of the spatial dimensions.
     feature_length = (tf.shape(v)[0] if len(v.get_shape()) < 3 else
                       tf.shape(v)[0] * tf.shape(v)[1])
@@ -48,6 +50,8 @@ def example_length_int(example):
   length = 0
   # Length of the example is the maximum length of the feature lengths
   for f, v in sorted(six.iteritems(example)):
+    if len(tf.shape(v)) == 1:
+        continue
     # For images the sequence length is the size of the spatial dimensions.
     shape = v.get_shape().as_list()
     feature_length = (

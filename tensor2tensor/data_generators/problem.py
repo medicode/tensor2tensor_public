@@ -1344,7 +1344,7 @@ def standardize_shapes(features, batch_size=None):
       t.set_shape(t.get_shape().merge_with(shape))
       tf.logging.warn('feature %s: %s', n, t.get_shape().as_list())
       # Assert shapes are fully known
-      #t.get_shape().assert_is_fully_defined()
+      t.get_shape().assert_is_fully_defined()
 
   return features
 
@@ -1534,13 +1534,13 @@ def fh_bucket_by_sequence_length(element_length_func,
             shape = t.get_shape().as_list()
             print('before shape', shape)
             shape[0] = none_filler
-            shape = [2, 135]
+            shape = [None, 135]
             #shape[1] = m[
             print('after shape', shape)
             print('get shape', t.get_shape())
             print('merge shape', t.get_shape().merge_with(shape))
             t.set_shape(t.get_shape().merge_with(shape))
-            t.get_shape().assert_is_fully_defined()
+            #t.get_shape().assert_is_fully_defined()
         return example
 
     def _apply_fn(dataset):

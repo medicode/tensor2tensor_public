@@ -911,7 +911,8 @@ class Problem(object):
     dataset = self.dataset(**dataset_kwargs)
     if (force_repeat or is_training) and not prevent_repeat:
       # Repeat and skip a random number of records
-      dataset = dataset.repeat()
+      #dataset = dataset.repeat()
+      pass
 
     if is_training:
       data_files = tf.contrib.slim.parallel_reader.get_data_files(
@@ -921,7 +922,7 @@ class Problem(object):
       #  would give you the exact same samples from the last call
       #  (because the Graph seed is set). So this skip gives you some
       #  shuffling.
-      dataset = skip_random_fraction(dataset, data_files[0])
+      #dataset = skip_random_fraction(dataset, data_files[0])
 
     dataset = dataset.map(
         data_reader.cast_ints_to_int32, num_parallel_calls=num_threads)
@@ -977,11 +978,14 @@ class Problem(object):
         dataset = dataset.filter(gpu_valid_size)
         batching_scheme = self._get_batching_scheme(hparams, num_shards)
 
+        print('dataset shapes', dataset.output_shapes)
         dataset = dataset.apply(
-            tf.contrib.data.bucket_by_sequence_length(
+            #tf.contrib.data.bucket_by_sequence_length(
+            fh_bucket_by_sequence_length(
                 element_length_func=data_reader.example_length,
                 bucket_boundaries=batching_scheme['bucket_boundaries'],
-                bucket_batch_sizes=batching_scheme['bucket_batch_sizes']))
+                bucket_batch_sizes=batching_scheme['bucket_batch_sizes'],#))
+                pad_to_bucket_boundary=True))
 
         if not is_training:
           batch_multiple = num_shards
@@ -1049,6 +1053,7 @@ class Problem(object):
         # Here  batch_size really means examples per datashard.
         batching_scheme["bucket_batch_sizes"] = [hparams.batch_size]
         batching_scheme["bucket_boundaries"] = []
+    print('batching scheme', batching_scheme)
 
     return batching_scheme
 
@@ -1329,16 +1334,18 @@ def standardize_shapes(features, batch_size=None):
 
     features[fname] = f
 
-  if batch_size:
+  #if batch_size:
+  #if True:
+  if False:
     # Ensure batch size is set on all features
     #for _, t in six.iteritems(features):
     for n, t in six.iteritems(features):
       shape = t.get_shape().as_list()
       shape[0] = batch_size
       t.set_shape(t.get_shape().merge_with(shape))
-      tf.logging.warn('feature', n, t.get_shape().as_list())
+      tf.logging.warn('feature %s: %s', n, t.get_shape().as_list())
       # Assert shapes are fully known
-      t.get_shape().assert_is_fully_defined()
+      #t.get_shape().assert_is_fully_defined()
 
   return features
 
@@ -1387,3 +1394,163 @@ def skip_random_fraction(dataset, data_file):
   # replicas reading the same data in lock-step.
   num_skip = random.randint(0, _file_num_records_cached(data_file))
   return dataset.skip(num_skip)
+
+
+from tensorflow.python.data.ops import dataset_ops
+from tensorflow.python.data.util import nest
+from tensorflow.python.framework import ops
+from tensorflow.python.ops import math_ops
+from tensorflow.python.framework import constant_op
+from tensorflow.python.framework import dtypes
+from tensorflow.python.ops import array_ops
+from tensorflow.python.ops import check_ops
+from tensorflow.python.framework import tensor_shape
+
+
+
+import numpy as np
+
+
+def fh_bucket_by_sequence_length(element_length_func,
+                              bucket_boundaries,
+                              bucket_batch_sizes,
+                              padded_shapes=None,
+                              padding_values=None,
+                              pad_to_bucket_boundary=False,
+                              no_padding=False):
+  """A transformation that buckets elements in a `Dataset` by length.
+  Elements of the `Dataset` are grouped together by length and then are padded
+  and batched.
+  This is useful for sequence tasks in which the elements have variable length.
+  Grouping together elements that have similar lengths reduces the total
+  fraction of padding in a batch which increases training step efficiency.
+  Args:
+    element_length_func: function from element in `Dataset` to `tf.int32`,
+      determines the length of the element, which will determine the bucket it
+      goes into.
+    bucket_boundaries: `list<int>`, upper length boundaries of the buckets.
+    bucket_batch_sizes: `list<int>`, batch size per bucket. Length should be
+      `len(bucket_boundaries) + 1`.
+    padded_shapes: Nested structure of `tf.TensorShape` to pass to
+      `tf.data.Dataset.padded_batch`. If not provided, will use
+      `dataset.output_shapes`, which will result in variable length dimensions
+      being padded out to the maximum length in each batch.
+    padding_values: Values to pad with, passed to
+      `tf.data.Dataset.padded_batch`. Defaults to padding with 0.
+    pad_to_bucket_boundary: bool, if `False`, will pad dimensions with unknown
+      size to maximum length in batch. If `True`, will pad dimensions with
+      unknown size to bucket boundary minus 1 (i.e., the maximum length in each
+      bucket), and caller must ensure that the source `Dataset` does not contain
+      any elements with length longer than `max(bucket_boundaries)`.
+    no_padding: `bool`, indicates whether to pad the batch features (features
+      need to be either of type `tf.SparseTensor` or of same shape).
+  Returns:
+    A `Dataset` transformation function, which can be passed to
+    `tf.data.Dataset.apply`.
+  Raises:
+    ValueError: if `len(bucket_batch_sizes) != len(bucket_boundaries) + 1`.
+  """
+  with ops.name_scope("bucket_by_seq_length"):
+    if len(bucket_batch_sizes) != (len(bucket_boundaries) + 1):
+      raise ValueError(
+          "len(bucket_batch_sizes) must equal len(bucket_boundaries) + 1")
+
+    batch_sizes = constant_op.constant(bucket_batch_sizes, dtype=dtypes.int64)
+
+    def element_to_bucket_id(*args):
+      """Return int64 id of the length bucket for this element."""
+      seq_length = element_length_func(*args)
+      print('seq_len', seq_length)
+
+      boundaries = list(bucket_boundaries)
+      buckets_min = [np.iinfo(np.int32).min] + boundaries
+      buckets_max = boundaries + [np.iinfo(np.int32).max]
+      conditions_c = math_ops.logical_and(
+          math_ops.less_equal(buckets_min, seq_length),
+          math_ops.less(seq_length, buckets_max))
+      bucket_id = math_ops.reduce_min(array_ops.where(conditions_c))
+
+      return bucket_id
+
+    def window_size_fn(bucket_id):
+      # The window size is set to the batch size for this bucket
+      window_size = batch_sizes[bucket_id]
+      return window_size
+
+    def make_padded_shapes(shapes, none_filler=None):
+      padded = []
+      for shape in nest.flatten(shapes):
+        shape = tensor_shape.TensorShape(shape)
+        shape = [
+            none_filler if tensor_shape.dimension_value(d) is None else d
+            for d in shape
+        ]
+        padded.append(shape)
+      return nest.pack_sequence_as(shapes, padded)
+
+    def _get_none_filler_tensor(bucket_id):
+        boundaries = constant_op.constant(bucket_boundaries,
+                                          dtype=dtypes.int64)
+        return boundaries[bucket_id] - 1
+
+    def _get_none_filler_int(bucket_id):
+        return bucket_boundaries[bucket_id] - 1
+
+    def batching_fn(bucket_id, grouped_dataset):
+      """Batch elements in dataset."""
+      batch_size = window_size_fn(bucket_id)
+      if no_padding:
+        return grouped_dataset.batch(batch_size)
+      none_filler = None
+      if pad_to_bucket_boundary:
+        err_msg = ("When pad_to_bucket_boundary=True, elements must have "
+                   "length < max(bucket_boundaries).")
+        check = check_ops.assert_less(
+            bucket_id,
+            constant_op.constant(len(bucket_batch_sizes) - 1,
+                                 dtype=dtypes.int64),
+            message=err_msg)
+        with ops.control_dependencies([check]):
+            none_filler = _get_none_filler_tensor(bucket_id)
+
+      shapes = make_padded_shapes(
+          padded_shapes or grouped_dataset.output_shapes,
+          none_filler=none_filler)
+      grouped = grouped_dataset.padded_batch(batch_size, shapes, padding_values)
+      tf.logging.warn('none_filler %s', none_filler)
+      tf.logging.warn('grouped %s', grouped)
+      tf.logging.warn('batch size %s', batch_size)
+      tf.logging.warn('shapes %s', shapes)
+      tf.logging.warn('grouped output shapes', grouped.output_shapes)
+      return grouped
+
+    def _standardize_shape(example):
+        # TODO: infer from batching scheme
+        m = {8: 420, 9: 420, 10: 315, 11: 315, 12: 315, 13: 315, 14: 252, 15: 252, 16: 252, 17: 210, 18: 210, 19: 210, 20: 180, 22: 180, 24: 140, 26: 140, 28: 140, 30: 126, 33: 105, 36: 105, 39: 105, 42: 90, 46: 84, 50: 70, 55: 70, 60: 63, 66: 60, 72: 45, 79: 45, 86: 45, 94: 42, 103: 36, 113: 36, 124: 30, 136: 30, 149: 21, 163: 21, 179: 21, 196: 20, 215: 18, 236: 15, 259: 15, 284: 14, 312: 12, 343: 10, 377: 10, 414: 9, 455: 9, 500: 7, 550: 7, 605: 6, 665: 6, 731: 5, 804: 5, 884: 4, 972: 4, 1069: 3, 1175: 3, 1292: 3, 1421: 2, 1563: 2, 1719: 2, 1890: 2, 2079: 1, 2286: 1, 2514: 1, 2765: 1, 3041: 1, 3345: 1, 3679: 1, 4046: 1}
+        for n, t in six.iteritems(example):
+            if n != 'inputs':
+                continue
+            bucket_id = data_reader.example_length_int(example)
+            none_filler = _get_none_filler_int(bucket_id)
+            shape = t.get_shape().as_list()
+            print('before shape', shape)
+            shape[0] = none_filler
+            shape = [2, 135]
+            #shape[1] = m[
+            print('after shape', shape)
+            print('get shape', t.get_shape())
+            print('merge shape', t.get_shape().merge_with(shape))
+            t.set_shape(t.get_shape().merge_with(shape))
+            t.get_shape().assert_is_fully_defined()
+        return example
+
+    def _apply_fn(dataset):
+      dataset = dataset.apply(
+          #group_by_window(element_to_bucket_id, batching_fn,
+          tf.data.experimental.group_by_window(element_to_bucket_id, batching_fn,
+                          window_size_func=window_size_fn))
+      dataset = dataset.map(_standardize_shape)
+            
+      return dataset
+
+    return _apply_fn

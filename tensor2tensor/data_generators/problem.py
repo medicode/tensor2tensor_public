@@ -890,7 +890,6 @@ class Problem(object):
                                             max_length
                                             if drop_long_sequences else 10**9)
 
-    tf.logging.warn('params', params)
     def define_shapes(example):
       batch_size = config and config.use_tpu and params["batch_size"]
       return standardize_shapes(example, batch_size=batch_size)

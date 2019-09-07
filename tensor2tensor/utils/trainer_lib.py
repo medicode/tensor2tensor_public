@@ -541,6 +541,7 @@ def create_experiment(
   hparams.add_hparam("eval_steps", eval_steps)
   hparams.add_hparam("schedule", schedule)
   hparams.add_hparam("warm_start_from", warm_start_from)
+  print('warm start from', warm_start_from)
   hparams.add_hparam("std_server_protocol", std_server_protocol)
   if decode_hparams is not None:
     decode_hparams.add_hparam("decode_from_file", decode_from_file)

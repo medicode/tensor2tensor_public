@@ -1436,7 +1436,7 @@ class T2TModel(base.Layer):
           host_call=host_call,
           scaffold_fn=scaffold_fn)
     else:
-        tf.logging.info('hparams warm_start_from: %s', self._hparams.warm_start_from)
+      tf.logging.info('hparams warm_start_from: %s', self._hparams.warm_start_from)
       if self._hparams.warm_start_from:
         self.initialize_from_ckpt(self._hparams.warm_start_from)
 

@@ -1389,13 +1389,14 @@ class T2TModel(base.Layer):
         loss, num_async_replicas=num_async_replicas, use_tpu=use_tpu)
 
   def initialize_from_ckpt(self, ckpt_dir):
-    model_dir = self._hparams.get("model_dir", None)
-    already_has_ckpt = (
-        model_dir and tf.train.latest_checkpoint(model_dir) is not None)
-    if already_has_ckpt:
-      return
+    #model_dir = self._hparams.get("model_dir", None)
+    #already_has_ckpt = (
+        #model_dir and tf.train.latest_checkpoint(model_dir) is not None)
+    #if already_has_ckpt:
+      #return
 
     # TODO(mitchellstern): Add support for partitioned variables?
+    tf.logging.info('Loading checkpoint: %s', ckpt_dir)
     reader = tf.contrib.framework.load_checkpoint(ckpt_dir)
     variable_map = {}
     for var in tf.contrib.framework.get_trainable_variables():

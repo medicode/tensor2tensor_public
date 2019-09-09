@@ -363,12 +363,12 @@ def create_hooks(use_tfdbg=False,
         FathomValidationMonitor(restart_after_eval=FLAGS.restart_after_eval,
             hooks=eval_hooks, **validation_monitor_kwargs))
 
-  if use_early_stopping:
-    tf.logging.info("Using EarlyStoppingHook")
-    hook = metrics_hook.EarlyStoppingHook(**early_stopping_kwargs)
-    # Adding to both training and eval so that eval aborts as well
-    train_hooks.append(hook)
-    eval_hooks.append(hook)
+  # if use_early_stopping:
+  #   tf.logging.info("Using EarlyStoppingHook")
+  #   hook = metrics_hook.EarlyStoppingHook(**early_stopping_kwargs)
+  #   # Adding to both training and eval so that eval aborts as well
+  #   train_hooks.append(hook)
+  #   eval_hooks.append(hook)
   
   # NOTE:
   # Attempt at adding better OOM feedback--although doesn't seem to work.

@@ -200,6 +200,12 @@ def create_run_config(model_name,
       run_config_args["cluster"] = tpu_cluster_resolver
       del run_config_args["master"]
       del run_config_args["evaluation_master"]
+    elif not master and "KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS" in os.environ:
+      # If running on TPU but no master is set and the KUBE env var is present
+      # then we're running on ML Engine. Set the master.
+      run_config_args["master"] = os.environ[
+          "KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS"]
+      run_config_args["evaluation_master"] = run_config_args["master"]
   elif is_cloud_async_distributed():
     run_config_cls = tf.estimator.RunConfig
     del run_config_args["master"]

@@ -949,9 +949,9 @@ class Problem(object):
         dataset = dataset.batch(batch_size)
     else:
       # batch_size means tokens per datashard
-      #if config and config.use_tpu:
-      # #if True:
-      if False:
+      if config and config.use_tpu:
+      # # #if True:
+      # if False:
         tf.logging.warn('NOT bucketing by seq length')
         dataset = dataset.filter(tpu_valid_size)
         padded_shapes = self._pad_for_tpu(dataset.output_shapes, hparams)

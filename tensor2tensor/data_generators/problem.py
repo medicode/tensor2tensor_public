@@ -981,10 +981,12 @@ class Problem(object):
         print('dataset shapes', dataset.output_shapes)
         dataset = dataset.apply(
             #tf.contrib.data.bucket_by_sequence_length(
+            #tf.data.experimental.bucket_by_sequence_length(
             fh_bucket_by_sequence_length(
                 element_length_func=data_reader.example_length,
                 bucket_boundaries=batching_scheme['bucket_boundaries'],
                 bucket_batch_sizes=batching_scheme['bucket_batch_sizes'],#))
+                #drop_remainder=True))
                 pad_to_bucket_boundary=True))
 
         if not is_training:
@@ -1341,9 +1343,13 @@ def standardize_shapes(features, batch_size=None):
     #for _, t in six.iteritems(features):
     for n, t in six.iteritems(features):
       shape = t.get_shape().as_list()
-      shape[0] = batch_size
+      #shape[0] = batch_size
+      shape[1] = 135
       t.set_shape(t.get_shape().merge_with(shape))
       tf.logging.warn('feature %s: %s', n, t.get_shape().as_list())
+      print('shape', shape)
+      print('get shape', t.get_shape())
+      print('merge shape', t.get_shape().merge_with(shape))
       # Assert shapes are fully known
       t.get_shape().assert_is_fully_defined()
 
@@ -1500,7 +1506,7 @@ def fh_bucket_by_sequence_length(element_length_func,
       """Batch elements in dataset."""
       batch_size = window_size_fn(bucket_id)
       if no_padding:
-        return grouped_dataset.batch(batch_size)
+        return grouped_dataset.batch(batch_size, drop_remainder=True)
       none_filler = None
       if pad_to_bucket_boundary:
         err_msg = ("When pad_to_bucket_boundary=True, elements must have "
@@ -1512,16 +1518,19 @@ def fh_bucket_by_sequence_length(element_length_func,
             message=err_msg)
         with ops.control_dependencies([check]):
             none_filler = _get_none_filler_tensor(bucket_id)
-
+      '''
       shapes = make_padded_shapes(
           padded_shapes or grouped_dataset.output_shapes,
           none_filler=none_filler)
-      grouped = grouped_dataset.padded_batch(batch_size, shapes, padding_values)
+      '''
+      input_shapes = dataset_ops.get_legacy_output_shapes(grouped_dataset)
+      shapes = make_padded_shapes(padded_shapes or input_shapes, none_filler=none_filler)
+      grouped = grouped_dataset.padded_batch(batch_size, shapes, padding_values, drop_remainder=True)
       tf.logging.warn('none_filler %s', none_filler)
       tf.logging.warn('grouped %s', grouped)
       tf.logging.warn('batch size %s', batch_size)
       tf.logging.warn('shapes %s', shapes)
-      tf.logging.warn('grouped output shapes', grouped.output_shapes)
+      #tf.logging.warn('grouped output shapes', grouped.output_shapes)
       return grouped
 
     def _standardize_shape(example):
@@ -1530,12 +1539,14 @@ def fh_bucket_by_sequence_length(element_length_func,
         for n, t in six.iteritems(example):
             if n != 'inputs':
                 continue
-            bucket_id = data_reader.example_length_int(example)
-            none_filler = _get_none_filler_int(bucket_id)
+            #bucket_id = data_reader.example_length_int(example)
+            #bucket_id = data_reader.example_length(example)
+            #none_filler = _get_none_filler_int(bucket_id)
             shape = t.get_shape().as_list()
             print('before shape', shape)
+            shape[1] = 135
+            none_filler = m[135 + 1]
             shape[0] = none_filler
-            shape = [2, 135]
             print('after shape', shape)
             print('get shape', t.get_shape())
             print('merge shape', t.get_shape().merge_with(shape))

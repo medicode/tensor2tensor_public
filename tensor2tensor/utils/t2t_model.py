@@ -1243,7 +1243,7 @@ class T2TModel(base.Layer):
     for k, v in sorted(six.iteritems(features)):
       v = tf.convert_to_tensor(v)
       v_shape = common_layers.shape_list(v)
-      print(k, v_shape)
+      print("INFO DUMP", k, v_shape)
       if not v_shape:
         v = tf.expand_dims(v, axis=-1)
         v_shape = [1]

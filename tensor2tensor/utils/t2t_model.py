@@ -591,8 +591,8 @@ class T2TModel(base.Layer):
 
   def optimize(self, loss, num_async_replicas=1, use_tpu=False):
     """Return a training op minimizing loss."""
-    log_info("Base learning rate: %f", 
-        self.hparams.learning_rate if 
+    log_info("Base learning rate: %f",
+        self.hparams.learning_rate if
             self.hparams.learning_rate_schedule == 'legacy'
         else self.hparams.learning_rate_constant)
     lr = learning_rate.learning_rate_schedule(self.hparams)
@@ -1243,7 +1243,6 @@ class T2TModel(base.Layer):
     for k, v in sorted(six.iteritems(features)):
       v = tf.convert_to_tensor(v)
       v_shape = common_layers.shape_list(v)
-      print("INFO DUMP", k, v_shape)
       if not v_shape:
         v = tf.expand_dims(v, axis=-1)
         v_shape = [1]
@@ -1491,10 +1490,10 @@ class T2TModel(base.Layer):
         # our code base which causes this?
         if isinstance(logits, dict) and len(parts) >= 2 and k in logits:
           # Fathom
-          # NOTE: the next line is redundant, plus only the 
+          # NOTE: the next line is redundant, plus only the
           # first if-then can trigger.  Leaving this in place
           # to maintain as much parity as possible w/ upstream codebase.
-        
+
           # the key is located in the center of metric_name: "metrics-%s/%s/%s"
           k = metric_name.split("/")[1]
           if k in logits:
@@ -1571,7 +1570,7 @@ class T2TModel(base.Layer):
     # Fathom end
 
     _del_dict_non_tensors(predictions)
-    
+
     export_out = {"outputs": predictions["outputs"]}
     if "scores" in predictions:
       export_out["scores"] = predictions["scores"]

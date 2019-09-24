@@ -957,8 +957,8 @@ class Problem(object):
         if hasattr(hparams, 'bert_max_length'):
           dataset = batch_packed_dataset_tpu(dataset, hparams, num_threads,
                                              num_shards, params)
-        # FATHOM we don't use tpus w/o chunking, below else block should
-        # never be entered
+      # FATHOM we don't use tpus w/o packed + chunked datasets, below else
+      # block should never be entered
       elif config and config.use_tpu and not packed_fathom_dataset:
         dataset = dataset.filter(tpu_valid_size)
         padded_shapes = self._pad_for_tpu(dataset.output_shapes, hparams)
@@ -986,7 +986,7 @@ class Problem(object):
         batching_scheme = self._get_batching_scheme(hparams, num_shards)
 
         if hasattr(hparams, 'bert_max_length'):
-            dataset = _build_chunk_dataset_gpu(dataset, hparams, num_threads)
+          dataset = _build_chunk_dataset_gpu(dataset, hparams, num_threads)
 
         dataset = dataset.apply(
             tf.contrib.data.bucket_by_sequence_length(
@@ -1342,7 +1342,6 @@ def standardize_shapes(features, batch_size=None):
 
   if batch_size:
     # Ensure batch size is set on all features
-    #for _, t in six.iteritems(features):
     for n, t in six.iteritems(features):
       shape = t.get_shape().as_list()
       shape[0] = batch_size

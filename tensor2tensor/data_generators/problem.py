@@ -952,33 +952,34 @@ class Problem(object):
         dataset = dataset.batch(batch_size)
     else:
       # batch_size means tokens per datashard
-      if config and config.use_tpu:
+      packed_fathom_datset = hasattr(hparams, 'bert_max_length')
+      if config and config.use_tpu and packed_fathom_datset:
         if hasattr(hparams, 'bert_max_length'):
           dataset = batch_packed_dataset_tpu(dataset, hparams, num_threads,
                                              num_shards, params)
         # FATHOM we don't use tpus w/o chunking, below else block should
         # never be entered
-        else:
-            dataset = dataset.filter(tpu_valid_size)
-            padded_shapes = self._pad_for_tpu(dataset.output_shapes, hparams)
-            # on TPU, we use params["batch_size"], which specifies the number of
-            # examples across all datashards
-            batch_size = params["batch_size"]
+      elif config and config.use_tpu and not packed_fathom_datset:
+        dataset = dataset.filter(tpu_valid_size)
+        padded_shapes = self._pad_for_tpu(dataset.output_shapes, hparams)
+        # on TPU, we use params["batch_size"], which specifies the number of
+        # examples across all datashards
+        batch_size = params["batch_size"]
 
-            if hparams.pad_batch:
-              tf.logging.warn(
-                  "Padding the batch to ensure that remainder eval batches are "
-                  "processed. This may lead to incorrect metrics for "
-                  "non-zero-padded features, e.g. images. Use a smaller batch "
-                  "size that has no remainder in that case.")
-              dataset = dataset.padded_batch(
-                  batch_size, padded_shapes, drop_remainder=False)
-              dataset = dataset.map(
-                  functools.partial(pad_batch, batch_multiple=batch_size),
-                  num_parallel_calls=num_threads)
-            else:
-              dataset = dataset.padded_batch(
-                  batch_size, padded_shapes, drop_remainder=True)
+        if hparams.pad_batch:
+          tf.logging.warn(
+              "Padding the batch to ensure that remainder eval batches are "
+              "processed. This may lead to incorrect metrics for "
+              "non-zero-padded features, e.g. images. Use a smaller batch "
+              "size that has no remainder in that case.")
+          dataset = dataset.padded_batch(
+              batch_size, padded_shapes, drop_remainder=False)
+          dataset = dataset.map(
+              functools.partial(pad_batch, batch_multiple=batch_size),
+              num_parallel_calls=num_threads)
+        else:
+          dataset = dataset.padded_batch(
+              batch_size, padded_shapes, drop_remainder=True)
       else:
         # On GPU, bucket by length
         dataset = dataset.filter(gpu_valid_size)

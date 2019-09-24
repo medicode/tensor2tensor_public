@@ -24,6 +24,8 @@ import numpy as np
 from tensor2tensor.data_generators import algorithmic
 from tensor2tensor.data_generators import problem as problem_module
 from tensor2tensor.data_generators import problem_hparams
+from tensor2tensor.data_generators.problem import default_model_hparams, \
+  pad_inputs_to_chunk_len
 from tensor2tensor.layers import modalities
 from tensor2tensor.utils import registry
 from fathomt2t_dependencies.common_t2t_utils import pad_to_next_chunk_length

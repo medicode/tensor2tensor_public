@@ -953,15 +953,6 @@ class Problem(object):
     else:
       # batch_size means tokens per datashard
       if config and config.use_tpu:
-        # TODO: assert shapes fit
-        # if we are on TPU and we are chunking input features,
-        # we assume that we have one example per batch that is packed.
-        # we also have multiple input features (inputs, input_example, input_chunk)
-        # we need to pad the features that we chunk to the next nearest
-        # multiple of the chunk length
-        # this should always be the same length, but convenient to reuse
-        # this function
-        # TODO: just pad where we chunk
         if hasattr(hparams, 'bert_max_length'):
           dataset = batch_packed_dataset_tpu(dataset, hparams, num_threads,
                                              num_shards, params)
@@ -993,10 +984,6 @@ class Problem(object):
         dataset = dataset.filter(gpu_valid_size)
         batching_scheme = self._get_batching_scheme(hparams, num_shards)
 
-        # if GPU and we are chunking input features,
-        # we need to pad the features that we chunk to the next nearest
-        # multiple of the chunk length,
-        # this can differ on the GPU as we do have variable input lengths
         if hasattr(hparams, 'bert_max_length'):
             dataset = _build_chunk_dataset_gpu(dataset, hparams, num_threads)
 
@@ -1409,6 +1396,13 @@ def batch_packed_dataset_tpu(packed_dataset, hparams, num_threads, num_shards,
   Pads our packed example's inputs and targets, then batches the data.
   This function should only be used on Fathom Packed datasets,
   when transformer chunking is also enabled.
+  If we are on TPU and we are chunking input features,
+    we assume that we have one example per batch that is packed.
+    we also have multiple input features (inputs, input_example, input_chunk)
+    we need to pad the features that we chunk to the next nearest
+    multiple of the chunk length
+    this should always be the same length, but convenient to reuse
+    this function
   """
   tf.logging.info('Taking 1 example and chunking it.')
   tf.logging.info(f'Grabbing {hparams.batch_size} for each worker {num_shards}')
@@ -1441,8 +1435,6 @@ def _build_chunk_dataset_gpu(dataset, hparams, num_threads):
     ensuers that bucket_by_sequence length will always emit batches padded to a
     multiple of chunk_len
   """
-  # dataset = dataset.map(lambda x: pad_inputs_to_chunk_len(
-  #   x, hparams.bert_max_length))
   dataset = dataset.map(
     pad_to_next_chunk_length(
       chunk_length=hparams.bert_max_length,

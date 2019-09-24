@@ -952,14 +952,14 @@ class Problem(object):
         dataset = dataset.batch(batch_size)
     else:
       # batch_size means tokens per datashard
-      packed_fathom_datset = hasattr(hparams, 'bert_max_length')
-      if config and config.use_tpu and packed_fathom_datset:
+      packed_fathom_dataset = hasattr(hparams, 'bert_max_length')
+      if config and config.use_tpu and packed_fathom_dataset:
         if hasattr(hparams, 'bert_max_length'):
           dataset = batch_packed_dataset_tpu(dataset, hparams, num_threads,
                                              num_shards, params)
         # FATHOM we don't use tpus w/o chunking, below else block should
         # never be entered
-      elif config and config.use_tpu and not packed_fathom_datset:
+      elif config and config.use_tpu and not packed_fathom_dataset:
         dataset = dataset.filter(tpu_valid_size)
         padded_shapes = self._pad_for_tpu(dataset.output_shapes, hparams)
         # on TPU, we use params["batch_size"], which specifies the number of

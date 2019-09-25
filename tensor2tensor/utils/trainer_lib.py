@@ -267,14 +267,9 @@ def create_estimator(model_name,
   del use_xla
   if use_tpu or use_tpu_estimator:
     problem = hparams.problem
-    # TODO: Unhack this https://app.asana.com/0/823468737354222/1141472458656937
-    packed_fathom_dataset = hasattr(hparams, 'bert_max_length')
-    if packed_fathom_dataset:
-        batch_size_per_shard = 1
-    else:
-        batch_size_per_shard = problem.tpu_batch_size_per_shard(hparams)
-    batch_size = (batch_size_per_shard * run_config.tpu_config.num_shards)
-    tf.logging.info('Estimator batch_size: ', batch_size)
+    batch_size = (
+        problem.tpu_batch_size_per_shard(hparams) *
+        run_config.tpu_config.num_shards)
     if getattr(hparams, "mtf_mode", False):
       batch_size = problem.tpu_batch_size_per_shard(hparams)
     predict_batch_size = batch_size

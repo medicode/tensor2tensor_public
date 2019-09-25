@@ -145,10 +145,9 @@ class ProblemTest(tf.test.TestCase):
       ex1_targets = tf.convert_to_tensor([2, 3])
       example = {'inputs': ex_1_inputs,
                'targets': ex1_targets}
-      padded_example = sess.run(pad_to_next_chunk_length(
-      chunk_length=chunk_size,
-      axis=0,
-      features_to_pad=['inputs'])(example))
+      padded_example = sess.run(
+        pad_to_next_chunk_length(
+          chunk_length=chunk_size, axis=0, features_to_pad=['inputs'])(example))
       assert padded_example['inputs'].shape == (4, )
       # Should be unchanged
       assert padded_example['targets'].shape == (2, )

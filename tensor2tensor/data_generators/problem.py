@@ -952,10 +952,10 @@ class Problem(object):
         dataset = dataset.batch(batch_size)
     else:
       # batch_size means tokens per datashard
-      packed_fathom_dataset = (hasattr(hparams, 'bert_max_length') and
-                               hasattr(self, 'packed_length') and
-                               self.packed_length is not None)
-      if packed_fathom_dataset:
+      fathom_dataset_is_packed = (hasattr(hparams, 'bert_max_length') and
+                                  hasattr(self, 'packed_length') and
+                                  self.packed_length is not None)
+      if fathom_dataset_is_packed:
         if hasattr(hparams, 'bert_max_length'):
           batch_size = (params['batch_size'] if config and config.use_tpu
                         else hparams.batch_size)
@@ -963,7 +963,7 @@ class Problem(object):
                                          num_shards, batch_size)
       # FATHOM we don't use tpus w/o packed + chunked datasets, below elif
       # block should never be entered
-      elif config and config.use_tpu and not packed_fathom_dataset:
+      elif config and config.use_tpu and not fathom_dataset_is_packed:
         dataset = dataset.filter(tpu_valid_size)
         padded_shapes = self._pad_for_tpu(dataset.output_shapes, hparams)
         # on TPU, we use params["batch_size"], which specifies the number of

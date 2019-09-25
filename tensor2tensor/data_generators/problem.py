@@ -957,8 +957,8 @@ class Problem(object):
                                self.packed_length is not None)
       if packed_fathom_dataset:
         if hasattr(hparams, 'bert_max_length'):
-          dataset = batch_packed_dataset_tpu(dataset, hparams, num_threads,
-                                             num_shards, params)
+          dataset = batch_packed_dataset(dataset, hparams, num_threads,
+                                         num_shards, batch_size)
       # FATHOM we don't use tpus w/o packed + chunked datasets, below elif
       # block should never be entered
       elif config and config.use_tpu and not packed_fathom_dataset:
@@ -1395,8 +1395,8 @@ def problem_hparams_to_features(problem_hparams):
       "target_space_id": target_space_id,
   }
 
-def batch_packed_dataset_tpu(packed_dataset, hparams, num_threads, num_shards,
-                             params):
+def batch_packed_dataset(packed_dataset, hparams, num_threads, num_shards,
+                         batch_size):
   """
   Pads our packed example's inputs and targets, then batches the data.
   This function should only be used on Fathom Packed datasets,
@@ -1410,8 +1410,7 @@ def batch_packed_dataset_tpu(packed_dataset, hparams, num_threads, num_shards,
     this function
   """
   tf.logging.info('Taking 1 example and chunking it.')
-  tf.logging.info(
-    f'Grabbing {params["batch_size"]} for each worker {num_shards}')
+  tf.logging.info(f'Grabbing {batch_size} for each worker {num_shards}')
   chunk_size = hparams.bert_max_length
   full_packed_len = hparams.bert_max_length * ((hparams.max_length // chunk_size) + 1)
   packed_dataset = packed_dataset.map(
@@ -1430,7 +1429,7 @@ def batch_packed_dataset_tpu(packed_dataset, hparams, num_threads, num_shards,
       axis=0,
       features_to_pad=['targets']),
     num_parallel_calls=num_threads)
-  packed_dataset = packed_dataset.batch(params['batch_size'], drop_remainder=True)
+  packed_dataset = packed_dataset.batch(batch_size, drop_remainder=True)
   return packed_dataset
 
 def _build_chunk_dataset_gpu(dataset, hparams, num_threads):

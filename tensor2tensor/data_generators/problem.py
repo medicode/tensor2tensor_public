@@ -957,6 +957,8 @@ class Problem(object):
                                self.packed_length is not None)
       if packed_fathom_dataset:
         if hasattr(hparams, 'bert_max_length'):
+          batch_size = (params['batch_size'] if config and config.use_tpu
+                        else hparams.batch_size)
           dataset = batch_packed_dataset(dataset, hparams, num_threads,
                                          num_shards, batch_size)
       # FATHOM we don't use tpus w/o packed + chunked datasets, below elif

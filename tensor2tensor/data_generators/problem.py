@@ -952,12 +952,14 @@ class Problem(object):
         dataset = dataset.batch(batch_size)
     else:
       # batch_size means tokens per datashard
-      packed_fathom_dataset = hasattr(hparams, 'bert_max_length')
-      if config and config.use_tpu and packed_fathom_dataset:
+      packed_fathom_dataset = (hasattr(hparams, 'bert_max_length') and
+                               hasattr(self, 'packed_length') and
+                               self.packed_length is not None)
+      if packed_fathom_dataset:
         if hasattr(hparams, 'bert_max_length'):
           dataset = batch_packed_dataset_tpu(dataset, hparams, num_threads,
                                              num_shards, params)
-      # FATHOM we don't use tpus w/o packed + chunked datasets, below else
+      # FATHOM we don't use tpus w/o packed + chunked datasets, below elif
       # block should never be entered
       elif config and config.use_tpu and not packed_fathom_dataset:
         dataset = dataset.filter(tpu_valid_size)
@@ -980,13 +982,15 @@ class Problem(object):
         else:
           dataset = dataset.padded_batch(
               batch_size, padded_shapes, drop_remainder=True)
+      # If on gpu and not packed
       else:
         # On GPU, bucket by length
         dataset = dataset.filter(gpu_valid_size)
         batching_scheme = self._get_batching_scheme(hparams, num_shards)
-
+        # FATHOM
         if hasattr(hparams, 'bert_max_length'):
           dataset = _build_chunk_dataset_gpu(dataset, hparams, num_threads)
+        # END FATHOM
 
         dataset = dataset.apply(
             tf.contrib.data.bucket_by_sequence_length(
@@ -1329,8 +1333,9 @@ def _summarize_features(features, num_shards=1):
 
 def standardize_shapes(features, batch_size=None):
   """Set the right shapes for the features."""
-
-  for fname in ["inputs", "targets", 'inputs_example', 'inputs_chunk']:
+  t2t_default_features = ['inputs', 'targets']
+  fathom_features = ['inputs_example', 'inputs_chunk']
+  for fname in t2t_default_features + fathom_features:
     if fname not in features:
       continue
 
@@ -1405,7 +1410,8 @@ def batch_packed_dataset_tpu(packed_dataset, hparams, num_threads, num_shards,
     this function
   """
   tf.logging.info('Taking 1 example and chunking it.')
-  tf.logging.info(f'Grabbing {hparams.batch_size} for each worker {num_shards}')
+  tf.logging.info(
+    f'Grabbing {params["batch_size"]} for each worker {num_shards}')
   chunk_size = hparams.bert_max_length
   full_packed_len = hparams.bert_max_length * ((hparams.max_length // chunk_size) + 1)
   packed_dataset = packed_dataset.map(

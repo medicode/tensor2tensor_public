@@ -39,6 +39,7 @@ import tensorflow as tf
 from tensorflow.contrib.tpu.python.tpu import tpu_config
 
 import pretrained_models.bert.utilities as bert_utilities
+from fathomt2t_dependencies.common_t2t_utils import pad_to_max_packed_length_for_tpu, pad_to_next_chunk_length
 
 
 class DatasetSplit(object):
@@ -951,12 +952,24 @@ class Problem(object):
         dataset = dataset.batch(batch_size)
     else:
       # batch_size means tokens per datashard
-      if config and config.use_tpu:
+      fathom_dataset_is_packed = (hasattr(hparams, 'bert_max_length') and
+                                  hasattr(self, 'packed_length') and
+                                  self.packed_length is not None)
+      if fathom_dataset_is_packed:
+        if hasattr(hparams, 'bert_max_length'):
+          batch_size = (params['batch_size'] if config and config.use_tpu
+                        else hparams.batch_size)
+          dataset = batch_packed_dataset(dataset, hparams, num_threads,
+                                         num_shards, batch_size)
+      # FATHOM we don't use tpus w/o packed + chunked datasets, below elif
+      # block should never be entered
+      elif config and config.use_tpu and not fathom_dataset_is_packed:
         dataset = dataset.filter(tpu_valid_size)
         padded_shapes = self._pad_for_tpu(dataset.output_shapes, hparams)
         # on TPU, we use params["batch_size"], which specifies the number of
         # examples across all datashards
         batch_size = params["batch_size"]
+
         if hparams.pad_batch:
           tf.logging.warn(
               "Padding the batch to ensure that remainder eval batches are "
@@ -971,14 +984,16 @@ class Problem(object):
         else:
           dataset = dataset.padded_batch(
               batch_size, padded_shapes, drop_remainder=True)
+      # If on gpu and not packed
       else:
         # On GPU, bucket by length
         dataset = dataset.filter(gpu_valid_size)
         batching_scheme = self._get_batching_scheme(hparams, num_shards)
-
+        # FATHOM
         if hasattr(hparams, 'bert_max_length'):
-          dataset = dataset.map(lambda x: pad_inputs_to_chunk_len(
-            x, hparams.bert_max_length))
+          dataset = _build_chunk_dataset_gpu(dataset, hparams, num_threads)
+        # END FATHOM
+
         dataset = dataset.apply(
             tf.contrib.data.bucket_by_sequence_length(
                 element_length_func=data_reader.example_length,
@@ -1320,8 +1335,9 @@ def _summarize_features(features, num_shards=1):
 
 def standardize_shapes(features, batch_size=None):
   """Set the right shapes for the features."""
-
-  for fname in ["inputs", "targets"]:
+  t2t_default_features = ['inputs', 'targets']
+  fathom_features = ['inputs_example', 'inputs_chunk']
+  for fname in t2t_default_features + fathom_features:
     if fname not in features:
       continue
 
@@ -1333,9 +1349,10 @@ def standardize_shapes(features, batch_size=None):
 
   if batch_size:
     # Ensure batch size is set on all features
-    for _, t in six.iteritems(features):
+    for n, t in six.iteritems(features):
       shape = t.get_shape().as_list()
       shape[0] = batch_size
+      tf.logging.info(f'Assign shape for {n}: {t}, {shape}, {t.get_shape()}')
       t.set_shape(t.get_shape().merge_with(shape))
       # Assert shapes are fully known
       t.get_shape().assert_is_fully_defined()
@@ -1380,6 +1397,58 @@ def problem_hparams_to_features(problem_hparams):
       "target_space_id": target_space_id,
   }
 
+def batch_packed_dataset(packed_dataset, hparams, num_threads, num_shards,
+                         batch_size):
+  """
+  Pads our packed example's inputs and targets, then batches the data.
+  This function should only be used on Fathom Packed datasets,
+  when transformer chunking is also enabled.
+  If we are on TPU and we are chunking input features,
+    we assume that we have one example per batch that is packed.
+    we also have multiple input features (inputs, input_example, input_chunk)
+    we need to pad the features that we chunk to the next nearest
+    multiple of the chunk length
+    this should always be the same length, but convenient to reuse
+    this function
+  """
+  tf.logging.info('Taking 1 example and chunking it.')
+  tf.logging.info(f'Grabbing {batch_size} for each worker {num_shards}')
+  chunk_size = hparams.bert_max_length
+  full_packed_len = hparams.bert_max_length * ((hparams.max_length // chunk_size) + 1)
+  packed_dataset = packed_dataset.map(
+    pad_to_max_packed_length_for_tpu(
+      packed_max_len=full_packed_len,
+      axis=0,
+      features_to_pad=[
+        'inputs', 'inputs_example', 'inputs_chunk']),
+    num_parallel_calls=num_threads)
+  # preprocess_common_example already truncates our targets
+  # to max_target_seq_length, so this will pad up to
+  # 1*max_target_seq_length every time.
+  packed_dataset = packed_dataset.map(
+    pad_to_max_packed_length_for_tpu(
+      packed_max_len=hparams.max_target_seq_length,
+      axis=0,
+      features_to_pad=['targets']),
+    num_parallel_calls=num_threads)
+  packed_dataset = packed_dataset.batch(batch_size, drop_remainder=True)
+  return packed_dataset
+
+def _build_chunk_dataset_gpu(dataset, hparams, num_threads):
+  """
+  On gpu, when batch_size_means_tokens, if chunking is enabled then all of our
+    model inputs need to be divisible by chunk_size. We pad all our inputs to
+    the nearest multiple of chunk_size in this function, which in turn
+    ensuers that bucket_by_sequence length will always emit batches padded to a
+    multiple of chunk_len
+  """
+  dataset = dataset.map(
+    pad_to_next_chunk_length(
+      chunk_length=hparams.bert_max_length,
+      axis=0,
+      features_to_pad=['inputs']),
+    num_parallel_calls=num_threads)
+  return dataset
 
 def skip_random_fraction(dataset, data_file):
   # Skip a random fraction at the beginning of the stream.  The skip is

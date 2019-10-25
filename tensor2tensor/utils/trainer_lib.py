@@ -360,8 +360,10 @@ def create_hooks(use_tfdbg=False,
     assert FLAGS.schedule != 'continuous_train_and_eval'
     
     train_hooks.append(
-        FathomValidationMonitor(restart_after_eval=FLAGS.restart_after_eval,
-            hooks=eval_hooks, **validation_monitor_kwargs))
+        FathomValidationMonitor(
+            restart_after_eval=FLAGS.restart_after_eval,
+            hooks=eval_hooks,
+            **validation_monitor_kwargs))
 
   if use_early_stopping:
     tf.logging.info("Using EarlyStoppingHook")

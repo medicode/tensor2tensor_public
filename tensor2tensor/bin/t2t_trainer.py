@@ -369,7 +369,7 @@ def main(argv):
   if FLAGS.fathom:
       fathom.t2t_trainer_setup(FLAGS.problem)
 
-  tf.logging.set_verbosity(tf.logging.INFO)
+  tf.logging.set_verbosity(tf.logging.DEBUG)
   if FLAGS.schedule == "run_std_server":
     run_std_server()
   trainer_lib.set_random_seed(FLAGS.random_seed)
@@ -412,5 +412,5 @@ if __name__ == "__main__":
   # Fathom
   tf.flags.mark_flag_as_required('airflow_pipeline_yaml')
   tf.flags.mark_flag_as_required('timestamp')
-  tf.logging.set_verbosity(tf.logging.INFO)
+  tf.logging.set_verbosity(tf.logging.DEBUG)
   tf.app.run()

@@ -361,6 +361,7 @@ def create_hooks(use_tfdbg=False,
     
     train_hooks.append(
         FathomValidationMonitor(
+            restart_before_eval=FLAGS.restart_before_eval,
             restart_after_eval=FLAGS.restart_after_eval,
             hooks=eval_hooks,
             **validation_monitor_kwargs))

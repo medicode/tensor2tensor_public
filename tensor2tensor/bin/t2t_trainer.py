@@ -133,6 +133,10 @@ flags.DEFINE_string("job-dir", None,
 flags.DEFINE_integer("log_step_count_steps", 100,
                      "Number of local steps after which progress is printed "
                      "out")
+flags.DEFINE_bool('restart_before_eval', False,
+                  "Determines whether to restart training before eval. "
+                  "This flag must be used in conjunction with "
+                  "restart_after_eval.")
 flags.DEFINE_bool('restart_after_eval', False,
                   "Determines whether to restart training after eval. "
                   "This flag also disables the first eval that occurs after "

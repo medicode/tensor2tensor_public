@@ -45,6 +45,8 @@ def example_length(example):
 
 
 def example_valid_size(example, min_length, max_length):
+  print(f'alvin-testing min_length = {min_length}')
+  print(f'alvin-testing max_length = {max_length}')
   length = example_length(example)
   return tf.logical_and(
       length >= min_length,

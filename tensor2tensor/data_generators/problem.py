@@ -892,6 +892,8 @@ class Problem(object):
                                             max_length)
 
     def gpu_valid_size(example):
+      print(f'alvin-testing is_training = {is_training}')
+      print(f'alvin-testing hparams.eval_drop_long_sequences = {hparams.eval_drop_long_sequences}')
       drop_long_sequences = is_training or hparams.eval_drop_long_sequences
       return data_reader.example_valid_size(example, hparams.min_length,
                                             max_length

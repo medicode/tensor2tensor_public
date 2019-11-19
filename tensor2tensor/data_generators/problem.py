@@ -41,6 +41,8 @@ from tensorflow.contrib.tpu.python.tpu import tpu_config
 import pretrained_models.bert.utilities as bert_utilities
 from fathomt2t_dependencies.common_t2t_utils import pad_to_next_chunk_length
 
+from fathomtf.utils.tfutils import debug_tfprint
+
 
 class DatasetSplit(object):
   TRAIN = tf.estimator.ModeKeys.TRAIN
@@ -1054,6 +1056,7 @@ class Problem(object):
       tf.add_to_collection(tf.GraphKeys.QUEUE_RUNNERS,
                            data_reader.DummyQueueRunner())
 
+    dataset = dataset.map(alvin_mapping_fn, num_parallel_calls=num_threads)
     return dataset
 
   def _get_batching_scheme(self, hparams, num_shards):
@@ -1184,6 +1187,16 @@ class Problem(object):
       padded_shapes['inputs_chunk'] = [packed_length]
 
     return padded_shapes
+
+
+def alvin_mapping_fn(example):
+    example['inputs'] = debug_tfprint(message='alvin-testing prepare_for_output dataset shape = ', tvar=example['inputs'], print_fn=tf.shape)
+    example['inputs'] = debug_tfprint(message='alvin-testing prepare_for_output dataset nonzero along 1, 2 = ', tvar=example['inputs'], print_fn=nonzero_along_1_and_2)
+    return example
+
+
+def nonzero_along_1_and_2(tvar):
+    return tf.count_nonzero(tvar, axis=[1, 2])
 
 
 class FeatureInfo(object):

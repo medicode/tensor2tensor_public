@@ -1047,6 +1047,7 @@ class Problem(object):
         return example, example["targets"]
 
     dataset = dataset.map(prepare_for_output, num_parallel_calls=num_threads)
+    dataset = dataset.map(alvin_mapping_fn, num_parallel_calls=num_threads)
     dataset = dataset.prefetch(2)
 
     if mode == tf.estimator.ModeKeys.PREDICT:
@@ -1056,7 +1057,6 @@ class Problem(object):
       tf.add_to_collection(tf.GraphKeys.QUEUE_RUNNERS,
                            data_reader.DummyQueueRunner())
 
-    dataset = dataset.map(alvin_mapping_fn, num_parallel_calls=num_threads)
     return dataset
 
   def _get_batching_scheme(self, hparams, num_shards):

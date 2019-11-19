@@ -1046,7 +1046,7 @@ class Problem(object):
       else:
         return example, example["targets"]
 
-    def alvin_mapping_fn(example):
+    def alvin_mapping_fn(example, targets):
       example['inputs'] = debug_tfprint(message='alvin-testing prepare_for_output dataset shape = ', tvar=example['inputs'], print_fn=tf.shape)
       example['inputs'] = debug_tfprint(message='alvin-testing prepare_for_output dataset nonzero along 1, 2 = ', tvar=example['inputs'], print_fn=nonzero_along_1_and_2)
       return example

@@ -1046,6 +1046,11 @@ class Problem(object):
       else:
         return example, example["targets"]
 
+    def alvin_mapping_fn(example):
+      example['inputs'] = debug_tfprint(message='alvin-testing prepare_for_output dataset shape = ', tvar=example['inputs'], print_fn=tf.shape)
+      example['inputs'] = debug_tfprint(message='alvin-testing prepare_for_output dataset nonzero along 1, 2 = ', tvar=example['inputs'], print_fn=nonzero_along_1_and_2)
+      return example
+
     dataset = dataset.map(prepare_for_output, num_parallel_calls=num_threads)
     dataset = dataset.map(alvin_mapping_fn, num_parallel_calls=num_threads)
     dataset = dataset.prefetch(2)
@@ -1189,10 +1194,7 @@ class Problem(object):
     return padded_shapes
 
 
-def alvin_mapping_fn(example):
-    example['inputs'] = debug_tfprint(message='alvin-testing prepare_for_output dataset shape = ', tvar=example['inputs'], print_fn=tf.shape)
-    example['inputs'] = debug_tfprint(message='alvin-testing prepare_for_output dataset nonzero along 1, 2 = ', tvar=example['inputs'], print_fn=nonzero_along_1_and_2)
-    return example
+
 
 
 def nonzero_along_1_and_2(tvar):

@@ -1002,6 +1002,8 @@ class Problem(object):
         # for unpacked datasets, bucket by length
         dataset = dataset.filter(gpu_valid_size)
         batching_scheme = self._get_batching_scheme(hparams, num_shards)
+        print('alvin-testing batching scheme')
+        print(batching_scheme)
 
         # if unpacked (variable length sequences) and we are chunking
         # input features, we need to pad the features that we

@@ -156,6 +156,8 @@ def _batching_scheme(batch_size,
       "max_length": (max_length if drop_long_sequences else 10**9),
       "shuffle_queue_size": shuffle_queue_size,
   }
+  print('alvin-testing data reader buckets')
+  print(ret)
   return ret
 
 

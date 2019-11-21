@@ -1487,6 +1487,8 @@ def skip_random_fraction(dataset, data_file):
   # Skip a random fraction at the beginning of the stream.  The skip is
   # essential for synchronous highly-parallel training to avoid multiple
   # replicas reading the same data in lock-step.
-  num_skip = random.randint(0, _file_num_records_cached(data_file))
+  upper_bound = _file_num_records_cached(data_file)
+  print(f'alvin-testing upper_bound = {upper_bound}')
+  num_skip = random.randint(0, upper_bound)
   print(f'alvin-testing num_skip = {num_skip}')
   return dataset.skip(num_skip)

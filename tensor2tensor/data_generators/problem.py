@@ -888,6 +888,7 @@ class Problem(object):
       num_shards = 1
 
     max_length = self.max_length(hparams)
+    print(f'alvin-testing max_length (problem.py:891) {max_length}')
 
     def tpu_valid_size(example):
       return data_reader.example_valid_size(example, hparams.min_length,
@@ -961,6 +962,7 @@ class Problem(object):
       # batch_size means tokens per datashard
 
       packed = hasattr(self, 'packed_length')
+      print(f'alvin-testing packed = {packed}')
 
       if config and config.use_tpu:
           assert packed, ('If we use TPU, we should used packed datasets.')
@@ -1008,7 +1010,10 @@ class Problem(object):
         # if unpacked (variable length sequences) and we are chunking
         # input features, we need to pad the features that we
         # chunk to the next neares multiple of the chunk length,
+        print('alvin-testing hparams (problem.py:1012)')
+        print(hparams)
         if hasattr(hparams, 'bert_max_length'):
+          print('alvin-testing padding to next chunk length for BERT')
           dataset = dataset.map(
             pad_to_next_chunk_length(
               features_to_pad=['inputs'],
@@ -1085,7 +1090,8 @@ class Problem(object):
       batching_scheme = data_reader.hparams_to_batching_scheme(
         hparams,
         shard_multiplier=num_shards,
-        length_multiplier=self.get_hparams().batch_size_multiplier)
+        length_multiplier=self.get_hparams().batch_size_multiplier,
+        drop_long_sequences=True)
 
     assert 'bucket_boundaries' in batching_scheme
     assert 'bucket_batch_sizes' in batching_scheme
@@ -1482,4 +1488,5 @@ def skip_random_fraction(dataset, data_file):
   # essential for synchronous highly-parallel training to avoid multiple
   # replicas reading the same data in lock-step.
   num_skip = random.randint(0, _file_num_records_cached(data_file))
+  print(f'alvin-testing num_skip = {num_skip}')
   return dataset.skip(num_skip)

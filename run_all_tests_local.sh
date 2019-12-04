@@ -47,7 +47,7 @@ source ~/diseaseTools/scripts/vm_setup/dev_config/.bashrc_aliases_fathom
 
 
 dki gcr.io/fathom-containers/t2t_test python3 -m pytest -vv \
-       --ignore=/usr/src/app/api-flask/ \
+       --ignore=/usr/src/diseaseTools/api-flask/ \
        --ignore=/usr/src/t2t/tensor2tensor/utils/registry_test.py \
        --ignore=/usr/src/t2t/tensor2tensor/utils/trainer_lib_test.py \
        --ignore=/usr/src/t2t/tensor2tensor/visualization/visualization_test.py \

@@ -156,13 +156,62 @@ class ProblemTest(tf.test.TestCase):
       assert padded_example['targets'].shape == (2, )
 
   def testMaybeChunk(self):
-    problem = algorithmic.TinyAlgo()
-    dataset = problem.dataset(mode=tf.estimator.ModeKeys.TRAIN,
-                              data_dir=algorithmic.TinyAlgo.data_dir,
-                              shuffle_files=False, preprocess=False)
-    hparams = problem.get_hparams()
-    hparams.chunk_length = 100
+    class MockedDatasetProblem(algorithmic.TinyAlgo):
+      def dataset(self,
+                  mode,
+                  data_dir=None,
+                  num_threads=None,
+                  output_buffer_size=None,
+                  shuffle_files=None,
+                  hparams=None,
+                  preprocess=True,
+                  dataset_split=None,
+                  shard=None,
+                  partition_id=0,
+                  num_partitions=1,
+                  max_records=-1,
+                  only_last=False):
+        ex_1_inputs = tf.convert_to_tensor([0, 1])
+        ex1_targets = tf.convert_to_tensor([2, 3, 5])
+        example = {'inputs': ex_1_inputs, 'targets': ex1_targets}
+        types = {'inputs': tf.int32, 'targets': tf.int32}
+        shapes = {'inputs': (2,), 'targets': (3,)}
+        def gen():
+          yield example
+          return
 
+        import pdb;
+        pdb.set_trace()
+        return tf.data.Dataset.from_generator(gen, types, shapes)
+
+    problem = MockedDatasetProblem()
+    hparams = problem_module.default_model_hparams()
+    hparams.chunk_length = 100
+    hparams.batch_size = 500
+    hparams.max_length = 500
+    hparams.min_length = 0
+    hparams.max_input_seq_length = 100
+    hparams.max_target_seq_length = 100
+    hparams.eval_drop_long_sequences = False
+    dataset = problem.input_fn(mode=tf.estimator.ModeKeys.EVAL,
+                               hparams=hparams)
+    import pdb;
+    pdb.set_trace()
+    asserts = []
+    example = dataset.make_one_shot_iterator().get_next()
+    asserts.append(
+      tf.Assert(
+        tf.shape(example['inputs'])[0] % hparams.chunk_length == 0,
+        [example['inputs']]))
+    asserts.append(
+      tf.Assert(
+        tf.shape(example['targets'])[0] % hparams.chunk_length == 0,
+        [example['targets']]))
+
+    with tf.Session() as sess:
+      with tf.control_dependencies(asserts):
+        for assert_op in asserts:
+          sess.run(assert_op)
 
 
 if __name__ == "__main__":

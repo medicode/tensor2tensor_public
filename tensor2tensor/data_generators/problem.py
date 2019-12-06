@@ -859,6 +859,7 @@ class Problem(object):
       assert not config.use_tpu, ('TPU use not supported unless a PackedProblem is used')
 
     max_length = self.max_length(hparams)
+
     def gpu_valid_size(example):
         drop_long_sequences = is_training or hparams.eval_drop_long_sequences
         return data_reader.example_valid_size(example, hparams.min_length,

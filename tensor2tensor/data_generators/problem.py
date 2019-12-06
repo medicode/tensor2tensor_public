@@ -853,7 +853,7 @@ class Problem(object):
     This was pulled out of input_fn as it is upstream to support better decomposition
     for problems that manage batching differently like PackedProblem
 
-    Does not support TPU fixed length inputs.  Refer to PackedProblem.
+    Does not support TPU fixed length inputs. Refer to apply_batch_settings_tpu.
     """
     if config:
       assert not config.use_tpu, ('TPU use not supported unless a PackedProblem is used')

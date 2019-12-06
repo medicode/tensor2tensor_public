@@ -155,5 +155,15 @@ class ProblemTest(tf.test.TestCase):
       # Should be unchanged
       assert padded_example['targets'].shape == (2, )
 
+  def testMaybeChunk(self):
+    problem = algorithmic.TinyAlgo()
+    dataset = problem.dataset(mode=tf.estimator.ModeKeys.TRAIN,
+                              data_dir=algorithmic.TinyAlgo.data_dir,
+                              shuffle_files=False, preprocess=False)
+    hparams = problem.get_hparams()
+    hparams.chunk_length = 100
+
+
+
 if __name__ == "__main__":
   tf.test.main()

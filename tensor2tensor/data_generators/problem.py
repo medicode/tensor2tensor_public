@@ -843,8 +843,8 @@ class Problem(object):
     return partition_id, num_partitions
 
   # Fathom
-  def apply_batch_settings(self, dataset, hparams, num_shards, num_threads,
-                           config, is_training, **kwargs):
+  def apply_batch_settings_gpu(self, dataset, hparams, num_shards, num_threads,
+                               config, is_training):
     """Buckets dataset by length.
 
     Filters dataset according to valid gpu sizes, batches, and applies bucketing
@@ -859,7 +859,6 @@ class Problem(object):
       assert not config.use_tpu, ('TPU use not supported unless a PackedProblem is used')
 
     max_length = self.max_length(hparams)
-
     def gpu_valid_size(example):
         drop_long_sequences = is_training or hparams.eval_drop_long_sequences
         return data_reader.example_valid_size(example, hparams.min_length,
@@ -896,6 +895,60 @@ class Problem(object):
         dataset = dataset.map(
           functools.partial(pad_batch, batch_multiple=batch_multiple),
           num_parallel_calls=num_threads)
+    return dataset
+
+  def apply_batch_settings_tpu(self, dataset, hparams, num_shards, num_threads,
+                           params, config) -> tf.data.Dataset:
+    """Applies appropriate padding to dataset in preparation for batching.
+
+    Replaces the logic of the parent Problem to apply packing specific
+    padding without bucketing.
+
+    1. ensures every feature in each batch is padded to a fixed length
+    as required by TPU.
+    2. for a packed problem, `batch_size` == number of workers because
+    there is 1 example per worker/shard.  on TPU, this total number of
+    workers is already set at `params['batch_size']`; on GPU, we set it
+    by taking `num_shards` specific padded batching. Doesn't bucket as
+    in the non packed case.
+    """
+
+    max_length = self.max_length(hparams)
+
+    def tpu_valid_size(example):
+      return data_reader.example_valid_size(example, hparams.min_length,
+                                            max_length)
+
+    dataset = dataset.filter(tpu_valid_size)
+    padded_shapes = self._pad_for_tpu(dataset.output_shapes, hparams)
+    tf.logging.info(f'Padding features for fixed inputs: {padded_shapes}')
+
+    # on TPU, params["batch_size"] is assigned in
+    # https://github.com/medicode/tensor2tensor/blob/1525870c3a8ebc37240824a87532328e31d66887/tensor2tensor/utils/trainer_lib.py#L270
+    # to specify the number of examples for all datashards
+    # on GPU, num_shards specifies the number datashards and, thus in the
+    # packed case, also the number of examples for all datashards
+    if config and config.use_tpu:
+      batch_size = params.get('batch_size')
+      assert batch_size
+    else:
+      batch_size = num_shards
+    tf.logging.info(f'Batch size per shard: {batch_size} / {num_shards}')
+
+    if hparams.pad_batch:
+      tf.logging.warn(
+        "Padding the batch to ensure that remainder eval batches are "
+        "processed. This may lead to incorrect metrics for "
+        "non-zero-padded features, e.g. images. Use a smaller batch "
+        "size that has no remainder in that case.")
+      dataset = dataset.padded_batch(
+        batch_size, padded_shapes, drop_remainder=False)
+      dataset = dataset.map(
+        functools.partial(pad_batch, batch_multiple=batch_size),
+        num_parallel_calls=num_threads)
+    else:
+      dataset = dataset.padded_batch(
+        batch_size, padded_shapes, drop_remainder=True)
     return dataset
 
   def input_fn(self,
@@ -998,12 +1051,26 @@ class Problem(object):
         batch_size = hparams.batch_size * num_shards
         dataset = dataset.batch(batch_size)
     else:
+      # batch_size means tokens per datashard
+      packed = hasattr(self, 'packed_length')
 
-      # if dataset is packed (TPU requires packed dataset)
-      dataset = self.apply_batch_settings(dataset=dataset, hparams=hparams,
-                                num_shards=num_shards, num_threads=num_threads,
-                                is_training=is_training, params=params,
-                                config=config)
+      if config and config.use_tpu:
+        assert packed, ('If we use TPU, we should used packed datasets.')
+
+      if packed:
+        dataset = self.apply_batch_settings_tpu(dataset=dataset,
+                                                hparams=hparams,
+                                                num_shards=num_shards,
+                                                num_threads=num_threads,
+                                                params=params,
+                                                config=config)
+      else:
+        dataset = self.apply_batch_settings_gpu(dataset=dataset,
+                                                hparams=hparams,
+                                                num_shards=num_shards,
+                                                num_threads=num_threads,
+                                                config=config,
+                                                is_training=is_training)
 
     dataset = dataset.map(define_shapes, num_parallel_calls=num_threads)
 

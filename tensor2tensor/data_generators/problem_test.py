@@ -200,8 +200,16 @@ class ProblemTest(tf.test.TestCase):
     dataset = problem.input_fn(mode=tf.estimator.ModeKeys.EVAL,
                                hparams=hparams)
 
+    iterator = dataset.make_initializable_iterator()
+    with tf.Session() as sess:
+        sess.run(iterator.initializer)
+        example = sess.run(iterator.get_next())
+        print(example)
+        assert False
+
+
     asserts = []
-    for example in dataset:
+    for example in dataset.take(1):
       example = example[0]
       from fathomtf.utils.tfutils import debug_tfprint
       import pdb; pdb.set_trace()

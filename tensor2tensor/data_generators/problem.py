@@ -925,7 +925,6 @@ class Problem(object):
     tf.logging.info(f'Padding features for fixed inputs: {padded_shapes}')
     batch_size = num_shards if not batch_size else batch_size
     tf.logging.info(f'Batch size per shard: {batch_size} / {num_shards}')
-
     if hparams.pad_batch:
       tf.logging.warn(
         "Padding the batch to ensure that remainder eval batches are "
@@ -943,7 +942,7 @@ class Problem(object):
     return dataset
 
   def apply_batch_settings(self, dataset, hparams, num_shards, num_threads,
-                           config, **kwargs):
+                           config, params, is_training, batch_size=None):
     """ Applies batch settings according to TPU or GPU specifications.
 
     Serves as a wrapper for apply_batch_settings_tpu, apply_batch_settings_gpu
@@ -953,13 +952,13 @@ class Problem(object):
     if config and config.use_tpu:
       return self.apply_batch_settings_tpu(
         dataset=dataset, hparams=hparams, num_shards=num_shards,
-        num_threads=num_threads, params=kwargs.get('params'), config=config)
+        num_threads=num_threads, batch_size=batch_size)
 
     else:
       return self.apply_batch_settings_gpu(
         dataset=dataset, hparams=hparams, num_shards=num_shards,
         num_threads=num_threads, config=config,
-        is_training=kwargs.get('is_training'))
+        is_training=is_training)
 
   def input_fn(self,
                mode,

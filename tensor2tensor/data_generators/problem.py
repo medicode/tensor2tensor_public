@@ -899,7 +899,7 @@ class Problem(object):
     return dataset
 
   def apply_batch_settings_tpu(self, dataset, hparams, num_shards, num_threads,
-                               batch_size=None) -> tf.data.Dataset:
+                               batch_size) -> tf.data.Dataset:
     """Applies appropriate padding to dataset in preparation for batching.
 
     Replaces the logic of the parent Problem to apply packing specific
@@ -923,7 +923,6 @@ class Problem(object):
     dataset = dataset.filter(tpu_valid_size)
     padded_shapes = self._pad_for_tpu(dataset.output_shapes, hparams)
     tf.logging.info(f'Padding features for fixed inputs: {padded_shapes}')
-    batch_size = num_shards if not batch_size else batch_size
     tf.logging.info(f'Batch size per shard: {batch_size} / {num_shards}')
     if hparams.pad_batch:
       tf.logging.warn(

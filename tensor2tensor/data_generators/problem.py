@@ -905,13 +905,8 @@ class Problem(object):
     Replaces the logic of the parent Problem to apply packing specific
     padding without bucketing.
 
-    1. ensures every feature in each batch is padded to a fixed length
+    Ensures every feature in each batch is padded to a fixed length
     as required by TPU.
-    2. for a packed problem, `batch_size` == number of workers because
-    there is 1 example per worker/shard.  on TPU, this total number of
-    workers is already set at `params['batch_size']`; on GPU, we set it
-    by taking `num_shards` specific padded batching. Doesn't bucket as
-    in the non packed case.
     """
 
     max_length = self.max_length(hparams)
@@ -941,7 +936,7 @@ class Problem(object):
     return dataset
 
   def apply_batch_settings(self, dataset, hparams, num_shards, num_threads,
-                           config, params, is_training, batch_size=None):
+                           config, params, is_training):
     """ Applies batch settings according to TPU or GPU specifications.
 
     Serves as a wrapper for apply_batch_settings_tpu, apply_batch_settings_gpu
@@ -949,9 +944,12 @@ class Problem(object):
     """
 
     if config and config.use_tpu:
+
+      # on TPU, we use params["batch_size"], which specifies the number of
+      # examples across all datashards
       return self.apply_batch_settings_tpu(
         dataset=dataset, hparams=hparams, num_shards=num_shards,
-        num_threads=num_threads, batch_size=batch_size)
+        num_threads=num_threads, batch_size=params["batch_size"])
 
     else:
       return self.apply_batch_settings_gpu(

@@ -900,6 +900,7 @@ class Problem(object):
           num_parallel_calls=num_threads)
     return dataset
 
+  # Fathom
   def apply_batch_settings_tpu(self, dataset, hparams, num_shards, num_threads,
                                batch_size) -> tf.data.Dataset:
     """Applies appropriate padding to dataset in preparation for batching.
@@ -934,6 +935,7 @@ class Problem(object):
         batch_size, padded_shapes, drop_remainder=True)
     return dataset
 
+  # Fathom
   def apply_batch_settings(self, dataset, hparams, num_shards, num_threads,
                            config, params, is_training):
     """ Applies batch settings according to TPU or GPU specifications.
@@ -941,8 +943,9 @@ class Problem(object):
     Serves as a wrapper for apply_batch_settings_tpu, apply_batch_settings_gpu
     which decides which to call.
 
-    If config.use_tpu is set, it is assumed that params has a batch_size entry
-    as per https://github.com/tensorflow/tensor2tensor/blob/master/tensor2tensor/utils/data_reader.py#L420
+    If config.use_tpu is set, it is assumed that params has a batch_size entry.
+    This serves as a refactor to the original upstream behavior found here:
+    https://github.com/tensorflow/tensor2tensor/blob/master/tensor2tensor/utils/data_reader.py#L420
     """
 
     if config and config.use_tpu:
@@ -1059,6 +1062,7 @@ class Problem(object):
         batch_size = hparams.batch_size * num_shards
         dataset = dataset.batch(batch_size)
     else:
+      # Fathom
       dataset = self.apply_batch_settings(dataset=dataset, hparams=hparams,
                                           num_shards=num_shards,
                                           num_threads=num_threads,

@@ -850,13 +850,15 @@ class Problem(object):
     Filters dataset according to valid gpu sizes, batches, and applies bucketing
     by sequence length.
 
-    This was pulled out of input_fn as it is upstream to support better decomposition
-    for problems that manage batching differently like PackedProblem
+    This was pulled out of input_fn as it is upstream to support better
+    decomposition for problems that manage batching differently such as
+    PackedProblem.
 
     Does not support TPU fixed length inputs. Refer to apply_batch_settings_tpu.
     """
     if config:
-      assert not config.use_tpu, ('TPU use not supported unless a PackedProblem is used')
+      assert not config.use_tpu, ('TPU use not supported unless a '
+                                  'PackedProblem is used')
 
     max_length = self.max_length(hparams)
 
@@ -902,11 +904,8 @@ class Problem(object):
                                batch_size) -> tf.data.Dataset:
     """Applies appropriate padding to dataset in preparation for batching.
 
-    Replaces the logic of the parent Problem to apply packing specific
-    padding without bucketing.
-
     Ensures every feature in each batch is padded to a fixed length
-    as required by TPU.
+    as required by TPU. Applies packing specific padding without bucketing.
     """
 
     max_length = self.max_length(hparams)
@@ -941,6 +940,9 @@ class Problem(object):
 
     Serves as a wrapper for apply_batch_settings_tpu, apply_batch_settings_gpu
     which decides which to call.
+
+    If config.use_tpu is set, it is assumed that params has a batch_size entry
+    as per https://github.com/tensorflow/tensor2tensor/blob/master/tensor2tensor/utils/data_reader.py#L420
     """
 
     if config and config.use_tpu:

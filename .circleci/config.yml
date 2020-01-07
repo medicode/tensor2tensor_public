@@ -44,7 +44,8 @@ jobs:
       # TODO: build sphinx docs? or will we always use the upstream sphinx docs???
 
   smoke-testinfra:
-    machine: true
+    machine: 
+      image: ubuntu-1604:201903-01
     workDir: ~
     environment:
       PYTHONPATH: ~/diseaseTools:.
@@ -56,7 +57,7 @@ jobs:
       - run: *DOCKER_LOGIN
       - type: shell
         name: Use Python 3
-        command: pyenv global 3.5.0
+        command: pyenv global 3.8.0
       - type: shell
         name: Install Fire
         command: pip install git+git://github.com/google/python-fire.git@v0.1.1

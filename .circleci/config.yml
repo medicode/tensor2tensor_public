@@ -89,4 +89,4 @@ workflows:
             - build-test-tensor2tensor # require CI tests to pass
           filters:
             branches:
-              only: master
+              only: hotfix/fix-tensor2tensor-build

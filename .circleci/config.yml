@@ -55,11 +55,8 @@ jobs:
         command: git clone -b hotfix/fix-tensor2tensor-build git@github.com:medicode/diseaseTools.git ~/diseaseTools;
       - run: *DOCKER_LOGIN
       - type: shell
-        name: Install Python 3
-        command: pyenv install 3.8.0
-      - type: shell
         name: Use Python 3
-        command: pyenv global 3.8.0
+        command: pyenv global 3.5.0
       - type: shell
         name: Install Fire
         command: pip install git+git://github.com/google/python-fire.git@v0.1.1

@@ -83,6 +83,7 @@ workflows:
   version: 2
   build-test-deploy-tensor2tensor:
     jobs:
+      - build-test-tensor2tensor
       - smoke-testinfra:  # only smoke from master if tests pass
           requires:
             - build-test-tensor2tensor # require CI tests to pass

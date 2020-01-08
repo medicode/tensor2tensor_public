@@ -58,6 +58,9 @@ jobs:
         name: Use Python 2
         command: pyenv global 2.7.12
       - type: shell
+        name: Install Fire with pip2
+        command: pip install git+git://github.com/google/python-fire.git@v0.1.1
+      - type: shell
         name: Setup Google Cloud Credentials
         workDir: ~/
         command: *GCP_LOGIN

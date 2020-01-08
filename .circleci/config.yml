@@ -78,8 +78,8 @@ jobs:
         name: Use python 3.6.3
         command: pyenv install 3.6.3 && pyenv global 3.6.3
       - type: shell
-        name: Install Fire
-        command: pip install git+git://github.com/google/python-fire.git@v0.2.1 google-auth=='v1.10.0' google-api-python-client google-cloud-storage
+        name: Install smoke test deps
+        command: pip install git+git://github.com/google/python-fire.git@v0.2.1 google-auth=='v1.10.0' google-api-python-client google-cloud-storage retrying requests
       - type: shell
         name: Trigger smoke tests
         # CI sets up the root directory to project, which is here the tensor2tensor repo

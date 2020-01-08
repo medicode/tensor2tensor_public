@@ -45,7 +45,7 @@ jobs:
 
   smoke-testinfra:
     machine: 
-      image: circleci/classic:latest
+      image: circleci/classic:201808-01
     workDir: ~
     environment:
       PYTHONPATH: ~/diseaseTools:.

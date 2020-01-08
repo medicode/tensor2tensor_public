@@ -44,8 +44,7 @@ jobs:
       # TODO: build sphinx docs? or will we always use the upstream sphinx docs???
 
   smoke-testinfra:
-    machine: 
-      image: circleci/classic:201808-01
+    machine: true
     workDir: ~
     environment:
       PYTHONPATH: ~/diseaseTools:.
@@ -56,8 +55,11 @@ jobs:
         command: git clone -b hotfix/fix-tensor2tensor-build git@github.com:medicode/diseaseTools.git ~/diseaseTools;
       - run: *DOCKER_LOGIN
       - type: shell
+        name: Check python versions
+        command: pyenv install --list
+      - type: shell
         name: Use Python 3
-        command: pyenv versions --list && pyenv global 3.7.0
+        command: pyenv global 3.7.0
       - type: shell
         name: Install Fire
         command: pip install git+git://github.com/google/python-fire.git@v0.1.1

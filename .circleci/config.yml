@@ -59,7 +59,7 @@ jobs:
         command: pyenv install --list
       - type: shell
         name: Use Python 3
-        command: pyenv global 3.7.0
+        command: pyenv global 3.6.3
       - type: shell
         name: Install Fire
         command: pip install git+git://github.com/google/python-fire.git@v0.1.1

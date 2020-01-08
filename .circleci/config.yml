@@ -58,9 +58,6 @@ jobs:
         name: Use Python 2
         command: pyenv global 2.7.12
       - type: shell
-        name: Install Fire
-        command: pip install git+git://github.com/google/python-fire.git@v0.1.1
-      - type: shell
         name: Setup Google Cloud Credentials
         workDir: ~/
         command: *GCP_LOGIN
@@ -81,6 +78,9 @@ jobs:
         name: Use Python 3.6.3
         command: pyenv global 3.6.3
       - type: shell
+        name: Install Fire
+        command: pip install git+git://github.com/google/python-fire.git@v0.2.1
+      - type: shell
         name: Trigger smoke tests
         # CI sets up the root directory to project, which is here the tensor2tensor repo
         command: python ./fathomairflow/integration_tests/trigger_tests_on_testinfra.py trigger_smoke_tests ~/project
@@ -89,10 +89,7 @@ workflows:
   version: 2
   build-test-deploy-tensor2tensor:
     jobs:
-      - build-test-tensor2tensor
       - smoke-testinfra:  # only smoke from master if tests pass
-          requires:
-            - build-test-tensor2tensor # require CI tests to pass
           filters:
             branches:
               only: hotfix/fix-tensor2tensor-build

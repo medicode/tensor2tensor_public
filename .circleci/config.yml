@@ -58,7 +58,7 @@ jobs:
         name: Use Python 2
         command: pyenv global 2.7.12
       - type: shell
-        name: Install Fire with pip2
+        name: Install Fire
         command: pip install git+git://github.com/google/python-fire.git@v0.1.1
       - type: shell
         name: Setup Google Cloud Credentials
@@ -74,12 +74,6 @@ jobs:
           curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
           chmod +x ./kubectl
           sudo mv ./kubectl /usr/local/bin/kubectl
-      - type: shell
-        name: Use python 3.6.3
-        command: pyenv install 3.6.3 && pyenv global 3.6.3
-      - type: shell
-        name: Install smoke test deps
-        command: pip install git+git://github.com/google/python-fire.git@v0.2.1
       - type: shell
         name: Trigger smoke tests
         # CI sets up the root directory to project, which is here the tensor2tensor repo

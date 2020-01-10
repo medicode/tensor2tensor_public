@@ -79,11 +79,11 @@ jobs:
         command: pyenv install 3.6.3 && pyenv global 3.6.3
       - type: shell
         name: Install smoke test deps
-        command: pip install git+git://github.com/google/python-fire.git@v0.2.1 google-auth=='v1.10.0' google-api-python-client google-cloud-storage retrying requests google-cloud-pubsub
+        command: pip install git+git://github.com/google/python-fire.git@v0.2.1
       - type: shell
         name: Trigger smoke tests
         # CI sets up the root directory to project, which is here the tensor2tensor repo
-        command: docker run -it -e 'GOOGLE_APPLICATION_CREDENTIALS=/usr/src/app/gcloud/keys/google-auth.json' -v ~/gdm:/usr/src/app/gcloud/gdm -v ~/diseaseTools:/usr/src/app -w /usr/src/app/ gcr.io/fathom-containers/ci python fathomairflow/integration_tests/trigger_tests_on_testinfra.py queue_smoke_tests ~/project
+        command: docker run -it -e 'GOOGLE_APPLICATION_CREDENTIALS=/usr/src/app/gcloud/keys/google-auth.json' -v ~/gdm:/usr/src/app/gcloud/gdm -v ~/diseaseTools:/usr/src/app -v ~/project:~/project -w /usr/src/app/ gcr.io/fathom-containers/ci python fathomairflow/integration_tests/trigger_tests_on_testinfra.py queue_smoke_tests ~/project
         workDir: ~/diseaseTools
 workflows:
   version: 2

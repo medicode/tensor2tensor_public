@@ -200,6 +200,10 @@ class T2TModel(base.Layer):
 
   @property
   def _custom_getter(self):
+    tf.logging.warning(
+        f'Using weight_dtype: {self.hparams.weight_dtype}, '
+        f'activation_dtype: {self.hparams.activation_dtype}, '
+        f'optimizer: {self.hparams.optimizer}')
     if self.hparams.weight_dtype == "bfloat16":
       if self.hparams.optimizer != "Adafactor":
         raise NotImplementedError(

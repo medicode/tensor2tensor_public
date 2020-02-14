@@ -29,7 +29,7 @@ def log_warmup(hparams, step_num):
     warmup_steps = hparams.learning_rate_warmup_steps
     mult = (end / start) ** (1/warmup_steps)
     tf.logging.info(f'Log warmup from {start} to {end} with multiplier {mult}')
-    return mult * step_num + start
+    return start * (mult ** step_num)
 # FATHOM END
 
 

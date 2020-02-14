@@ -650,7 +650,7 @@ def create_experiment(
 
   # FATHOM BEGIN add train summary hook
   summary_op = tf.get_collection(tf.GraphKeys.SUMMARIES)
-  summary_op.extend(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
+  summary_op.extend(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES))
   summary_hook = tf.train.SummarySaverHook(
       save_steps=1,
       summary_op=summary_op,

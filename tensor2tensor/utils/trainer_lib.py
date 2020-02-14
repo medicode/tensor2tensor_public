@@ -649,11 +649,11 @@ def create_experiment(
       early_stopping_kwargs=early_stopping_kwargs)
 
   # FATHOM BEGIN add train summary hook
-  summary_hook = tf.train.SummarySaverHook(
-      save_steps=1,
-      summary_op=tf.summary.merge_all(),
-      output_dir=os.path.join(run_config.model_dir, 'train_events'))
-  train_hooks.append(summary_hook)
+  #summary_hook = tf.train.SummarySaverHook(
+      #save_steps=1,
+      #summary_op=[tf.get_collection(tf.GraphKeys.SUMMARIES)],
+      #output_dir=os.path.join(run_config.model_dir, 'train_events'))
+  #train_hooks.append(summary_hook)
   # FATHOM END
 
   train_hooks += t2t_model.T2TModel.get_train_hooks(model_name)

@@ -651,7 +651,7 @@ def create_experiment(
   # FATHOM BEGIN add train summary hook
   summary_hook = tf.train.SummarySaverHook(
       save_steps=1,
-      summary_op=tf.summary.merge_all,
+      summary_op=tf.summary.merge_all(),
       output_dir=os.path.join(run_config.model_dir, 'train_events'))
   train_hooks.append(summary_hook)
   # FATHOM END

@@ -68,7 +68,7 @@ def optimize(loss, learning_rate, hparams, use_tpu=False):
       clip_gradients=hparams.clip_grad_norm or None,
       gradient_noise_scale=hparams.grad_noise_scale or None,
       optimizer=opt,
-      summaries=opt_summaries,
+      #summaries=opt_summaries,
       colocate_gradients_with_ops=True)
   return train_op
 

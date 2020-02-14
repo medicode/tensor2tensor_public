@@ -166,7 +166,8 @@ def create_run_config(model_name,
       "keep_checkpoint_max": keep_checkpoint_max,
       "keep_checkpoint_every_n_hours": keep_checkpoint_every_n_hours,
       "tf_random_seed": random_seed,
-      "log_step_count_steps": log_step_count_steps
+      #"log_step_count_steps": log_step_count_steps
+      "log_step_count_steps": 1,
   }
   if save_checkpoints_secs:
     del run_config_args["save_checkpoints_steps"]
@@ -646,6 +647,17 @@ def create_experiment(
       validation_monitor_kwargs=validation_monitor_kwargs,
       use_early_stopping=use_early_stopping,
       early_stopping_kwargs=early_stopping_kwargs)
+
+  # FATHOM BEGIN add train summary hook
+  summary_op = tf.get_collection(tf.GraphKeys.SUMMARIES)
+  summary_op.extend(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
+  summary_hook = tf.train.SummarySaverHook(
+      save_steps=1,
+      summary_op=summary_op,
+      output_dir=os.path.join(run_config.model_dir, 'train_events'))
+  train_hooks.append(summary_hook)
+  # FATHOM END
+
   train_hooks += t2t_model.T2TModel.get_train_hooks(model_name)
   eval_hooks += t2t_model.T2TModel.get_eval_hooks(model_name)
   if additional_train_hooks:

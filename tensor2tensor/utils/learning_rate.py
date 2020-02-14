@@ -21,6 +21,8 @@ import numpy as np
 
 import tensorflow as tf
 
+from fathomt2t.models.lr_finder_utils import log_warmup
+
 
 def learning_rate_factor(name, step_num, hparams):
   """Compute the designated learning rate factor from hparams."""
@@ -50,6 +52,8 @@ def learning_rate_factor(name, step_num, hparams):
     return hparams.hidden_size ** -0.5
   elif name == "legacy":
     return legacy_learning_rate_schedule(hparams)
+  elif name == 'log_warmup':
+    return log_warmup(hparams)
   else:
     raise ValueError("unknown learning rate factor %s" % name)
 

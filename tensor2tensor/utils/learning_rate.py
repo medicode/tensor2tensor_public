@@ -21,7 +21,16 @@ import numpy as np
 
 import tensorflow as tf
 
-from fathomt2t.models.lr_finder_utils import log_warmup
+
+# FATHOM BEGIN
+def log_warmup(hparams):
+    start = hparams.log_warmup_start
+    end = hparams.log_warmup_end
+    warmup_steps = hparams.learning_rate_warmup_steps
+    mult = (start / end) ** (1/warmup_steps)
+    tf.logging.info(f'Log warmup from {start} to {end} with multiplier {mult}')
+    return mult * step_num + start
+# FATHOM END
 
 
 def learning_rate_factor(name, step_num, hparams):

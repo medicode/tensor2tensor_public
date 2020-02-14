@@ -23,7 +23,7 @@ import tensorflow as tf
 
 
 # FATHOM BEGIN
-def log_warmup(hparams):
+def log_warmup(hparams, step_num):
     start = hparams.log_warmup_start
     end = hparams.log_warmup_end
     warmup_steps = hparams.learning_rate_warmup_steps
@@ -62,7 +62,7 @@ def learning_rate_factor(name, step_num, hparams):
   elif name == "legacy":
     return legacy_learning_rate_schedule(hparams)
   elif name == 'log_warmup':
-    return log_warmup(hparams)
+    return log_warmup(hparams, step_num)
   else:
     raise ValueError("unknown learning rate factor %s" % name)
 

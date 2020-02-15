@@ -252,6 +252,9 @@ def create_run_config(model_name,
           worker_job=worker_job,
           no_data_parallelism=no_data_parallelism)
 
+  tf.logging.info("Config: {config}")
+  config.replace(log_step_count_steps=1)
+  tf.logging.info("Config: {config}")
   return config
 
 

@@ -130,7 +130,8 @@ flags.DEFINE_integer("autotune_parallel_trials", 1,
 flags.DEFINE_string("job-dir", None,
                     "DO NOT USE. Exists only for Cloud ML Engine to pass in "
                     "during hyperparameter tuning. Overrides --output_dir.")
-flags.DEFINE_integer("log_step_count_steps", 100,
+#flags.DEFINE_integer("log_step_count_steps", 100,
+flags.DEFINE_integer("log_step_count_steps", 1,
                      "Number of local steps after which progress is printed "
                      "out")
 flags.DEFINE_bool('restart_after_eval', False,

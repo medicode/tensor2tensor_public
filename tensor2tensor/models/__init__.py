@@ -69,7 +69,6 @@ from tensor2tensor.models.video import basic_recurrent
 from tensor2tensor.models.video import basic_stochastic
 from tensor2tensor.models.video import emily
 from tensor2tensor.models.video import epva
-# from tensor2tensor.models.video import savp
 from tensor2tensor.models.video import sv2p
 
 from tensor2tensor.utils import registry

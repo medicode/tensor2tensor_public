@@ -22,6 +22,17 @@ import numpy as np
 import tensorflow as tf
 
 
+# FATHOM BEGIN
+def log_warmup(hparams, step_num):
+    start = hparams.log_warmup_start
+    end = hparams.log_warmup_end
+    warmup_steps = hparams.learning_rate_warmup_steps
+    mult = (end / start) ** (1/warmup_steps)
+    tf.logging.info(f'Log warmup from {start} to {end} with multiplier {mult}')
+    return start * (mult ** step_num)
+# FATHOM END
+
+
 def learning_rate_factor(name, step_num, hparams):
   """Compute the designated learning rate factor from hparams."""
   if name == "constant":
@@ -50,6 +61,8 @@ def learning_rate_factor(name, step_num, hparams):
     return hparams.hidden_size ** -0.5
   elif name == "legacy":
     return legacy_learning_rate_schedule(hparams)
+  elif name == 'log_warmup':
+    return log_warmup(hparams, step_num)
   else:
     raise ValueError("unknown learning rate factor %s" % name)
 

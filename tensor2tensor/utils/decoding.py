@@ -209,7 +209,8 @@ def decode_from_dataset(estimator,
   # return multiple logits. When estimator sees a discrepancy between examples
   # coming in and predictions going out, it will throw an error unless told
   # to yield multiple examples
-
+  print('alvin-debug starting predict')
+  print(f'alvin-debug is_hparams_packed = {is_hparams_packed(hparams)}')
   # Get the predictions as an iterable
   predictions = estimator.predict(
       infer_input_fn,

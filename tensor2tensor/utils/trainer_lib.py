@@ -279,7 +279,9 @@ def create_estimator(model_name,
     predict_batch_size = batch_size
     if decode_hparams and decode_hparams.batch_size:
       predict_batch_size = decode_hparams.batch_size
+    print(f'alvin-debug schedule = {schedule}')
     print(f'alvin-debug batch_size = {batch_size}')
+    print(f'alvin-debug predict_batch_size = {predict_batch_size}')
     estimator = tf.contrib.tpu.TPUEstimator(
         model_fn=model_fn,
         model_dir=run_config.model_dir,

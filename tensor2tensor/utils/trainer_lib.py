@@ -291,6 +291,21 @@ def create_estimator(model_name,
         eval_batch_size=batch_size if "eval" in schedule else None,
         predict_batch_size=predict_batch_size)
   else:
+    problem = hparams.problem
+    batch_size = (
+        problem.tpu_batch_size_per_shard(hparams) *
+        run_config.tpu_config.num_shards)
+    print(f'alvin-debug tpu_batch_size_per_shard = {problem.tpu_batch_size_per_shard(hparams)}')
+    print(f'alvin-debug run_config.tpu_config.num_shards = {run_config.tpu_config.num_shards}')
+    print(f'alvin-debug batch_size = {batch_size}')
+    if getattr(hparams, "mtf_mode", False):
+      batch_size = problem.tpu_batch_size_per_shard(hparams)
+    predict_batch_size = batch_size
+    if decode_hparams and decode_hparams.batch_size:
+      predict_batch_size = decode_hparams.batch_size
+    print(f'alvin-debug schedule = {schedule}')
+    print(f'alvin-debug batch_size = {batch_size}')
+    print(f'alvin-debug predict_batch_size = {predict_batch_size}')
     estimator = tf.estimator.Estimator(
         model_fn=model_fn,
         model_dir=run_config.model_dir,

@@ -299,7 +299,11 @@ class Problem(object):
       an integer
     """
     if self.batch_size_means_tokens and not model_hparams.use_fixed_batch_size:
+<<<<<<< HEAD
       return int(model_hparams.batch_size // self.max_length(model_hparams))
+=======
+      return int(model_hparams.batch_size / self.max_length(model_hparams))
+>>>>>>> master
     else:
       return model_hparams.batch_size
 

@@ -210,10 +210,10 @@ def create_run_config(model_name,
         if project in PROJECT_ZONE:
             zone = PROJECT_ZONE[project]
 
-        if 'KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS' in os.environ:
-            cloud_tpu_meta = os.environ['KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS']
-            tf.logging.info(f'lol wut: {cloud_tpu_meta}')
-            zone, cloud_tpu_name, *_ = cloud_tpu_meta.split('/')
+        if 'KUBE_GOOGLE_CLOUD_TPU_NAME' in os.environ:
+            cloud_tpu_meta = os.environ['KUBE_GOOGLE_CLOUD_TPU_NAME']
+            tf.logging.info(f'pls cloud tpu name: {cloud_tpu_meta}')
+            zone, cloud_tpu_name = cloud_tpu_meta.split('/')
 
         tf.logging.info(f'Cloud TPU Name: {cloud_tpu_name}\tProject: {project}'
                         f'\tZone: {zone}')

@@ -25,7 +25,6 @@ import random
 import numpy as np
 
 from tensor2tensor.data_generators.problem import Problem
-from tensor2tensor.data_generators.wikisum.parallel_launch import default_zone
 from tensor2tensor.utils import decoding
 from tensor2tensor.utils import devices
 from tensor2tensor.utils import metrics_hook
@@ -112,6 +111,7 @@ def is_cloud_async_distributed():
           json.loads(os.environ.get("TF_CONFIG", "{}")).get("cluster", {}))
 
 
+DEFAULT_ZONE = "gcloud config get-value compute/zone"
 def create_run_config(model_name,
                       master="",
                       model_dir=None,
@@ -196,7 +196,7 @@ def create_run_config(model_name,
         project = None
         if 'GCP_PROJECT' in os.environ:
             project = os.environ['GCP_PROJECT']
-        zone = default_zone()
+        zone = cloud.shell_output(DEFAULT_ZONE).strip()
         tf.logging.info(f'Cloud TPU Name: {cloud_tpu_name}\tProject: {project}'
                         f'\tDefault Zone: {zone}')
 

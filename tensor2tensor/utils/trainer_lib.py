@@ -192,6 +192,11 @@ def create_run_config(model_name,
     # with TPUs, but this is not the same as running on ML Engine which is
     # assumed by T2T, causing errors.
     if not master and cloud_tpu_name:
+        project = None
+        if 'GCP_PROJECT' in os.environ:
+            project = os.environ['GCP_PROJECT']
+        tf.logging.info(f'Cloud TPU Name: {cloud_tpu_name}\tProject: {project}')
+
         # Update run_config to use cluster instead of master/evaluation_master
         # as we need the cluster spec to use Cloud Pods
         tpu_cluster_resolver = tf.contrib.cluster_resolver.TPUClusterResolver(

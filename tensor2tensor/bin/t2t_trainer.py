@@ -400,7 +400,7 @@ def main(argv):
   hparams = fathom.adjust_params(hparams)
 
   exp_fn = create_experiment_fn()
-  sleep(10)
+  sleep(50)
   exp = exp_fn(create_run_config(hparams), hparams)
   if is_chief():
     save_metadata(hparams)

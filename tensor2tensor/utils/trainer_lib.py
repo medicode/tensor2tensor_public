@@ -25,6 +25,7 @@ import random
 import numpy as np
 
 from tensor2tensor.data_generators.problem import Problem
+from tensor2tensor.utils import cloud_mlengine as cloud
 from tensor2tensor.utils import decoding
 from tensor2tensor.utils import devices
 from tensor2tensor.utils import metrics_hook

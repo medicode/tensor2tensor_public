@@ -21,7 +21,6 @@ from __future__ import print_function
 import contextlib
 import os
 import sys
-from time import sleep
 
 from tensor2tensor import models  # pylint: disable=unused-import
 from tensor2tensor import problems as problems_lib  # pylint: disable=unused-import
@@ -400,7 +399,6 @@ def main(argv):
   hparams = fathom.adjust_params(hparams)
 
   exp_fn = create_experiment_fn()
-  sleep(50)
   exp = exp_fn(create_run_config(hparams), hparams)
   if is_chief():
     save_metadata(hparams)

@@ -25,7 +25,6 @@ import random
 import numpy as np
 
 from tensor2tensor.data_generators.problem import Problem
-from tensor2tensor.utils import cloud_mlengine as cloud
 from tensor2tensor.utils import decoding
 from tensor2tensor.utils import devices
 from tensor2tensor.utils import metrics_hook
@@ -42,6 +41,15 @@ from tensorflow.python import debug
 from fh_platform import fh_logging
 from fathomt2t.problems.fprecord_text_problem import FPRecordTextProblem
 from fathomt2t.monitors import FathomValidationMonitor
+
+
+FATHOM_DEV = 'fathom-dev-210618'
+FATHOM_PROD = 'fathom-prod-300818'
+US_CENTRAL1_B = 'us-central1-b'
+PROJECT_ZONE = {
+    FATHOM_DEV: US_CENTRAL1_B,
+    FATHOM_PROD: US_CENTRAL1_B,
+}
 
 
 def next_checkpoint(model_dir, timeout_mins=120):
@@ -197,15 +205,20 @@ def create_run_config(model_name,
         project = None
         if 'GCP_PROJECT' in os.environ:
             project = os.environ['GCP_PROJECT']
-        zone = cloud.shell_output(DEFAULT_ZONE).strip()
+
+        zone = None
+        if project in PROJECT_ZONE:
+            zone = PROJECT_ZONE[project]
+
         tf.logging.info(f'Cloud TPU Name: {cloud_tpu_name}\tProject: {project}'
-                        f'\tDefault Zone: {zone}')
+                        f'\tZone: {zone}')
 
         # Update run_config to use cluster instead of master/evaluation_master
         # as we need the cluster spec to use Cloud Pods
         tpu_cluster_resolver = tf.contrib.cluster_resolver.TPUClusterResolver(
             cloud_tpu_name,
-            project=project)
+            project=project,
+            zone=zone)
         run_config_args["cluster"] = tpu_cluster_resolver
         del run_config_args["master"]
         del run_config_args["evaluation_master"]

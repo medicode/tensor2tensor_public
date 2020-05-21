@@ -25,6 +25,7 @@ import random
 import numpy as np
 
 from tensor2tensor.data_generators.problem import Problem
+from tensor2tensor.data_generators.wikisum.parallel_launch import default_zone
 from tensor2tensor.utils import decoding
 from tensor2tensor.utils import devices
 from tensor2tensor.utils import metrics_hook
@@ -195,7 +196,9 @@ def create_run_config(model_name,
         project = None
         if 'GCP_PROJECT' in os.environ:
             project = os.environ['GCP_PROJECT']
-        tf.logging.info(f'Cloud TPU Name: {cloud_tpu_name}\tProject: {project}')
+        zone = default_zone()
+        tf.logging.info(f'Cloud TPU Name: {cloud_tpu_name}\tProject: {project}'
+                        f'\tDefault Zone: {zone}')
 
         # Update run_config to use cluster instead of master/evaluation_master
         # as we need the cluster spec to use Cloud Pods

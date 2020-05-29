@@ -40,6 +40,7 @@ from tensorflow.contrib.tpu.python.tpu import tpu_config
 
 import pretrained_models.bert.utilities as bert_utilities
 from fathomt2t_dependencies.common_t2t_utils import maybe_prepare_for_chunking
+from fathomt2t_dependencies.common_t2t_utils import filter_with_printing
 
 
 class DatasetSplit(object):
@@ -868,7 +869,7 @@ class Problem(object):
                                               max_length if drop_long_sequences
                                               else 10 ** 9)
     # for unpacked datasets, bucket by length
-    dataset = dataset.filter(gpu_valid_size)
+    dataset = filter_with_printing(dataset, gpu_valid_size)
     batching_scheme = self._get_batching_scheme(hparams, num_shards)
 
     # Fathom
@@ -915,7 +916,7 @@ class Problem(object):
       return data_reader.example_valid_size(example, hparams.min_length,
                                             max_length)
 
-    dataset = dataset.filter(tpu_valid_size)
+    dataset = filter_with_printing(dataset, tpu_valid_size)
     padded_shapes = self._pad_for_tpu(dataset.output_shapes, hparams)
     tf.logging.info(f'Padding features for fixed inputs: {padded_shapes}')
     tf.logging.info(f'Batch size per shard: {batch_size} / {num_shards}')

@@ -915,9 +915,8 @@ class Problem(object):
       return data_reader.example_valid_size(example, hparams.min_length,
                                             max_length)
 
+    tf.logging.info(f'DATATSET: {dataset}')
     dataset = dataset.filter(tpu_valid_size)
-    tf.Print("AAA")
-    # tf.Print(dataset)
     padded_shapes = self._pad_for_tpu(dataset.output_shapes, hparams)
     tf.logging.info(f'Padding features for fixed inputs: {padded_shapes}')
     tf.logging.info(f'Batch size per shard: {batch_size} / {num_shards}')
@@ -1194,8 +1193,7 @@ class Problem(object):
       else:
         padded_shapes[key] = pad_one_shape(shape, max_length)
 
-    tf.Print("BBB")
-    tf.Print(padded_shapes, [padded_shapes])
+    tf.logging.info(f'PAD: {padded_shapes}')
     return padded_shapes
 
 

@@ -915,7 +915,6 @@ class Problem(object):
       return data_reader.example_valid_size(example, hparams.min_length,
                                             max_length)
 
-    tf.logging.info(f'DATATSET: {dataset}')
     dataset = dataset.filter(tpu_valid_size)
     padded_shapes = self._pad_for_tpu(dataset.output_shapes, hparams)
     tf.logging.info(f'Padding features for fixed inputs: {padded_shapes}')

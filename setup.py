@@ -3,6 +3,7 @@
 from setuptools import find_packages
 from setuptools import setup
 
+print('helloooooo')
 setup(
     name='tensor2tensor',
     version='1.9.0',

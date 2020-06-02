@@ -41,7 +41,7 @@ jobs:
       - store_artifacts:
           path: ~/tensor2tensor/test_results
 
-      # TODO: build sphinx docs? or will we always use the upstream sphinx docs???
+      # Testing! TODO: build sphinx docs? or will we always use the upstream sphinx docs???
 
   smoke-testinfra:
     machine: true

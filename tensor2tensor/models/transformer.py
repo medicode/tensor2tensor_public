@@ -1747,6 +1747,14 @@ def transformer_big():
 
 
 @registry.register_hparams
+def transformer_big_8heads():
+    """HParams for transformer big model on WMT."""
+    hparams = transformer_big()
+    hparams.num_heads = 8
+    return hparams
+
+
+@registry.register_hparams
 def transformer_tall():
   """Hparams for transformer on LM+MNLI."""
   hparams = transformer_base()

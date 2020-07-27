@@ -909,11 +909,20 @@ class Problem(object):
     as required by TPU. Applies packing specific padding without bucketing.
     """
 
-    max_length = self.max_length(hparams)
+    max_feature_length = self.max_length(hparams)
+    max_targets_len = self.max_targets_length(hparams)
 
     def tpu_valid_size(example):
-      return data_reader.example_valid_size(example, hparams.min_length,
-                                            max_length)
+      example_wo_targets = example.copy()
+      del example_wo_targets['targets']
+      return tf.logical_and(
+        data_reader.example_valid_size(
+          example=example_wo_targets,
+          min_length=hparams.min_length,
+          max_length=max_feature_length,
+        ),
+        tf.shape(example['targets'])[0] <= max_targets_len,
+      )
 
     dataset = dataset.filter(tpu_valid_size)
     padded_shapes = self._pad_for_tpu(dataset.output_shapes, hparams)
@@ -934,6 +943,13 @@ class Problem(object):
       dataset = dataset.padded_batch(
         batch_size, padded_shapes, drop_remainder=True)
     return dataset
+
+  # Fathom
+  # TODO: can remove once
+  #  https://app.asana.com/0/1179413012671282/1185130842586481/f is done
+  def max_targets_length(self, model_hparams) -> int:
+    """Max length of targets sequence"""
+    return model_hparams.max_target_seq_length
 
   # Fathom
   def apply_batch_settings(self, dataset, hparams, num_shards, num_threads,

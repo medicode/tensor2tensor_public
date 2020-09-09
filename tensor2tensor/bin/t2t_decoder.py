@@ -254,8 +254,8 @@ def main(_):
   #  the hparams_set, we should probably have consumers access this via a
   #  SavedModel.hparams property rather than XCOM
   echo_yaml_for_xcom_ingest({'output-dir': os.path.dirname(checkpoint_path),
-                              'output-file': FLAGS.decode_output_file,
-                              'truncation-boundary': hp.max_input_seq_length})
+                             'output-file': FLAGS.decode_output_file,
+                             'truncation-boundary': hp.max_input_seq_length})
 
 
 if __name__ == "__main__":

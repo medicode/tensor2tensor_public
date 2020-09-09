@@ -253,10 +253,9 @@ def main(_):
   # TODO: since the truncation-boundary xcom value should be available in
   #  the hparams_set, we should probably have consumers access this via a
   #  SavedModel.hparams property rather than XCOM
-  if FLAGS.shard_id is None:
-    echo_yaml_for_xcom_ingest({'output-dir': os.path.dirname(checkpoint_path),
-                               'output-file': FLAGS.decode_output_file,
-                               'truncation-boundary': hp.max_input_seq_length})
+  echo_yaml_for_xcom_ingest({'output-dir': os.path.dirname(checkpoint_path),
+                              'output-file': FLAGS.decode_output_file,
+                              'truncation-boundary': hp.max_input_seq_length})
 
 
 if __name__ == "__main__":

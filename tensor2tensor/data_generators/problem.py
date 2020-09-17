@@ -901,57 +901,6 @@ class Problem(object):
     return dataset
 
   # Fathom
-  def apply_batch_settings_tpu(self, dataset, hparams, num_shards, num_threads,
-                               batch_size) -> tf.data.Dataset:
-    """Applies appropriate padding to dataset in preparation for batching.
-
-    Ensures every feature in each batch is padded to a fixed length
-    as required by TPU. Applies packing specific padding without bucketing.
-    """
-
-    max_feature_length = self.max_length(hparams)
-    max_targets_len = self.max_targets_length(hparams)
-
-    def tpu_valid_size(example):
-      example_wo_targets = example.copy()
-      del example_wo_targets['targets']
-      return tf.logical_and(
-        data_reader.example_valid_size(
-          example=example_wo_targets,
-          min_length=hparams.min_length,
-          max_length=max_feature_length,
-        ),
-        tf.shape(example['targets'])[0] <= max_targets_len,
-      )
-
-    dataset = dataset.filter(tpu_valid_size)
-    padded_shapes = self._pad_for_tpu(dataset.output_shapes, hparams)
-    tf.logging.info(f'Padding features for fixed inputs: {padded_shapes}')
-    tf.logging.info(f'Batch size per shard: {batch_size} / {num_shards}')
-    if hparams.pad_batch:
-      tf.logging.warn(
-        "Padding the batch to ensure that remainder eval batches are "
-        "processed. This may lead to incorrect metrics for "
-        "non-zero-padded features, e.g. images. Use a smaller batch "
-        "size that has no remainder in that case.")
-      dataset = dataset.padded_batch(
-        batch_size, padded_shapes, drop_remainder=False)
-      dataset = dataset.map(
-        functools.partial(pad_batch, batch_multiple=batch_size),
-        num_parallel_calls=num_threads)
-    else:
-      dataset = dataset.padded_batch(
-        batch_size, padded_shapes, drop_remainder=True)
-    return dataset
-
-  # Fathom
-  # TODO: can remove once
-  #  https://app.asana.com/0/1179413012671282/1185130842586481/f is done
-  def max_targets_length(self, model_hparams) -> int:
-    """Max length of targets sequence"""
-    return model_hparams.max_target_seq_length
-
-  # Fathom
   def apply_batch_settings(self, dataset, hparams, num_shards, num_threads,
                            config, params, is_training):
     """ Applies batch settings according to TPU or GPU specifications.

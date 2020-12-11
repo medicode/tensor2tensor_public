@@ -42,6 +42,7 @@ jobs:
           path: ~/tensor2tensor/test_results
 
       # TODO: build sphinx docs? or will we always use the upstream sphinx docs???
+      # noop
 
   smoke-testinfra:
     machine: true

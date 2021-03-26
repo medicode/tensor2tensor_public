@@ -1016,6 +1016,7 @@ class Problem(object):
         f"MAX_DEBUG: {msg} shapes={[(k, v.shape) for k, v in example.items()]}",
         first_n=10,
       )
+      return example
 
     partition_id, num_partitions = self._dataset_partition(mode, config, hvd)
 
@@ -1049,7 +1050,7 @@ class Problem(object):
     })
 
     dataset = self.dataset(**dataset_kwargs)
-    #dataset = dataset.map(functools.partial(_debug, msg='dataset'))
+    dataset = dataset.map(functools.partial(_debug, msg='dataset'))
     if (force_repeat or is_training) and not prevent_repeat:
       # Repeat and skip a random number of records
       dataset = dataset.repeat()

@@ -620,6 +620,15 @@ class Problem(object):
     Raises:
       ValueError: if num_partitions is greater than the number of data files.
     """
+
+    def _debug(example, msg):
+      example["inputs"] = tf.Print(
+        example["inputs"],
+        [],
+        f"MAX_DEBUG: {msg} shapes={[(k, v.shape) for k, v in example.items()]}",
+        first_n=10,
+      )
+      return example
     is_training = mode == tf.estimator.ModeKeys.TRAIN
     shuffle_files = shuffle_files or shuffle_files is None and is_training
 
@@ -659,7 +668,9 @@ class Problem(object):
       dataset = dataset.map(self.decode_example, num_parallel_calls=num_threads)
       # Preprocess if requested.
       # Note that preprocessing should happen per-file as order may matter.
+      dataset = dataset.map(functools.partial(_debug, msg='decode_example'))
       if preprocess:
+        dataset = dataset.map(functools.partial(_debug, msg='preprocess'))
         dataset = self.preprocess(dataset, mode, hparams,
                                   interleave=shuffle_files)
       return dataset
@@ -676,6 +687,7 @@ class Problem(object):
       random.shuffle(data_files)
 
     dataset = tf.data.Dataset.from_tensor_slices(tf.constant(data_files))
+    dataset = dataset.map(functools.partial(_debug, msg='from_tensor_slices'))
     # Create data-set from files by parsing, pre-processing and interleaving.
     if shuffle_files:
       dataset = dataset.apply(
@@ -684,6 +696,7 @@ class Problem(object):
     else:
       dataset = _load_records_and_preprocess(dataset)
 
+    dataset = dataset.map(functools.partial(_debug, msg='maybe_reverse_and_copy'))
     dataset = dataset.map(
         self.maybe_reverse_and_copy, num_parallel_calls=num_threads)
     dataset = dataset.take(max_records)

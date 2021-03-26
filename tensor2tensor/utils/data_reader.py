@@ -33,14 +33,27 @@ def cast_ints_to_int32(features):
   return f
 
 
+def _debug(length, msg):
+    length = tf.Print(
+        length,
+        [
+            length,
+        ],
+        f"MAX_DEBUG: {msg}",
+        first_n=10,
+    )
+    return length
+
+
 def example_length(example):
   length = 0
   # Length of the example is the maximum length of the feature lengths
-  for _, v in sorted(six.iteritems(example)):
+  for k, v in sorted(six.iteritems(example)):
     # For images the sequence length is the size of the spatial dimensions.
     feature_length = (tf.shape(v)[0] if len(v.get_shape()) < 3 else
                       tf.shape(v)[0] * tf.shape(v)[1])
     length = tf.maximum(length, feature_length)
+    length = _debug(length, str(k))
   return length
 
 

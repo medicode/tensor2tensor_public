@@ -687,7 +687,7 @@ class Problem(object):
       random.shuffle(data_files)
 
     dataset = tf.data.Dataset.from_tensor_slices(tf.constant(data_files))
-    dataset = dataset.map(functools.partial(_debug, msg='from_tensor_slices'))
+    #dataset = dataset.map(functools.partial(_debug, msg='from_tensor_slices'))
     # Create data-set from files by parsing, pre-processing and interleaving.
     if shuffle_files:
       dataset = dataset.apply(

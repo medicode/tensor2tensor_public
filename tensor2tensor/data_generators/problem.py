@@ -909,13 +909,30 @@ class Problem(object):
     as required by TPU. Applies packing specific padding without bucketing.
     """
 
+    def _debug(example, msg):
+      example["inputs"] = tf.Print(
+        example["inputs"],
+        [],
+        f"MAX_DEBUG: {msg} shapes={[(k, v.shape) for k, v in example.items()]}",
+        first_n=10,
+      )
+      return example
+
     max_length = self.max_length(hparams)
 
     def tpu_valid_size(example):
+
+      example = _debug(
+        example,
+        f"pre-filtering min_length={hparams.min_length}; "
+        f"max_feature_length={max_length} max_targets_len={max_length}",
+      )
+
       return data_reader.example_valid_size(example, hparams.min_length,
                                             max_length)
 
     dataset = dataset.filter(tpu_valid_size)
+    dataset = dataset.map(functools.partial(_debug, msg='post-filtering'))
     padded_shapes = self._pad_for_tpu(dataset.output_shapes, hparams)
     tf.logging.info(f'Padding features for fixed inputs: {padded_shapes}')
     tf.logging.info(f'Batch size per shard: {batch_size} / {num_shards}')

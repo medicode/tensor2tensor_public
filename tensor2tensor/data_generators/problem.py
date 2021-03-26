@@ -1008,6 +1008,15 @@ class Problem(object):
     Returns:
       (features_dict<str name, Tensor feature>, Tensor targets)
     """
+
+    def _debug(example, msg):
+      example["inputs"] = tf.Print(
+        example["inputs"],
+        [],
+        f"MAX_DEBUG: {msg} shapes={[(k, v.shape) for k, v in example.items()]}",
+        first_n=10,
+      )
+
     partition_id, num_partitions = self._dataset_partition(mode, config, hvd)
 
     is_training = mode == tf.estimator.ModeKeys.TRAIN
@@ -1040,6 +1049,7 @@ class Problem(object):
     })
 
     dataset = self.dataset(**dataset_kwargs)
+    dataset = dataset.map(functools.partial(_debug, msg='dataset'))
     if (force_repeat or is_training) and not prevent_repeat:
       # Repeat and skip a random number of records
       dataset = dataset.repeat()
@@ -1056,6 +1066,8 @@ class Problem(object):
 
     dataset = dataset.map(
         data_reader.cast_ints_to_int32, num_parallel_calls=num_threads)
+
+    dataset = dataset.map(functools.partial(_debug, msg='post-casting'))
 
     if self.batch_size_means_tokens:
       batch_size_means_tokens = True
@@ -1080,6 +1092,7 @@ class Problem(object):
         dataset = dataset.batch(batch_size)
     else:
       # Fathom
+      dataset = dataset.map(functools.partial(_debug, msg='pre-batching'))
       dataset = self.apply_batch_settings(dataset=dataset, hparams=hparams,
                                           num_shards=num_shards,
                                           num_threads=num_threads,

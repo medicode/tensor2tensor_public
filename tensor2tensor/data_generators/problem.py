@@ -48,6 +48,22 @@ class DatasetSplit(object):
   TEST = "test"
 
 
+def _debug(example, msg):
+  example["inputs"] = tf.Print(
+    example["inputs"],
+    [
+      example["inputs"],
+      example["inputs_chunk"],
+      example["chunk_mask"],
+      example["example_id"],
+      example["length_inputs"],
+      example["targets"],
+    ],
+    f"MAX_DEBUG: {msg} shapes={[(k, v.shape) for k, v in example.items()]}",
+    first_n=10,
+  )
+  return example
+
 class SpaceID(object):
   """Input and target space ids. Add more as needed."""
   # Generic / unknown output space (default)
@@ -621,14 +637,7 @@ class Problem(object):
       ValueError: if num_partitions is greater than the number of data files.
     """
 
-    def _debug(example, msg):
-      example["inputs"] = tf.Print(
-        example["inputs"],
-        [],
-        f"MAX_DEBUG: {msg} shapes={[(k, v) for k, v in example.items()]}",
-        first_n=10,
-      )
-      return example
+
     is_training = mode == tf.estimator.ModeKeys.TRAIN
     shuffle_files = shuffle_files or shuffle_files is None and is_training
 
@@ -922,15 +931,6 @@ class Problem(object):
     as required by TPU. Applies packing specific padding without bucketing.
     """
 
-    def _debug(example, msg):
-      example["inputs"] = tf.Print(
-        example["inputs"],
-        [],
-        f"MAX_DEBUG: {msg} shapes={[(k, v) for k, v in example.items()]}",
-        first_n=10,
-      )
-      return example
-
     max_length = self.max_length(hparams)
 
     def tpu_valid_size(example):
@@ -1021,15 +1021,6 @@ class Problem(object):
     Returns:
       (features_dict<str name, Tensor feature>, Tensor targets)
     """
-
-    def _debug(example, msg):
-      example["inputs"] = tf.Print(
-        example["inputs"],
-        [],
-        f"MAX_DEBUG: {msg} shapes={[(k, v) for k, v in example.items()]}",
-        first_n=10,
-      )
-      return example
 
     partition_id, num_partitions = self._dataset_partition(mode, config, hvd)
 

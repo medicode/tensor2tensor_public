@@ -625,7 +625,7 @@ class Problem(object):
       example["inputs"] = tf.Print(
         example["inputs"],
         [],
-        f"MAX_DEBUG: {msg} shapes={[(k, v.shape) for k, v in example.items()]}",
+        f"MAX_DEBUG: {msg} shapes={[(k, v) for k, v in example.items()]}",
         first_n=10,
       )
       return example
@@ -926,7 +926,7 @@ class Problem(object):
       example["inputs"] = tf.Print(
         example["inputs"],
         [],
-        f"MAX_DEBUG: {msg} shapes={[(k, v.shape) for k, v in example.items()]}",
+        f"MAX_DEBUG: {msg} shapes={[(k, v) for k, v in example.items()]}",
         first_n=10,
       )
       return example
@@ -1026,7 +1026,7 @@ class Problem(object):
       example["inputs"] = tf.Print(
         example["inputs"],
         [],
-        f"MAX_DEBUG: {msg} shapes={[(k, v.shape) for k, v in example.items()]}",
+        f"MAX_DEBUG: {msg} shapes={[(k, v) for k, v in example.items()]}",
         first_n=10,
       )
       return example

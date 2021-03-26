@@ -1049,7 +1049,7 @@ class Problem(object):
     })
 
     dataset = self.dataset(**dataset_kwargs)
-    dataset = dataset.map(functools.partial(_debug, msg='dataset'))
+    #dataset = dataset.map(functools.partial(_debug, msg='dataset'))
     if (force_repeat or is_training) and not prevent_repeat:
       # Repeat and skip a random number of records
       dataset = dataset.repeat()

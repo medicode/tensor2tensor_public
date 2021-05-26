@@ -26,6 +26,7 @@ from __future__ import print_function
 
 import collections
 from itertools import chain
+import os
 import math
 import re
 import tempfile
@@ -36,6 +37,10 @@ from six.moves import range  # pylint: disable=redefined-builtin
 from tensor2tensor.data_generators import tokenizer
 
 import tensorflow as tf
+
+# TODO: drop support for deprecated filename
+# https://app.asana.com/0/0/1200381914999492/f
+_DEPRECATED_SUBWORD_VOCAB_BASENAME = "subword-vocab.txt"
 
 # Reserved tokens for things like padding and EOS symbols.
 PAD = "<pad>"
@@ -930,6 +935,12 @@ class SubwordTextEncoder(TextEncoder):
 
   def _load_from_file(self, filename):
     """Load from a vocab file."""
+    # TODO: drop support for deprecated filename
+    # https://app.asana.com/0/0/1200381914999492/f
+    if not tf.gfile.Exists(filename):
+      base_dir, _ = os.path.split(filename)
+      filename = os.path.join(base_dir, _DEPRECATED_SUBWORD_VOCAB_BASENAME)
+
     if not tf.gfile.Exists(filename):
       raise ValueError("File %s not found" % filename)
     with tf.gfile.Open(filename) as f:

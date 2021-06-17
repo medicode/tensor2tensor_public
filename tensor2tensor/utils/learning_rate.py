@@ -74,15 +74,15 @@ def learning_rate_factor(name, step_num, hparams):
     raise ValueError("unknown learning rate factor %s" % name)
 
 
-def _get_initial_step(hparams):
+def _get_finetune_initial_step(hparams):
   """Get initial step from haparams for finetune train"""
-  return hparams.get("initial_step", 0)
+  return hparams.get("finetune_initial_step", 0)
 
 
 def learning_rate_schedule(hparams):
   """Learning rate schedule based on hparams."""
   step_num = _global_step(hparams)
-  step_num -= _get_initial_step(hparams)
+  step_num -= _get_finetune_initial_step(hparams)
   schedule_string = hparams.learning_rate_schedule
   names = schedule_string.split("*")
   names = [name.strip() for name in names if name.strip()]
@@ -95,7 +95,7 @@ def learning_rate_schedule(hparams):
 def legacy_learning_rate_schedule(hparams):
   """Backwards-compatible learning-rate schedule."""
   step_num = _global_step(hparams)
-  step_num -= _get_initial_step(hparams)
+  step_num -= _get_finetune_initial_step(hparams)
   warmup_steps = tf.to_float(hparams.learning_rate_warmup_steps)
   if hparams.learning_rate_decay_scheme == "noam":
     ret = 5000.0 * hparams.hidden_size**-0.5 * tf.minimum(

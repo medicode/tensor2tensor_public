@@ -76,10 +76,7 @@ def learning_rate_factor(name, step_num, hparams):
 
 def _get_initial_step(hparams):
   """Get initial step from haparams for finetune train"""
-  try:
-    return hparams.initial_step
-  except AttributeError:
-    return 0
+  return hparams.get("initial_step", 0)
 
 
 def learning_rate_schedule(hparams):

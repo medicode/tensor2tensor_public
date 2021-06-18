@@ -21,6 +21,7 @@ import numpy as np
 
 import tensorflow as tf
 
+from fathomt2t_dependencies.hparam_utils import get_global_step_offset_for_lr
 
 # FATHOM BEGIN
 def exp_warmup(hparams, step_num):
@@ -74,19 +75,6 @@ def learning_rate_factor(name, step_num, hparams):
     raise ValueError("unknown learning rate factor %s" % name)
 
 
-def _get_global_step_offset_for_lr(hparams):
-  """
-  Gets the global_step_offset_for_lr hparam or defaults to 0. If
-  global_step_offset_for_lr is set, it will be subtracted from the current
-  global step so the LR scheduler starts its schedule at the given offset
-  rather than at global_step = 0. This is useful for finetuning a model where
-  global_step for the finetune begins at the last step of the base-model train
-  but we want the LR scheduler to behave as if we are starting a new train with
-  global_step = 0.
-  """
-  return tf.to_float(hparams.get("global_step_offset_for_lr", 0))
-
-
 def learning_rate_schedule(hparams):
   """Learning rate schedule based on hparams."""
   step_num = _global_step(hparams)
@@ -122,15 +110,11 @@ def _global_step(hparams):
 
   # Modify global_step prior to the multiplier since the hparam is defined
   # w.r.t. the actual global_step rather than the optimizer-dependent version.
-  # _get_global_step_offset_for_lr defaults to 0 so this statement is a no-op
+  # get_global_step_offset_for_lr defaults to 0 so this statement is a no-op
   # if the hparam is not set.
-  step_offset = _get_global_step_offset_for_lr(hparams)
-  if step_offset > step:
-    # raise AssertionError explicitly as `assert` statements are removed in
-    # optimized byte code
-    raise AssertionError(
-      f"global_step_offset_for_lr {step_offset} must be <= initial step {step}"
-    )
+  step_offset = tf.to_float(
+    get_global_step_offset_for_lr(hparams)
+  )
   step -= step_offset
 
   multiplier = hparams.optimizer_multistep_accumulate_steps

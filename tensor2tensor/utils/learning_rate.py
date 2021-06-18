@@ -125,10 +125,12 @@ def _global_step(hparams):
   # _get_global_step_offset_for_lr defaults to 0 so this statement is a no-op
   # if the hparam is not set.
   step_offset = _get_global_step_offset_for_lr(hparams)
-  assert (
-    step_offset <= step,
-    f"global_step_offset_for_lr {step_offset} must be >= initial step {step}"
-  )
+  if step_offset > step:
+    # raise AssertionError explicitly as `assert` statements are removed in
+    # optimized byte code
+    raise AssertionError(
+      f"global_step_offset_for_lr {step_offset} must be >= initial step {step}"
+    )
   step -= step_offset
 
   multiplier = hparams.optimizer_multistep_accumulate_steps

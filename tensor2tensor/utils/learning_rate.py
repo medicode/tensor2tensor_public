@@ -84,7 +84,7 @@ def _get_global_step_offset_for_lr(hparams):
   but we want the LR scheduler to behave as if we are starting a new train with
   global_step = 0.
   """
-  return hparams.get("global_step_offset_for_lr", 0)
+  return tf.to_float(hparams.get("global_step_offset_for_lr", 0))
 
 
 def learning_rate_schedule(hparams):

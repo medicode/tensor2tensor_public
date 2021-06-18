@@ -129,7 +129,7 @@ def _global_step(hparams):
     # raise AssertionError explicitly as `assert` statements are removed in
     # optimized byte code
     raise AssertionError(
-      f"global_step_offset_for_lr {step_offset} must be >= initial step {step}"
+      f"global_step_offset_for_lr {step_offset} must be <= initial step {step}"
     )
   step -= step_offset
 

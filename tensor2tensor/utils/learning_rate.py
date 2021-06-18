@@ -74,15 +74,22 @@ def learning_rate_factor(name, step_num, hparams):
     raise ValueError("unknown learning rate factor %s" % name)
 
 
-def _get_finetune_initial_step(hparams):
-  """Get initial step from haparams for finetune train"""
-  return hparams.get("finetune_initial_step", 0)
+def _get_global_step_offset_for_lr(hparams):
+  """
+  Gets the global_step_offset_for_lr hparam or defaults to 0. If
+  global_step_offset_for_lr is set, it will be subtracted from the current
+  global step so the LR scheduler starts its schedule at the given offset
+  rather than at global_step = 0. This is useful for finetuning a model where
+  global_step for the finetune begins at the last step of the base-model train
+  but we want the LR scheduler to behave as if we are starting a new train with
+  global_step = 0.
+  """
+  return hparams.get("global_step_offset_for_lr", 0)
 
 
 def learning_rate_schedule(hparams):
   """Learning rate schedule based on hparams."""
   step_num = _global_step(hparams)
-  step_num -= _get_finetune_initial_step(hparams)
   schedule_string = hparams.learning_rate_schedule
   names = schedule_string.split("*")
   names = [name.strip() for name in names if name.strip()]
@@ -95,7 +102,6 @@ def learning_rate_schedule(hparams):
 def legacy_learning_rate_schedule(hparams):
   """Backwards-compatible learning-rate schedule."""
   step_num = _global_step(hparams)
-  step_num -= _get_finetune_initial_step(hparams)
   warmup_steps = tf.to_float(hparams.learning_rate_warmup_steps)
   if hparams.learning_rate_decay_scheme == "noam":
     ret = 5000.0 * hparams.hidden_size**-0.5 * tf.minimum(
@@ -113,6 +119,18 @@ def legacy_learning_rate_schedule(hparams):
 def _global_step(hparams):
   """Adjust global step if a multi-step optimizer is used."""
   step = tf.to_float(tf.train.get_or_create_global_step())
+
+  # Modify global_step prior to the multiplier since the hparam is defined
+  # w.r.t. the actual global_step rather than the optimizer-dependent version.
+  # _get_global_step_offset_for_lr defaults to 0 so this statement is a no-op
+  # if the hparam is not set.
+  step_offset = _get_global_step_offset_for_lr(hparams)
+  assert (
+    step_offset <= step,
+    f"global_step_offset_for_lr {step_offset} must be >= initial step {step}"
+  )
+  step -= step_offset
+
   multiplier = hparams.optimizer_multistep_accumulate_steps
   if not multiplier:
     return step

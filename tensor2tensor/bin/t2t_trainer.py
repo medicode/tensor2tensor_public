@@ -401,7 +401,7 @@ def main(argv):
   exp = exp_fn(create_run_config(hparams), hparams)
   if is_chief():
     save_metadata(hparams)
-  execute_schedule(exp)
+  # TODO: revert, forcing model "cleanup" to happen execute_schedule(exp)
 
   # Fathom
   # NOTE: this must run LAST in the process, to make sure STDOUT is

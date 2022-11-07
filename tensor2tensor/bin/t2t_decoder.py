@@ -31,6 +31,7 @@ sources.
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+import itertools
 
 import os
 
@@ -75,7 +76,11 @@ flags.DEFINE_bool("use_original_input", False,
                   "Use the input that was used for validation during training?")
 # Fathom end
 flags.DEFINE_bool("decode_in_memory", False, "Decode in memory.")
-
+flags.DEFINE_string(
+    "output_raw_predictions_path",
+    "",
+    "Where to store raw predictions",
+)
 
 def create_hparams():
   return trainer_lib.create_hparams(
@@ -128,6 +133,8 @@ def decode(estimator, hparams, decode_hp):
         output_dir=os.path.splitext(FLAGS.decode_output_file)[0])
 
     # Fathom
+    if FLAGS.output_raw_predictions_path:
+      yield from predictions
     if FLAGS.fathom_output_predictions:
       print('Assuming only one problem...')
       assert '-' not in FLAGS.problems

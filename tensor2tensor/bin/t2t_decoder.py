@@ -31,7 +31,6 @@ sources.
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import itertools
 
 import os
 
@@ -135,7 +134,7 @@ def decode(estimator, hparams, decode_hp):
     # Fathom
     if FLAGS.output_raw_predictions_path:
       yield from predictions
-    if FLAGS.fathom_output_predictions:
+    elif FLAGS.fathom_output_predictions:
       print('Assuming only one problem...')
       assert '-' not in FLAGS.problems
       # if we already have built problem instance in hparams, no need to create

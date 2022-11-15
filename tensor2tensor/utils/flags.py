@@ -124,8 +124,6 @@ flags.DEFINE_string("decode_reference", None,
                     "continuous_decode_from_file to compute BLEU score.")
 
 
-# custom flags:
+# beam-specific custom flags:
 flags.DEFINE_string("env_vars", None, "")
 flags.DEFINE_string("pipeline_options", None, "")
-flags.DEFINE_string("gcs_tmpdir", None, "")
-flags.DEFINE_string("is_local_mode", None, "")

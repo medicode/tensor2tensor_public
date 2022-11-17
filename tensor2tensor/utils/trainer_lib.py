@@ -195,7 +195,11 @@ def create_run_config(model_name,
         # Update run_config to use cluster instead of master/evaluation_master
         # as we need the cluster spec to use Cloud Pods
         tpu_cluster_resolver = tf.contrib.cluster_resolver.TPUClusterResolver(
-            cloud_tpu_name)
+            cloud_tpu_name,
+            # FATHOM: Added so that if a kube pod is upped in a zone separate from where
+            # the TPU lives, we can still connect to the TPU.
+            zone=os.environ.get("CLOUD_TPU_ZONE"),
+        )
         run_config_args["cluster"] = tpu_cluster_resolver
         del run_config_args["master"]
         del run_config_args["evaluation_master"]

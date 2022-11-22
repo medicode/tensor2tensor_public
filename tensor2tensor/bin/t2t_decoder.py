@@ -99,6 +99,20 @@ def create_decode_hparams():
   return decode_hp
 
 
+def fh_decode(estimator, hparams, decode_hp):
+  return decoding.decode_from_dataset(
+        estimator,
+        FLAGS.problem,
+        hparams,
+        decode_hp,
+        decode_to_file=FLAGS.decode_to_file,
+        dataset_split=dataset_to_t2t_mode(FLAGS.dataset_split),
+        return_generator=FLAGS.fathom_output_predictions,
+        # save logs/summaries to a directory with the same name as decode_output_file
+        # in situations where we are calling decode without write permissions
+        # to the model directory
+        output_dir=os.path.splitext(FLAGS.decode_output_file)[0])
+
 def decode(estimator, hparams, decode_hp):
   """Decode from estimator. Interactive, from file, or from dataset."""
   if FLAGS.decode_interactive:
@@ -116,25 +130,13 @@ def decode(estimator, hparams, decode_hp):
       ckpt_time = os.path.getmtime(FLAGS.checkpoint_path + ".index")
       os.utime(FLAGS.decode_to_file, (ckpt_time, ckpt_time))
   else:
-
     # Fathom
-    predictions = decoding.decode_from_dataset(
-        estimator,
-        FLAGS.problem,
-        hparams,
-        decode_hp,
-        decode_to_file=FLAGS.decode_to_file,
-        dataset_split=dataset_to_t2t_mode(FLAGS.dataset_split),
-        return_generator=FLAGS.fathom_output_predictions,
-        # save logs/summaries to a directory with the same name as decode_output_file
-        # in situations where we are calling decode without write permissions
-        # to the model directory
-        output_dir=os.path.splitext(FLAGS.decode_output_file)[0])
+    predictions = fh_decode(estimator, hparams, decode_hp)
 
     # Fathom
     if FLAGS.output_raw_predictions_path:
       print(f"assuming outputting raw predictions, destination: {FLAGS.output_raw_predictions_path}")
-      yield from predictions
+      return predictions
     elif FLAGS.fathom_output_predictions:
       print('Assuming only one problem...')
       assert '-' not in FLAGS.problems
@@ -221,7 +223,6 @@ def main(_):
   checkpoint_path = fathom_t2t_model_setup()
   # Fathom end
   usr_dir.import_usr_dir(FLAGS.t2t_usr_dir)
-
 
   if FLAGS.score_file:
     filename = os.path.expanduser(FLAGS.score_file)

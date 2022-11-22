@@ -133,6 +133,7 @@ def decode(estimator, hparams, decode_hp):
 
     # Fathom
     if FLAGS.output_raw_predictions_path:
+      print(f"assuming outputting raw predictions, destination: {FLAGS.output_raw_predictions_path}")
       yield from predictions
     elif FLAGS.fathom_output_predictions:
       print('Assuming only one problem...')

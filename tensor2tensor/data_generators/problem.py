@@ -1371,7 +1371,7 @@ def standardize_shapes(features, batch_size=None):
   # these features require expansion because of t2t assumptions
   # that input features are rank 4
   features_to_expand = [
-        'inputs', 'targets', 'inputs_example', 'inputs_chunk']
+        'inputs', 'targets', 'inputs_example', 'inputs_chunk', 'abstain_ints']
   for fname in features:
     if fname not in features_to_expand:
       continue

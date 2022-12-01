@@ -99,19 +99,28 @@ def create_decode_hparams():
   return decode_hp
 
 
-def fh_decode(estimator, hparams, decode_hp):
+def fh_decode(
+  estimator,
+  hparams,
+  decode_hp,
+  problem,
+  decode_to_file,
+  dataset_split,
+  decode_output_file,
+  fathom_output_predictions,
+):
   return decoding.decode_from_dataset(
         estimator,
-        FLAGS.problem,
+        problem,
         hparams,
         decode_hp,
-        decode_to_file=FLAGS.decode_to_file,
-        dataset_split=dataset_to_t2t_mode(FLAGS.dataset_split),
-        return_generator=FLAGS.fathom_output_predictions,
+        decode_to_file=decode_to_file,
+        dataset_split=dataset_to_t2t_mode(dataset_split),
+        return_generator=fathom_output_predictions,
         # save logs/summaries to a directory with the same name as decode_output_file
         # in situations where we are calling decode without write permissions
         # to the model directory
-        output_dir=os.path.splitext(FLAGS.decode_output_file)[0])
+        output_dir=os.path.splitext(decode_output_file)[0])
 
 def decode(estimator, hparams, decode_hp):
   """Decode from estimator. Interactive, from file, or from dataset."""

@@ -140,7 +140,20 @@ def decode(estimator, hparams, decode_hp):
       os.utime(FLAGS.decode_to_file, (ckpt_time, ckpt_time))
   else:
     # Fathom
-    predictions = fh_decode(estimator, hparams, decode_hp)
+    if hasattr(hparams, 'problem'):
+      problem = hparams.problem
+    else:
+      problem = registry.problem(FLAGS.problems)
+    predictions = fh_decode(
+      estimator=estimator,
+      hparams=hparams,
+      decode_hp=decode_hp,
+      problem=problem,
+      decode_to_file=FLAGS.decode_to_file,
+      dataset_split=FLAGS.dataset_split,
+      decode_output_file=FLAGS.decode_output_file,
+      fathom_output_predictions=FLAGS.fathom_output_predictions,
+    )
 
     # Fathom
     if FLAGS.output_raw_predictions_path:

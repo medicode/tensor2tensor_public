@@ -165,7 +165,7 @@ def score_file(filename):
   _, losses = model(features)
   saver = tf.train.Saver()
 
-  with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
+  with tf.Session() as sess:
     # Load weights from checkpoint.
     ckpts = tf.train.get_checkpoint_state(FLAGS.output_dir)
     ckpt = ckpts.model_checkpoint_path

@@ -1520,6 +1520,11 @@ class SymbolModality(modality.Modality):
 
   Input:
   Embedding.
+
+  Output:
+    Linear transformation + softmax.
+  """
+
   @property
   def name(self):
     return "symbol_modality_%d_%d" % (self._vocab_size, self._body_input_depth)
@@ -1542,7 +1547,7 @@ class SymbolModality(modality.Modality):
           # autoregressively predicting the inputs portion, while the
           # evaluation is only done on the output
           hp.prepend_mode != "prepend_inputs_masked_attention" or
-          hp.mode != tf.estimator.ModeKeys.TRAIN):
+          hp.mode != tf_estimator.ModeKeys.TRAIN):
         weights_fn = common_layers.weights_prepend_inputs_to_targets
 
     return weights_fn
@@ -1633,7 +1638,7 @@ class SymbolModality(modality.Modality):
       body_output_shape = common_layers.shape_list(body_output)
       var = self._get_weights(body_output_shape[-1])
       if (self._model_hparams.factored_logits and
-          self._model_hparams.mode == tf.estimator.ModeKeys.TRAIN):
+          self._model_hparams.mode == tf_estimator.ModeKeys.TRAIN):
         # insert channels dimension
         body_output = tf.expand_dims(body_output, 3)
         return common_layers.FactoredTensor(body_output, var)
@@ -1796,7 +1801,7 @@ class ImageChannelCompressModality(modality.Modality):
     with tf.variable_scope(name):
       inputs = tf.to_float(inputs)
       hp = self._model_hparams
-      if hp.mode != tf.estimator.ModeKeys.PREDICT:
+      if hp.mode != tf_estimator.ModeKeys.PREDICT:
         tf.summary.image(
             "inputs",
             common_layers.tpu_safe_image_summary(inputs),
@@ -2158,7 +2163,7 @@ class VideoModalityPixelNoise(VideoModality):
 
   def bottom(self, x):
     inputs = x
-    if self._model_hparams.mode == tf.estimator.ModeKeys.TRAIN:
+    if self._model_hparams.mode == tf_estimator.ModeKeys.TRAIN:
       background = tf.contrib.distributions.percentile(inputs, 50.,
                                                        axis=[0, 1, 2, 3])
       input_shape = common_layers.shape_list(inputs)

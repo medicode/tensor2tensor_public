@@ -38,7 +38,7 @@ from tensor2tensor.utils.misc_utils import camelcase_to_snakecase
 import tensorflow as tf
 
 
-flags = tf.flags
+flags = tf.compat.v1.flags
 FLAGS = flags.FLAGS
 
 

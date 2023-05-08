@@ -63,7 +63,7 @@ except ImportError:
 # Improrting here to prevent pylint from ungrouped-imports warning.
 import tensorflow as tf  # pylint: disable=g-import-not-at-top
 
-flags = tf.flags
+flags = tf.compat.v1.flags
 FLAGS = flags.FLAGS
 
 # Fathom

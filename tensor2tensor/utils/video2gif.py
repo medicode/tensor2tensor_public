@@ -44,7 +44,7 @@ from tensor2tensor.utils import trainer_lib
 import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
-flags = tf.flags
+flags = tf.compat.v1.flags
 FLAGS = flags.FLAGS
 
 flags.DEFINE_integer("num_samples", -1, "Number of saved samples.")

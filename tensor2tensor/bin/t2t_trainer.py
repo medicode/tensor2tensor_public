@@ -43,7 +43,7 @@ import fathomt2t_dependencies.t2t_trainer_utils as fathom
 
 from tensorflow.contrib.tpu.python.tpu import tpu_config
 
-flags = tf.flags
+flags = tf.compat.v1.flags
 FLAGS = flags.FLAGS
 
 # See utils/flags.py for additional command-line flags.
@@ -468,7 +468,7 @@ def main(argv):
 
 if __name__ == "__main__":
   # Fathom
-  tf.flags.mark_flag_as_required('airflow_pipeline_yaml')
-  tf.flags.mark_flag_as_required('timestamp')
+  tf.compat.v1.flags.mark_flag_as_required('airflow_pipeline_yaml')
+  tf.compat.v1.flags.mark_flag_as_required('timestamp')
   tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
   tf.compat.v1.app.run()

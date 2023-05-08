@@ -467,7 +467,7 @@ def create_hooks(use_tfdbg=False,
     tf.compat.v1.logging.info("Using ValidationMonitor")
     # Fathom
     # continuous_train_and_eval breaks early stopping
-    flags = tf.flags
+    flags = tf.compat.v1.flags
     FLAGS = flags.FLAGS
     assert FLAGS.schedule != 'continuous_train_and_eval'
     
@@ -596,7 +596,7 @@ class T2TExperiment(object):
     hp.eval_dir_name = eval_dir_name
 
   def evaluate(self):
-    flags = tf.flags
+    flags = tf.compat.v1.flags
     FLAGS = flags.FLAGS
     name = "eval"
     self._set_eval_dir_name("eval")

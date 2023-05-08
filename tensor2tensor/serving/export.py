@@ -29,22 +29,22 @@ import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow_hub as hub
 
-FLAGS = tf.flags.FLAGS
+FLAGS = tf.compat.v1.flags.FLAGS
 
-tf.flags.DEFINE_bool("export_as_tfhub", False,
+tf.compat.v1.flags.DEFINE_bool("export_as_tfhub", False,
                      "If True, the model will be exported as tfHub module.")
 
-tf.flags.DEFINE_string(
+tf.compat.v1.flags.DEFINE_string(
     "export_dir", None, "Directory, where export model should be stored."
     "If None, the model will be stored in subdirectory "
     "where checkpoints are: --output_dir")
 
-tf.flags.DEFINE_string(
+tf.compat.v1.flags.DEFINE_string(
     "checkpoint_path", None, "Which checkpoint to export."
     "If None, we will use the latest checkpoint stored in the directory "
     "specified by --output_dir")
 
-tf.flags.DEFINE_bool(
+tf.compat.v1.flags.DEFINE_bool(
     "as_text", True,
     "Whether to write the SavedModel proto in text format. Defaults to `False`."
 )

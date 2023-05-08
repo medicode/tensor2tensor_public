@@ -46,7 +46,7 @@ import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 mpl.use("Agg")
-flags = tf.flags
+flags = tf.compat.v1.flags
 FLAGS = flags.FLAGS
 
 flags.DEFINE_integer("num_steps", 100, "Number of prediction steps.")

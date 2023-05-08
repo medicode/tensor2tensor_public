@@ -35,7 +35,7 @@ from tensor2tensor.utils import hparam
 from tensor2tensor.utils import metrics
 from tensor2tensor.utils import mlperf_log
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 # pylint: disable=g-import-not-at-top
 try:
@@ -173,7 +173,7 @@ def preprocess_example_common(example, mode, hparams):
       if k == "targets" or k == "inputs":
         new_example[k] = tf.reshape(v, [-1, hparams.split_to_length, 1, 1])
       else:
-        tf.compat.v1.logging.warning("Dropping feature %s" % k)
+        tf.logging.warning("Dropping feature %s" % k)
     return tf.data.Dataset.from_tensor_slices(new_example)
   return example
 
@@ -668,7 +668,7 @@ class Problem(object):
     _ = self.get_hparams(hparams)
 
     data_filepattern = self.filepattern(data_dir, dataset_split, shard=shard)
-    tf.compat.v1.logging.info("Reading data files from %s", data_filepattern)
+    tf.logging.info("Reading data files from %s", data_filepattern)
     data_files = sorted(
         contrib.slim().parallel_reader.get_data_files(data_filepattern))
 
@@ -693,7 +693,7 @@ class Problem(object):
           % (len(data_files), data_files, num_partitions))
     data_files = [f for (i, f) in enumerate(data_files)
                   if i % num_partitions == partition_id]
-    tf.compat.v1.logging.info(
+    tf.logging.info(
         "partition: %d num_data_files: %d" % (partition_id, len(data_files)))
     if shuffle_files:
       mlperf_log.transformer_print(key=mlperf_log.INPUT_ORDER)
@@ -877,7 +877,7 @@ class Problem(object):
       num_partitions = config.tpu_config.num_shards
     partition_id = getattr(self, "_next_partition_id", 0)
     self._next_partition_id = partition_id + 1
-    tf.compat.v1.logging.info("num_partitions = %d partition_id = %d" %
+    tf.logging.info("num_partitions = %d partition_id = %d" %
                     (num_partitions, partition_id))
     assert partition_id < num_partitions
     return partition_id, num_partitions
@@ -930,7 +930,7 @@ class Problem(object):
         # Make sure the last batch has the same fixed size as the rest.
         batch_multiple *= hparams.batch_size
       if batch_multiple > 1:
-        tf.compat.v1.logging.warn(
+        tf.logging.warn(
           "Padding the batch to ensure that remainder eval batches have "
           "a batch size divisible by the number of data shards. This may "
           "lead to incorrect metrics for non-zero-padded features, e.g. "
@@ -1050,7 +1050,7 @@ class Problem(object):
       if _are_shapes_fully_defined(dataset.output_shapes):
         batch_size_means_tokens = False
       else:
-        tf.compat.v1.logging.warning(
+        tf.logging.warning(
             "Shapes are not fully defined. Assuming batch_size means tokens.")
         batch_size_means_tokens = True
 
@@ -1102,7 +1102,7 @@ class Problem(object):
 
     """
     if hasattr(hparams, 'chunk_length'):
-      tf.compat.v1.logging.warn('Splitting sequence into chunks.')
+      tf.logging.warn('Splitting sequence into chunks.')
       batching_scheme = (
         bert_utilities.hparams_to_bert_batching_scheme(hparams, num_shards))
     else:
@@ -1136,7 +1136,7 @@ class Problem(object):
     """Input fn for serving export, starting from serialized example."""
     self._hparams = hparams
     mode = tf_estimator.ModeKeys.PREDICT
-    serialized_example = tf.compat.v1.placeholder(
+    serialized_example = tf.placeholder(
         dtype=tf.string, shape=[None], name="serialized_example")
     dataset = tf.data.Dataset.from_tensor_slices(serialized_example)
     dataset = dataset.map(self.decode_example)
@@ -1336,15 +1336,15 @@ def _are_shapes_fully_defined(shapes_dict):
 
 
 def _summarize_features(features, num_shards=1):
-  with tf.compat.v1.name_scope("input_stats"):
+  with tf.name_scope("input_stats"):
     for (k, v) in six.iteritems(features):
       if isinstance(v, tf.Tensor) and v.get_shape().ndims > 1 and v.dtype != tf.string:
-        tf.compat.v1.summary.scalar("%s_batch" % k, tf.shape(v)[0] // num_shards)
-        tf.compat.v1.summary.scalar("%s_length" % k, tf.shape(v)[1])
+        tf.summary.scalar("%s_batch" % k, tf.shape(v)[0] // num_shards)
+        tf.summary.scalar("%s_length" % k, tf.shape(v)[1])
         nonpadding = tf.cast(tf.not_equal(v, 0), dtype=tf.float32)
         nonpadding_tokens = tf.reduce_sum(nonpadding)
-        tf.compat.v1.summary.scalar("%s_nonpadding_tokens" % k, nonpadding_tokens)
-        tf.compat.v1.summary.scalar("%s_nonpadding_fraction" % k,
+        tf.summary.scalar("%s_nonpadding_tokens" % k, nonpadding_tokens)
+        tf.summary.scalar("%s_nonpadding_fraction" % k,
                           tf.reduce_mean(nonpadding))
 
 
@@ -1376,7 +1376,7 @@ def standardize_shapes(features, batch_size=None):
       t.get_shape().assert_is_fully_defined()
 
   for n, t in features.items():
-      tf.compat.v1.logging.info(f'Standardized shape for {n}: {t}, {t.get_shape().as_list()}')
+      tf.logging.info(f'Standardized shape for {n}: {t}, {t.get_shape().as_list()}')
 
   return features
 

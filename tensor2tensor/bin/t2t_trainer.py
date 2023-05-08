@@ -41,7 +41,7 @@ from tensorflow.compat.v1 import estimator as tf_estimator
 # Fathom
 import fathomt2t_dependencies.t2t_trainer_utils as fathom
 
-from tensorflow.contrib.tpu.python.tpu import tpu_config
+# from tensorflow.contrib.tpu.python.tpu import tpu_config
 
 flags = tf.compat.v1.flags
 FLAGS = flags.FLAGS

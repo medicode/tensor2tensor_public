@@ -25,7 +25,7 @@ from tensor2tensor.data_generators import video_utils
 from tensor2tensor.utils import decoding
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 class VideoUtilsTest(parameterized.TestCase, tf.test.TestCase):
@@ -49,12 +49,12 @@ class VideoUtilsTest(parameterized.TestCase, tf.test.TestCase):
   def testVideoAugmentation(self):
     # smoke-test, test for shapes.
     with tf.Graph().as_default():
-      inputs = tf.random_uniform(shape=(3, 64, 64, 3))
-      targets = tf.random_uniform(shape=(10, 64, 64, 3))
+      inputs = tf.random.uniform(shape=(3, 64, 64, 3))
+      targets = tf.random.uniform(shape=(10, 64, 64, 3))
       features = {"inputs": inputs, "targets": targets}
       augment = video_utils.video_augmentation(
           features, hue=True, saturate=True, contrast=True)
-      with tf.Session() as sess:
+      with tf.compat.v1.Session() as sess:
         augment_dict = sess.run(augment)
         self.assertEqual(augment_dict["inputs"].shape, (3, 64, 64, 3))
         self.assertEqual(augment_dict["targets"].shape, (10, 64, 64, 3))
@@ -93,7 +93,7 @@ class VideoUtilsTest(parameterized.TestCase, tf.test.TestCase):
     summaries = video_utils.display_video_hooks(decode_hooks)
 
     for summary in summaries:
-      self.assertIsInstance(summary, tf.Summary.Value)
+      self.assertIsInstance(summary, tf.compat.v1.Summary.Value)
 
 
 if __name__ == "__main__":

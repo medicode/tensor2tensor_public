@@ -36,7 +36,7 @@ from tensor2tensor.utils import registry
 from tensor2tensor.utils import trainer_lib
 from tensor2tensor.utils import usr_dir
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 flags = tf.flags
@@ -53,7 +53,7 @@ def print_confusion_matrix(title, cm):
 
 
 def main(_):
-  tf.logging.set_verbosity(tf.logging.INFO)
+  tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
   trainer_lib.set_random_seed(FLAGS.random_seed)
   usr_dir.import_usr_dir(FLAGS.t2t_usr_dir)
 
@@ -70,7 +70,7 @@ def main(_):
       hparams=hparams)
 
   dataset = dataset.batch(batch_size, drop_remainder=True)
-  data = dataset.make_one_shot_iterator().get_next()
+  data = tf.compat.v1.data.make_one_shot_iterator(dataset).get_next()
   input_data = dict((k, data[k]) for k in data.keys() if k.startswith("input"))
 
   # Creat model
@@ -83,8 +83,8 @@ def main(_):
   cm_per_frame = np.zeros((nr, nr), dtype=np.uint64)
   cm_next_frame = np.zeros((nr, nr), dtype=np.uint64)
 
-  saver = tf.train.Saver()
-  with tf.train.SingularMonitoredSession() as sess:
+  saver = tf.compat.v1.train.Saver()
+  with tf.compat.v1.train.SingularMonitoredSession() as sess:
     # Load latest checkpoint
     ckpt = tf.train.get_checkpoint_state(FLAGS.output_dir).model_checkpoint_path
     saver.restore(sess.raw_session(), ckpt)
@@ -108,4 +108,4 @@ def main(_):
   print_confusion_matrix("Next-frame Confusion Matrix", cm_next_frame)
 
 if __name__ == "__main__":
-  tf.app.run()
+  tf.compat.v1.app.run()

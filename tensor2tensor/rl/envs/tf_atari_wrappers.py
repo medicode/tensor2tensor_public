@@ -23,7 +23,7 @@ from six.moves import range  # pylint: disable=redefined-builtin
 
 from tensor2tensor.rl.envs.in_graph_batch_env import InGraphBatchEnv
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 class WrapperBase(InGraphBatchEnv):
@@ -56,7 +56,7 @@ class WrapperBase(InGraphBatchEnv):
     # pylint: disable=protected-access
     new_values = self._batch_env._reset_non_empty(indices)
     # pylint: enable=protected-access
-    assign_op = tf.scatter_update(self._observ, indices, new_values)
+    assign_op = tf.compat.v1.scatter_update(self._observ, indices, new_values)
     with tf.control_dependencies([assign_op]):
       return tf.identity(new_values)
 
@@ -140,7 +140,7 @@ class StackWrapper(WrapperBase):
       inx = [1, self.history] + ([1] * num_dimensions_in_env_observation)
       initial_frames = tf.tile(tf.expand_dims(new_values, axis=1), inx)
     with tf.control_dependencies([new_values]):
-      assign_op = tf.scatter_update(self._observ, indices, initial_frames)
+      assign_op = tf.compat.v1.scatter_update(self._observ, indices, initial_frames)
     with tf.control_dependencies([assign_op]):
       return tf.gather(self.observ, indices)
 

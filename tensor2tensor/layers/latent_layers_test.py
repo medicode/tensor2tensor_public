@@ -27,9 +27,9 @@ from tensor2tensor.layers import latent_layers
 from tensor2tensor.models import transformer
 from tensor2tensor.utils import test_utils
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
-tf.enable_eager_execution()
+tf.compat.v1.enable_eager_execution()
 
 
 def imagetransformer_latent_tiny():
@@ -94,10 +94,10 @@ class LatentLayersTest(tf.test.TestCase):
 
   @test_utils.run_in_graph_and_eager_modes()
   def testComputeBitsAndNats(self):
-    reconstruction_loss = tf.random_uniform(())
-    prior_loss = tf.random_uniform(())
-    data_dim = tf.random_uniform((), maxval=1000, dtype=tf.int32)
-    latent_dim = tf.random_uniform((), maxval=1000, dtype=tf.int32)
+    reconstruction_loss = tf.random.uniform(())
+    prior_loss = tf.random.uniform(())
+    data_dim = tf.random.uniform((), maxval=1000, dtype=tf.int32)
+    latent_dim = tf.random.uniform((), maxval=1000, dtype=tf.int32)
     nats_per_dim, bits_per_dim = latent_layers.compute_nats_and_bits_per_dim(
         data_dim,
         latent_dim,
@@ -105,7 +105,7 @@ class LatentLayersTest(tf.test.TestCase):
         prior_loss)
 
     nats_per_dim_py, bits_per_dim_conv_py = self.evaluate(
-        [nats_per_dim, bits_per_dim * tf.log(2.)])
+        [nats_per_dim, bits_per_dim * tf.math.log(2.)])
     self.assertAllClose(nats_per_dim_py, bits_per_dim_conv_py)
 
   @test_utils.run_in_graph_and_eager_modes()
@@ -116,13 +116,13 @@ class LatentLayersTest(tf.test.TestCase):
     block_v_size = 2**(hparams.bottleneck_bits /
                        (hparams.num_residuals * hparams.num_blocks))
     block_v_size = int(block_v_size)
-    means = tf.get_variable(
+    means = tf.compat.v1.get_variable(
         name="means",
         shape=[hparams.num_residuals,
                hparams.num_blocks,
                block_v_size,
                block_dim],
-        initializer=tf.uniform_unit_scaling_initializer())
+        initializer=tf.compat.v1.keras.initializers.VarianceScaling(distribution="uniform"))
     hparams.bottleneck = functools.partial(
         discretization.discrete_bottleneck,
         hidden_size=hparams.hidden_size,
@@ -143,20 +143,20 @@ class LatentLayersTest(tf.test.TestCase):
 
     inputs = None
     batch_size = hparams.batch_size
-    targets = tf.random_uniform([batch_size,
+    targets = tf.random.uniform([batch_size,
                                  hparams.img_len,
                                  hparams.img_len,
                                  hparams.hidden_size],
                                 minval=-1., maxval=1.)
     target_space_id = None
 
-    tf.train.create_global_step()
+    tf.compat.v1.train.create_global_step()
     decoder_output, losses, cache = latent_layers.transformer_autoencoder(
         inputs, targets, target_space_id, hparams)
 
     self.assertEqual(set(losses), {"extra", "extra_loss", "latent_pred"})
 
-    self.evaluate(tf.global_variables_initializer())
+    self.evaluate(tf.compat.v1.global_variables_initializer())
     decoder_output_, extra_loss_, latent_pred_ = self.evaluate(
         [decoder_output, losses["extra_loss"], losses["latent_pred"]])
     self.assertEqual(decoder_output_.shape, (batch_size,

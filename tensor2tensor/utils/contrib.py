@@ -23,7 +23,7 @@ from __future__ import division  # Not necessary in a Python 3-only module
 from __future__ import print_function  # Not necessary in a Python 3-only module
 
 from absl import logging
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 # Check if we have contrib available
@@ -86,7 +86,7 @@ def framework(msg='err'):
   if is_tf2:
     return DummyModule(
         arg_scope=None,
-        get_name_scope=lambda: tf.get_default_graph().get_name_scope(),
+        get_name_scope=lambda: tf.compat.v1.get_default_graph().get_name_scope(),
         name_scope=tf.name_scope,
         deprecated=deprecated,
         nest=tf.nest,

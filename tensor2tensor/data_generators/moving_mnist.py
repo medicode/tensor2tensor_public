@@ -35,7 +35,7 @@ from tensor2tensor.layers import modalities
 from tensor2tensor.utils import contrib
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 import tensorflow_datasets as tfds
 from tensorflow_datasets.video import moving_sequence
 
@@ -92,7 +92,7 @@ class VideoMovingMnist(video_utils.VideoProblem):
   def extra_reading_spec(self):
     """Additional data fields to store on disk and their decoders."""
     data_fields = {
-        "frame_number": tf.FixedLenFeature([1], tf.int64),
+        "frame_number": tf.io.FixedLenFeature([1], tf.int64),
     }
     decoders = {
         "frame_number":
@@ -115,7 +115,7 @@ class VideoMovingMnist(video_utils.VideoProblem):
     mnist_test = np.transpose(mnist_test, (1, 0, 2, 3))
     mnist_test = np.expand_dims(mnist_test, axis=-1)
     mnist_test = tf.data.Dataset.from_tensor_slices(mnist_test)
-    return mnist_test.make_initializable_iterator()
+    return tf.compat.v1.data.make_initializable_iterator(mnist_test)
 
   def map_fn(self, image, label):
     sequence = moving_sequence.image_as_moving_sequence(
@@ -128,7 +128,7 @@ class VideoMovingMnist(video_utils.VideoProblem):
     mnist_ds = mnist_ds.repeat()
     moving_mnist_ds = mnist_ds.map(self.map_fn).batch(2)
     moving_mnist_ds = moving_mnist_ds.map(lambda x: tf.reduce_max(x, axis=0))
-    return moving_mnist_ds.make_initializable_iterator()
+    return tf.compat.v1.data.make_initializable_iterator(moving_mnist_ds)
 
   def generate_samples(self, data_dir, tmp_dir, dataset_split):
     with tf.Graph().as_default():
@@ -140,7 +140,7 @@ class VideoMovingMnist(video_utils.VideoProblem):
         moving_ds = self.get_train_iterator()
 
       next_video = moving_ds.get_next()
-      with tf.Session() as sess:
+      with tf.compat.v1.Session() as sess:
         sess.run(moving_ds.initializer)
 
         n_samples = SPLIT_TO_SIZE[dataset_split]

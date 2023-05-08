@@ -27,7 +27,7 @@ from tensor2tensor.models.research import glow_ops
 from tensor2tensor.utils import contrib
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import t2t_model
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 arg_scope = contrib.framework().arg_scope
@@ -112,7 +112,7 @@ class Glow(t2t_model.T2TModel):
     _, _ = self(features)  # pylint: disable=not-callable
 
     ops = [glow_ops.get_variable_ddi, glow_ops.actnorm, glow_ops.get_dropout]
-    var_scope = tf.variable_scope("glow/body", reuse=True)
+    var_scope = tf.compat.v1.variable_scope("glow/body", reuse=True)
     # If eps=None, images are sampled from the prior.
     with arg_scope(ops, init=False), var_scope:
       predictions, _, _, _ = glow_ops.encoder_decoder(
@@ -133,7 +133,7 @@ class Glow(t2t_model.T2TModel):
         tf_estimator.ModeKeys.TRAIN, hparams=self.hparams)
     train_dataset = train_dataset.batch(self.hparams.init_batch_size)
     train_dataset = self.init_preprocess(train_dataset)
-    return train_dataset.make_one_shot_iterator().get_next()
+    return tf.compat.v1.data.make_one_shot_iterator(train_dataset).get_next()
 
   @staticmethod
   def train_hooks(hook_context):
@@ -158,10 +158,10 @@ class Glow(t2t_model.T2TModel):
     if self.is_training:
       init_features = self.create_init_batch(features)
       init_op = self.objective_tower(init_features, init=True)
-      init_op = tf.Print(
+      init_op = tf.compat.v1.Print(
           init_op, [init_op], message="Triggering data-dependent init.",
           first_n=20)
-      tf.add_to_collection("glow_init_op", init_op)
+      tf.compat.v1.add_to_collection("glow_init_op", init_op)
     train_op = self.objective_tower(features, init=False)
     return tf.zeros_like(features["targets"]), {"training": train_op}
 

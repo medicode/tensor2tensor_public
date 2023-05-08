@@ -29,7 +29,7 @@ import numpy as np
 from tensor2tensor.data_generators import problem
 from tensor2tensor.data_generators import transduction_problems
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 class TransductionProblem(parameterized.TestCase):

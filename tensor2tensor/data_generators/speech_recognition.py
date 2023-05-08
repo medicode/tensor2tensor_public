@@ -29,7 +29,7 @@ from tensor2tensor.layers import common_layers
 from tensor2tensor.layers import modalities
 from tensor2tensor.utils import metrics
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 class ByteTextEncoderWithEos(text_encoder.ByteTextEncoder):
@@ -92,8 +92,8 @@ class SpeechRecognitionProblem(problem.Problem):
 
   def example_reading_spec(self):
     data_fields = {
-        "waveforms": tf.VarLenFeature(tf.float32),
-        "targets": tf.VarLenFeature(tf.int64),
+        "waveforms": tf.io.VarLenFeature(tf.float32),
+        "targets": tf.io.VarLenFeature(tf.int64),
     }
 
     data_items_to_decoders = None
@@ -126,9 +126,9 @@ class SpeechRecognitionProblem(problem.Problem):
       # This replaces CMVN estimation on data
       var_epsilon = 1e-09
       mean = tf.reduce_mean(mel_fbanks, keepdims=True, axis=1)
-      variance = tf.reduce_mean(tf.squared_difference(mel_fbanks, mean),
+      variance = tf.reduce_mean(tf.math.squared_difference(mel_fbanks, mean),
                                 keepdims=True, axis=1)
-      mel_fbanks = (mel_fbanks - mean) * tf.rsqrt(variance + var_epsilon)
+      mel_fbanks = (mel_fbanks - mean) * tf.math.rsqrt(variance + var_epsilon)
 
       # Later models like to flatten the two spatial dims. Instead, we add a
       # unit spatial dim and flatten the frequencies and channels.

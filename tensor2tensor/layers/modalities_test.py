@@ -25,9 +25,9 @@ from tensor2tensor.layers import modalities
 from tensor2tensor.utils import expert_utils
 from tensor2tensor.utils import test_utils
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
-tf.enable_eager_execution()
+tf.compat.v1.enable_eager_execution()
 
 
 class ModalityTest(tf.test.TestCase):
@@ -73,7 +73,7 @@ class ModalityTest(tf.test.TestCase):
         model_hparams,
         vocab_size)
     output = tf.concat(sharded_output, 0)
-    self.evaluate(tf.global_variables_initializer())
+    self.evaluate(tf.compat.v1.global_variables_initializer())
     res = self.evaluate(output)
     self.assertEqual(res.shape, (batch_size, length, 1, hidden_size))
 
@@ -94,7 +94,7 @@ class ModalityTest(tf.test.TestCase):
         vocab_size, size=(batch_size, length, height, 1))
     data_parallelism = expert_utils.Parallelism(
         ["/device:CPU:0"] * num_datashards)
-    sharded_body_output = tf.split(tf.to_float(body_output), num_datashards)
+    sharded_body_output = tf.split(tf.cast(body_output, dtype=tf.float32), num_datashards)
     sharded_targets = tf.split(targets, num_datashards)
     sharded_logits = data_parallelism(
         modalities.get_top(modalities.ModalityType.SYMBOL),
@@ -112,7 +112,7 @@ class ModalityTest(tf.test.TestCase):
     train_loss = (tf.add_n(sharded_loss_num) /
                   tf.maximum(1.0, tf.add_n(sharded_loss_den)))
     logits = tf.concat(sharded_logits, 0)
-    self.evaluate(tf.global_variables_initializer())
+    self.evaluate(tf.compat.v1.global_variables_initializer())
     res1, res2 = self.evaluate((logits, train_loss))
     self.assertEqual(res1.shape, (batch_size, length, height, 1, vocab_size))
     self.assertEqual(res2.shape, ())
@@ -136,7 +136,7 @@ class ModalityTest(tf.test.TestCase):
     data_parallelism = expert_utils.Parallelism(
         ["/device:CPU:0"] * num_datashards)
     with self.test_session() as session:
-      sharded_body_output = tf.split(tf.to_float(body_output), num_datashards)
+      sharded_body_output = tf.split(tf.cast(body_output, dtype=tf.float32), num_datashards)
       sharded_targets = tf.split(targets, num_datashards)
       sharded_logits = data_parallelism(
           modalities.get_top(modalities.ModalityType.SYMBOL),
@@ -154,7 +154,7 @@ class ModalityTest(tf.test.TestCase):
       train_loss = (tf.add_n(sharded_loss_num) /
                     tf.maximum(1.0, tf.add_n(sharded_loss_den)))
       logits = tf.concat(sharded_logits, 0)
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       res1, res2 = session.run((logits, train_loss))
     self.assertEqual(res1.shape, (batch_size, length, height, 1, vocab_size))
     self.assertEqual(res2.shape, ())

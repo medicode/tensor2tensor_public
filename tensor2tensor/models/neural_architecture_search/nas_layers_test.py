@@ -28,7 +28,7 @@ from tensor2tensor.layers import common_attention
 from tensor2tensor.models import transformer
 from tensor2tensor.models.neural_architecture_search import nas_layers as layers
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 _BATCH_SIZE = 32
 _TOTAL_SEQUENCE_LENGTH = 20
@@ -45,10 +45,10 @@ _RESIZE_EXEMPT_LAYER_PREFIXES = [
 def _apply_encoder_layer(translation_layer, output_depth, nonpadding_list):
   """Applies an encoder layer with basic arguments."""
 
-  input_tensor = tf.random_uniform(
+  input_tensor = tf.random.uniform(
       [_BATCH_SIZE, _TOTAL_SEQUENCE_LENGTH, _INPUT_DEPTH]) / 4.0
   nonpadding = tf.constant(nonpadding_list)
-  residual_tensor = tf.random_uniform(
+  residual_tensor = tf.random.uniform(
       [_BATCH_SIZE, _TOTAL_SEQUENCE_LENGTH, output_depth])
   hparams = transformer.transformer_base()
 
@@ -111,7 +111,7 @@ def _zero_after_index_copy(feed_input, zero_after_index):
 
 def _get_empirical_parameters():
   """Gets the number of parameters built into the current Tensorflow graph."""
-  trainable_variables_list = tf.trainable_variables()
+  trainable_variables_list = tf.compat.v1.trainable_variables()
 
   empirical_num_params = 0
   for variable_tensor in trainable_variables_list:
@@ -241,7 +241,7 @@ class LayersTest(parameterized.TestCase, tf.test.TestCase):
       self.assertEqual(empirical_num_params, reported_num_params)
 
       # Make sure padding is applied properly (no leaks).
-      sess.run(tf.global_variables_initializer())
+      sess.run(tf.compat.v1.global_variables_initializer())
       output = sess.run(output_tensor)
 
     for i, j in itertools.product(
@@ -260,7 +260,7 @@ class LayersTest(parameterized.TestCase, tf.test.TestCase):
     with self.test_session(graph=tf.Graph()) as sess:
 
       # Check that the output shape is as expected.
-      input_tensor = tf.placeholder(
+      input_tensor = tf.compat.v1.placeholder(
           tf.float32, [_BATCH_SIZE, _TOTAL_SEQUENCE_LENGTH, _INPUT_DEPTH])
       encoder_depth = int(_INPUT_DEPTH / 2)
       for prefix in _RESIZE_EXEMPT_LAYER_PREFIXES:
@@ -294,7 +294,7 @@ class LayersTest(parameterized.TestCase, tf.test.TestCase):
       # Produce the outputs for both types of input.
       feed_dict = {
           v: np.random.rand(*v.shape.as_list()) - .5
-          for v in tf.all_variables()
+          for v in tf.compat.v1.all_variables()
       }
       feed_dict[input_tensor] = feed_input
       control_output = sess.run(output_tensor, feed_dict)

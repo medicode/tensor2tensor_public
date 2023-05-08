@@ -25,7 +25,7 @@ from tensor2tensor.utils import contrib
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import t2t_model
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 @registry.register_model
@@ -99,7 +99,7 @@ def conv_layer(x,
                dilation_rate,
                name="conv"):
   """Single conv layer with relu, optional pooling, and dropout."""
-  with tf.variable_scope(name):
+  with tf.compat.v1.variable_scope(name):
     out = x
     out = common_layers.conv1d_block(
         out,
@@ -109,19 +109,19 @@ def conv_layer(x,
         padding="same")
     out = tf.nn.relu(out)
     if pooling_window:
-      out = tf.layers.max_pooling1d(
+      out = tf.compat.v1.layers.max_pooling1d(
           out, pooling_window, pooling_window, padding="same")
-    out = tf.layers.dropout(out, dropout_rate)
+    out = tf.compat.v1.layers.dropout(out, dropout_rate)
     return out
 
 
 def fc_layer(x, num_out, dropout_rate, name="fc"):
-  with tf.variable_scope(name):
+  with tf.compat.v1.variable_scope(name):
     out = x
-    out = tf.layers.dense(out, num_out)
+    out = tf.compat.v1.layers.dense(out, num_out)
     out = contrib.layers().layer_norm(out)
     out = tf.nn.relu(out)
-    out = tf.layers.dropout(out, dropout_rate)
+    out = tf.compat.v1.layers.dropout(out, dropout_rate)
     return out
 
 

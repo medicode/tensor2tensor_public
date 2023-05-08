@@ -25,7 +25,7 @@ from tensor2tensor.data_generators import problem_hparams
 from tensor2tensor.layers import modalities
 from tensor2tensor.models.research import vqa_attention
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -61,7 +61,7 @@ class VqaAttentionBaselineTest(tf.test.TestCase):
       model = vqa_attention.VqaAttentionBaseline(
           hparams, tf_estimator.ModeKeys.TRAIN, p_hparams)
       logits, losses = model(features)
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       logits_, losses_ = session.run([logits, losses])
 
     self.assertEqual(logits_.shape, (batch_size, 1, 1, 1, num_classes + 1))

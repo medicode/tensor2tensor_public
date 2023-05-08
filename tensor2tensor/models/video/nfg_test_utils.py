@@ -25,7 +25,7 @@ import numpy as np
 from tensor2tensor.data_generators import video_generated  # pylint: disable=unused-import
 from tensor2tensor.models.video import next_frame_glow
 from tensor2tensor.utils import registry
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 MODES = tf_estimator.ModeKeys
 
@@ -81,7 +81,7 @@ def create_basic_features(hparams):
   dataset = hparams.problem.dataset(MODES.TRAIN, hparams=hparams)
   dataset = dataset.batch(hparams.batch_size)
   dataset = dataset.map(fill_infer_targets)
-  return dataset.make_one_shot_iterator().get_next()
+  return tf.compat.v1.data.make_one_shot_iterator(dataset).get_next()
 
 
 class NextFrameGlowTest(tf.test.TestCase):
@@ -106,15 +106,15 @@ class NextFrameGlowTest(tf.test.TestCase):
       self.assertLen(model.all_top_latents, exp_num_frames)
       self.assertLen(model.all_level_latents, exp_num_frames)
 
-    with tf.Session() as session:
+    with tf.compat.v1.Session() as session:
 
       if model_path is not None:
-        saver = tf.train.Saver()
+        saver = tf.compat.v1.train.Saver()
 
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
 
       # Run initialization.
-      init_op = tf.get_collection("glow_init_op")
+      init_op = tf.compat.v1.get_collection("glow_init_op")
       session.run(init_op)
 
       loss, top_conds = session.run([train_op["training"], model._all_conds])  # pylint: disable=protected-access
@@ -172,8 +172,8 @@ class NextFrameGlowTest(tf.test.TestCase):
       model_path = os.path.join(curr_dir, "model")
 
       if self.should_run_session(hparams):
-        with tf.Session() as session:
-          saver = tf.train.Saver()
+        with tf.compat.v1.Session() as session:
+          saver = tf.compat.v1.train.Saver()
           saver.restore(session, model_path)
           outputs_np = session.run(outputs)
           self.assertEqual(outputs_np.shape, (16, out_frames, 64, 64, 3))

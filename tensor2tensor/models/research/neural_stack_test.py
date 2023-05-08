@@ -25,7 +25,7 @@ from tensor2tensor.layers import modalities
 from tensor2tensor.models.research import neural_stack
 from tensor2tensor.utils import contrib
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 def build_fake_controller(cell):
@@ -36,7 +36,7 @@ def build_fake_controller(cell):
   """
   cell.current_step = cell.add_variable(
       "current_step", [],
-      initializer=tf.constant_initializer(-1),
+      initializer=tf.compat.v1.constant_initializer(-1),
       dtype=tf.int32,
       trainable=False)
 
@@ -59,7 +59,7 @@ def call_fake_controller(push_values, pop_values, write_values, output_values):
     del batch_size
     next_step = tf.constant(0)
     if hasattr(cell, "current_step"):
-      next_step = tf.assign_add(cell.current_step, tf.constant(1))
+      next_step = tf.compat.v1.assign_add(cell.current_step, tf.constant(1))
     return neural_stack.NeuralStackControllerInterface(
         push_strengths=tf.slice(tf.constant(push_values),
                                 [next_step, 0, 0, 0],
@@ -165,13 +165,13 @@ class NeuralStackCellTest(tf.test.TestCase):
     assert_controller_shapes(self, controller_outputs,
                              stack.get_controller_shape(batch_size))
 
-    (outputs, state) = tf.nn.dynamic_rnn(cell=stack,
+    (outputs, state) = tf.compat.v1.nn.dynamic_rnn(cell=stack,
                                          inputs=stack_input,
                                          time_major=False,
                                          dtype=tf.float32)
 
     with self.test_session() as sess:
-      sess.run(tf.global_variables_initializer())
+      sess.run(tf.compat.v1.global_variables_initializer())
       _, state_vals = sess.run([outputs, state])
       (_, stack_top, values, read_strengths, write_strengths) = state_vals
 
@@ -232,13 +232,13 @@ class NeuralQueueCellTest(tf.test.TestCase):
     assert_controller_shapes(self, controller_outputs,
                              queue.get_controller_shape(batch_size))
 
-    (outputs, state) = tf.nn.dynamic_rnn(cell=queue,
+    (outputs, state) = tf.compat.v1.nn.dynamic_rnn(cell=queue,
                                          inputs=rnn_input,
                                          time_major=False,
                                          dtype=tf.float32)
 
     with self.test_session() as sess:
-      sess.run(tf.global_variables_initializer())
+      sess.run(tf.compat.v1.global_variables_initializer())
       _, state_vals = sess.run([outputs, state])
       (_, queue_front, values, read_strengths, write_strengths) = state_vals
 
@@ -369,13 +369,13 @@ class NeuralDequeCellTest(tf.test.TestCase):
     assert_controller_shapes(self, controller_outputs,
                              deque.get_controller_shape(batch_size))
 
-    (outputs, state) = tf.nn.dynamic_rnn(cell=deque,
+    (outputs, state) = tf.compat.v1.nn.dynamic_rnn(cell=deque,
                                          inputs=rnn_input,
                                          time_major=False,
                                          dtype=tf.float32)
 
     with self.test_session() as sess:
-      sess.run(tf.global_variables_initializer())
+      sess.run(tf.compat.v1.global_variables_initializer())
       _, state_vals = sess.run([outputs, state])
       (_, read_values,
        memory_values,

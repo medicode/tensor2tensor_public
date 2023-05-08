@@ -32,7 +32,7 @@ import math
 from tensor2tensor.layers import common_hparams
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import t2t_model
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -87,7 +87,7 @@ def shuffle_layer(inputs, shuffle_fn=rol):
   """
 
   length = tf.shape(inputs)[1]
-  n_bits = tf.log(tf.cast(length - 1, tf.float32)) / tf.log(2.0)
+  n_bits = tf.math.log(tf.cast(length - 1, tf.float32)) / tf.math.log(2.0)
   n_bits = tf.cast(n_bits, tf.int32) + 1
 
   indices = tf.range(0, length)
@@ -126,14 +126,14 @@ def conv_linear_map(inputs, nin, nout, bias_start, prefix):
     tf.Tensor: Inputs with applied convolution
   """
 
-  with tf.variable_scope(prefix):
+  with tf.compat.v1.variable_scope(prefix):
     inp_shape = tf.shape(inputs)
 
-    initializer = tf.variance_scaling_initializer(
+    initializer = tf.compat.v1.variance_scaling_initializer(
         scale=1.0, mode="fan_avg", distribution="uniform")
-    kernel = tf.get_variable("CvK", [nin, nout], initializer=initializer)
-    bias_term = tf.get_variable(
-        "CvB", [nout], initializer=tf.constant_initializer(0.0))
+    kernel = tf.compat.v1.get_variable("CvK", [nin, nout], initializer=initializer)
+    bias_term = tf.compat.v1.get_variable(
+        "CvB", [nout], initializer=tf.compat.v1.constant_initializer(0.0))
 
     mul_shape = [inp_shape[0] * inp_shape[1], nin]
     res = tf.matmul(tf.reshape(inputs, mul_shape), kernel)
@@ -229,11 +229,11 @@ class SwitchLayer(object):
     self.length = input_shape[1]
     self.num_units = inputs.shape.as_list()[2]
 
-    self.n_bits = tf.log(tf.cast(self.length - 1, tf.float32)) / tf.log(2.0)
+    self.n_bits = tf.math.log(tf.cast(self.length - 1, tf.float32)) / tf.math.log(2.0)
     self.n_bits = tf.floor(self.n_bits) + 1
 
-    initializer = tf.constant_initializer(0.5)
-    residual_scale = tf.get_variable(
+    initializer = tf.compat.v1.constant_initializer(0.5)
+    residual_scale = tf.compat.v1.get_variable(
         self.prefix + "/residual_scale", [self.num_units],
         initializer=initializer)
 
@@ -251,7 +251,7 @@ class SwitchLayer(object):
     if self.dropout > 0:
       candidate = tf.nn.dropout(candidate, rate=self.dropout / self.n_bits)
     if self.dropout != 0.0 and self.mode == tf_estimator.ModeKeys.TRAIN:
-      noise = tf.random_normal(tf.shape(candidate), mean=1.0, stddev=0.001)
+      noise = tf.random.normal(tf.shape(candidate), mean=1.0, stddev=0.001)
       candidate = candidate * noise
 
     return candidate
@@ -284,7 +284,7 @@ def shuffle_network(inputs, hparams):
   """
 
   def forward_step(state, layer_nr):
-    with tf.variable_scope("forward"):
+    with tf.compat.v1.variable_scope("forward"):
       last_state, residuals = state
       prev = residuals[layer_nr, :, :, :]
       switch = SwitchLayer("switch", hparams.dropout, hparams.mode)
@@ -292,7 +292,7 @@ def shuffle_network(inputs, hparams):
       return shuffle_layer(cur), residuals
 
   def reverse_step(state, layer_nr):
-    with tf.variable_scope("reverse"):
+    with tf.compat.v1.variable_scope("reverse"):
       last_state, residuals = state
       prev = residuals[layer_nr, :, :, :]
       switch = SwitchLayer("reverse_switch", hparams.dropout, hparams.mode)
@@ -300,7 +300,7 @@ def shuffle_network(inputs, hparams):
       return reverse_shuffle_layer(cur), residuals
 
   input_shape = tf.shape(inputs)
-  n_bits = tf.log(tf.cast(input_shape[1] - 1, tf.float32)) / tf.log(2.0)
+  n_bits = tf.math.log(tf.cast(input_shape[1] - 1, tf.float32)) / tf.math.log(2.0)
   n_bits = tf.cast(n_bits, tf.int32) + 1
 
   queue_shape = [n_bits * 2, input_shape[0], input_shape[1], input_shape[2]]
@@ -308,7 +308,7 @@ def shuffle_network(inputs, hparams):
   block_out = tf.tanh(inputs)
 
   for k in range(hparams.num_hidden_layers):
-    with tf.variable_scope("benes_block_" + str(k), reuse=tf.AUTO_REUSE):
+    with tf.compat.v1.variable_scope("benes_block_" + str(k), reuse=tf.compat.v1.AUTO_REUSE):
       forward_outputs, _ = tf.scan(
           forward_step,
           tf.range(0, n_bits),
@@ -400,8 +400,8 @@ class ShuffleNetwork(t2t_model.T2TModel):
     targets_length = tf.shape(features["targets"])[1]
     length = tf.maximum(length, targets_length)
 
-    p = tf.log(tf.cast(length, tf.float32)) / tf.log(2.0)
-    p = tf.cast(tf.ceil(p), tf.int32)
+    p = tf.math.log(tf.cast(length, tf.float32)) / tf.math.log(2.0)
+    p = tf.cast(tf.math.ceil(p), tf.int32)
     return tf.pow(2, p)
 
   def infer(self, features=None, **kwargs):
@@ -424,7 +424,7 @@ class ShuffleNetwork(t2t_model.T2TModel):
 
     # Run the model
     self.hparams.force_full_predict = True
-    with tf.variable_scope(self.name):
+    with tf.compat.v1.variable_scope(self.name):
       logits, _ = self.model_fn(features)
 
     assert len(logits.shape) == 5  # [batch, time, 1, 1, vocab]
@@ -451,7 +451,7 @@ class ShuffleNetwork(t2t_model.T2TModel):
 
     onehot_labels = tf.one_hot(features["targets"],
                                self._problem_hparams.vocab_size["targets"])
-    cost_vector = tf.nn.softmax_cross_entropy_with_logits_v2(
+    cost_vector = tf.nn.softmax_cross_entropy_with_logits(
         logits=logits, labels=onehot_labels)
     return tf.reduce_mean(cost_vector)
 

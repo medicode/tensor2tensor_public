@@ -23,7 +23,7 @@ from gym.spaces import Box
 from gym.spaces import Discrete
 import numpy as np
 from tensor2tensor.envs import gym_spaces_utils
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 class GymSpacesUtilsTest(tf.test.TestCase):
@@ -31,14 +31,14 @@ class GymSpacesUtilsTest(tf.test.TestCase):
   def test_discrete_space_spec(self):
     discrete_space = Discrete(100)
     spec = gym_spaces_utils.gym_space_spec(discrete_space)
-    self.assertIsInstance(spec, tf.FixedLenFeature)
+    self.assertIsInstance(spec, tf.io.FixedLenFeature)
     self.assertEqual(spec.dtype, tf.int64)
     self.assertListEqual(list(spec.shape), [1])
 
   def test_box_space_spec(self):
     box_space = Box(low=0, high=10, shape=[5, 6], dtype=np.float32)
     spec = gym_spaces_utils.gym_space_spec(box_space)
-    self.assertIsInstance(spec, tf.FixedLenFeature)
+    self.assertIsInstance(spec, tf.io.FixedLenFeature)
     self.assertEqual(spec.dtype, tf.float32)
     self.assertListEqual(list(spec.shape), [5, 6])
 

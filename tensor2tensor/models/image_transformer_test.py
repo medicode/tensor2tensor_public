@@ -26,7 +26,7 @@ from tensor2tensor.data_generators import problem_hparams
 from tensor2tensor.layers import common_image_attention
 from tensor2tensor.models import image_transformer
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -59,7 +59,7 @@ class ImagetransformerTest(parameterized.TestCase, tf.test.TestCase):
       }
       model = net(hparams, tf_estimator.ModeKeys.TRAIN, p_hparams)
       logits, _ = model(features)
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       res = session.run(logits)
     if hparams.likelihood == common_image_attention.DistributionType.CAT:
       expected = (batch_size, size, size, 3, vocab_size)

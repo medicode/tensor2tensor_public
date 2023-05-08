@@ -28,7 +28,7 @@ import six
 
 from tensor2tensor.layers import common_attention
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 # Registry layer keys.
 ATTEND_TO_ENCODER_REGISTRY_KEY = "attend_to_encoder"
@@ -158,7 +158,7 @@ class TranslationLayer(object):
       layer_output = activation(layer_output)
 
     if postprocess_dropout:
-      layer_output = tf.nn.dropout(layer_output, 1 - hparams.relu_dropout)
+      layer_output = tf.nn.dropout(layer_output, rate=1 - (1 - hparams.relu_dropout))
 
     if residual_tensor is not None:
       layer_output += residual_tensor
@@ -234,7 +234,7 @@ class ConvLayerBase(TranslationLayer):
   def _apply_logic(self, input_tensor, output_depth, hparams, var_scope_suffix,
                    nonpadding, mask_future, **unused_kwargs):
     """Applies conv logic to `input_tensor`."""
-    with tf.variable_scope("%s_conv_%s" % (self._conv_type, var_scope_suffix)):
+    with tf.compat.v1.variable_scope("%s_conv_%s" % (self._conv_type, var_scope_suffix)):
       if mask_future:
         # Pad shift the inputs so that temporal information does not leak. This
         # must be used in tandem with VALID padding.
@@ -261,7 +261,7 @@ class SeparableConvLayer(ConvLayerBase):
 
   def _conv_function(self, input_tensor, output_depth, padding):
     conv_output = tf.squeeze(input_tensor, 2)
-    separable_conv_1d = tf.layers.SeparableConv1D(
+    separable_conv_1d = tf.compat.v1.layers.SeparableConv1D(
         output_depth,
         self._conv_width,
         padding=padding,
@@ -281,7 +281,7 @@ class StandardConvLayer(ConvLayerBase):
     super(StandardConvLayer, self).__init__("standard", conv_width, 1)
 
   def _conv_function(self, input_tensor, output_depth, padding):
-    return tf.layers.conv2d(
+    return tf.compat.v1.layers.conv2d(
         input_tensor,
         output_depth, [self._conv_width, 1],
         padding=padding,
@@ -318,7 +318,7 @@ class DepthwiseConvLayer(ConvLayerBase):
           "input tensor (%s)." % (output_depth, input_depth))
     channel_multiplier = calculate_depthwise_channel_multiplier(
         input_depth, output_depth)
-    kernel = tf.get_variable(
+    kernel = tf.compat.v1.get_variable(
         "kernel", [self._conv_width, 1, input_depth, channel_multiplier])
     return tf.nn.depthwise_conv2d(
         input_tensor,
@@ -351,14 +351,14 @@ class LightweightConvLayer(ConvLayerBase):
         input_depth, output_depth)
 
     num_input_variables = input_depth // self._num_repeat
-    kernel_base = tf.get_variable(
+    kernel_base = tf.compat.v1.get_variable(
         "kernel_base",
         [self._conv_width, 1, num_input_variables, channel_multiplier])
     kernel = tf.concat([kernel_base] * self._num_repeat, axis=2)
 
     num_nonrepeated_variables = input_depth % self._num_repeat
     if num_nonrepeated_variables:
-      nonrepeated_variables = tf.get_variable(
+      nonrepeated_variables = tf.compat.v1.get_variable(
           "nonrepeated_kernel_variables",
           [self._conv_width, 1, num_nonrepeated_variables, channel_multiplier])
       kernel = tf.concat([kernel, nonrepeated_variables], axis=2)
@@ -386,7 +386,7 @@ class DilatedConvLayer(ConvLayerBase):
 
   def _conv_function(self, input_tensor, output_depth, padding):
     input_depth = input_tensor.shape.as_list()[-1]
-    kernel = tf.get_variable("kernel",
+    kernel = tf.compat.v1.get_variable("kernel",
                              [self._conv_width, 1, input_depth, output_depth])
     return tf.nn.atrous_conv2d(
         input_tensor,
@@ -425,7 +425,7 @@ class AttentionLayer(TranslationLayer):
                    attention_dropout_broadcast_dims=None,
                    **kwargs):
     """Applies attention logic to `input_tensor`."""
-    with tf.variable_scope("standard_attention_layer_" + var_scope_suffix):
+    with tf.compat.v1.variable_scope("standard_attention_layer_" + var_scope_suffix):
       hidden_depth = int(
           input_tensor.shape.as_list()[-1] * self._hidden_dim_multiplier)
 
@@ -481,7 +481,7 @@ class AttendToEncoderLayerBase(TranslationLayer):
                    attention_dropout_broadcast_dims=None,
                    **unused_kwargs):
     """Applies attention logic to `input_tensor`."""
-    with tf.variable_scope("attend_to_encoder_layer_" + var_scope_suffix):
+    with tf.compat.v1.variable_scope("attend_to_encoder_layer_" + var_scope_suffix):
       hidden_depth = int(input_tensor.shape.as_list()[-1])
       num_encoder_cells = len(encoder_cell_outputs)
       encoder_cell_index = self._determine_encoder_cell_index(
@@ -549,8 +549,8 @@ class GatedLinearUnitLayer(TranslationLayer):
 
   def _apply_logic(self, input_tensor, output_depth, hparams, var_scope_suffix,
                    nonpadding, mask_future, **unused_kwargs):
-    values = tf.layers.dense(input_tensor, output_depth)
-    gates = tf.layers.dense(
+    values = tf.compat.v1.layers.dense(input_tensor, output_depth)
+    gates = tf.compat.v1.layers.dense(
         input_tensor, output_depth, activation=tf.nn.sigmoid)
     return values * gates
 

@@ -47,7 +47,7 @@ from tensor2tensor.utils import misc_utils
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import trainer_lib
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 flags = tf.flags
@@ -86,9 +86,9 @@ def train(hparams, output_dir, env_problem_name, report_fn=None):
   """Train."""
   env_fn = initialize_env_specs(hparams, env_problem_name)
 
-  tf.logging.vlog(1, "HParams in trainer_model_free.train : %s",
+  tf.compat.v1.logging.vlog(1, "HParams in trainer_model_free.train : %s",
                   misc_utils.pprint_hparams(hparams))
-  tf.logging.vlog(1, "Using hparams.base_algo: %s", hparams.base_algo)
+  tf.compat.v1.logging.vlog(1, "Using hparams.base_algo: %s", hparams.base_algo)
   learner = rl_utils.LEARNERS[hparams.base_algo](
       hparams.frame_stack_size, output_dir, output_dir, total_num_epochs=1,
       distributional_size=hparams.get("distributional_size", 1),
@@ -101,17 +101,17 @@ def train(hparams, output_dir, env_problem_name, report_fn=None):
       policy_hparams, hparams, hparams.base_algo + "_"
   )
 
-  tf.logging.vlog(1, "Policy HParams : %s",
+  tf.compat.v1.logging.vlog(1, "Policy HParams : %s",
                   misc_utils.pprint_hparams(policy_hparams))
 
   # TODO(konradczechowski): remove base_algo dependance, when evaluation method
   # will be decided
   if hparams.base_algo == "ppo":
     total_steps = policy_hparams.epochs_num
-    tf.logging.vlog(2, "total_steps: %d", total_steps)
+    tf.compat.v1.logging.vlog(2, "total_steps: %d", total_steps)
 
     eval_every_epochs = policy_hparams.eval_every_epochs
-    tf.logging.vlog(2, "eval_every_epochs: %d", eval_every_epochs)
+    tf.compat.v1.logging.vlog(2, "eval_every_epochs: %d", eval_every_epochs)
 
     if eval_every_epochs == 0:
       eval_every_epochs = total_steps
@@ -123,17 +123,17 @@ def train(hparams, output_dir, env_problem_name, report_fn=None):
         clipped=False
     )
 
-    tf.logging.vlog(1, "metric_name: %s", metric_name)
+    tf.compat.v1.logging.vlog(1, "metric_name: %s", metric_name)
 
     eval_metrics_dir = os.path.join(output_dir, "eval_metrics")
     eval_metrics_dir = os.path.expanduser(eval_metrics_dir)
-    tf.gfile.MakeDirs(eval_metrics_dir)
-    eval_metrics_writer = tf.summary.FileWriter(eval_metrics_dir)
+    tf.io.gfile.makedirs(eval_metrics_dir)
+    eval_metrics_writer = tf.compat.v1.summary.FileWriter(eval_metrics_dir)
 
     def evaluate_on_new_model(model_dir_path):
       global step
       eval_metrics = rl_utils.evaluate_all_configs(hparams, model_dir_path)
-      tf.logging.info(
+      tf.compat.v1.logging.info(
           "Agent eval metrics:\n{}".format(pprint.pformat(eval_metrics)))
       rl_utils.summarize_metrics(eval_metrics_writer, eval_metrics, step)
       if report_fn:
@@ -159,10 +159,10 @@ def train(hparams, output_dir, env_problem_name, report_fn=None):
 def main(_):
   hparams = trainer_lib.create_hparams(FLAGS.hparams_set, FLAGS.hparams)
 
-  tf.logging.info("Starting model free training.")
+  tf.compat.v1.logging.info("Starting model free training.")
   train(hparams, FLAGS.output_dir, FLAGS.env_problem_name)
-  tf.logging.info("Ended model free training.")
+  tf.compat.v1.logging.info("Ended model free training.")
 
 
 if __name__ == "__main__":
-  tf.app.run()
+  tf.compat.v1.app.run()

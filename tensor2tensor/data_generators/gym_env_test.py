@@ -31,7 +31,7 @@ from tensor2tensor.data_generators import gym_env
 from tensor2tensor.data_generators import problem
 from tensor2tensor.rl.gym_utils import make_gym_env
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 class TestEnv(gym.Env):
@@ -76,7 +76,7 @@ class GymEnvTest(tf.test.TestCase):
   # - partial write detection (should raise on loading)
 
   def setUp(self):
-    self.out_dir = tf.test.get_temp_dir()
+    self.out_dir = tf.compat.v1.test.get_temp_dir()
     shutil.rmtree(self.out_dir)
     os.mkdir(self.out_dir)
     np.random.seed(0)
@@ -165,7 +165,7 @@ class GymEnvTest(tf.test.TestCase):
     self.assertTrue(filenames)
     for filename in filenames:
       path = os.path.join(self.out_dir, filename)
-      records = list(tf.python_io.tf_record_iterator(path))
+      records = list(tf.compat.v1.python_io.tf_record_iterator(path))
       self.assertTrue(records)
 
   def test_shards_per_epoch(self):
@@ -203,7 +203,7 @@ class GymEnvTest(tf.test.TestCase):
         ).features.feature["frame_number"].int64_list.value[0]
         for (_, paths) in env.splits_and_paths(self.out_dir)
         for path in paths
-        for record in tf.python_io.tf_record_iterator(path)
+        for record in tf.compat.v1.python_io.tf_record_iterator(path)
     ]
     last_frame_number = -1
     for frame_number in frame_numbers:

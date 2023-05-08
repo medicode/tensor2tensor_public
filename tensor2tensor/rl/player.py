@@ -67,7 +67,7 @@ from tensor2tensor.rl.rl_utils import full_game_name
 import tensor2tensor.rl.trainer_model_based_params  # pylint: disable=unused-import
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 flags = tf.flags
@@ -537,5 +537,5 @@ def main(_):
 
 
 if __name__ == "__main__":
-  tf.logging.set_verbosity(tf.logging.INFO)
-  tf.app.run()
+  tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
+  tf.compat.v1.app.run()

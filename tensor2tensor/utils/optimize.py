@@ -28,7 +28,7 @@ from tensor2tensor.utils import multistep_optimizer
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import yellowfin
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 from tensorflow.python.framework import dtypes  # pylint: disable=g-direct-tensorflow-import
@@ -50,12 +50,12 @@ def optimize(loss,
   loss = weight_decay_and_noise(loss, hparams, learning_rate)
   loss = tf.identity(loss, name="total_loss")
   if variables is None:
-    variables = tf.trainable_variables()
+    variables = tf.compat.v1.trainable_variables()
   # Print trainable variables.
   log_variable_sizes(variables, verbose=hparams.summarize_vars)
   # Print non-trainable variables.
   non_trainable_variables = list(
-      set(tf.global_variables()) - set(variables))
+      set(tf.compat.v1.global_variables()) - set(variables))
   log_variable_sizes(non_trainable_variables, tag="Non-trainable variables",
                      verbose=hparams.summarize_vars)
   if hparams.summarize_vars:
@@ -63,7 +63,7 @@ def optimize(loss,
     # Summarize non-trainable variables as well
     summarize_variables(non_trainable_variables, tag="Non-trainable variables")
   diet_vars = [
-      v for v in tf.global_variables() if v.dtype == dtypes.float16_ref
+      v for v in tf.compat.v1.global_variables() if v.dtype == dtypes.float16_ref
   ]
   log_variable_sizes(
       diet_vars, "Diet Variables", verbose=hparams.summarize_vars)
@@ -79,27 +79,27 @@ def optimize(loss,
     else:
       setattr(opt, "_use_locking", "True")
       setattr(opt, "_name", "ConditionalOptimizer")
-      opt = tf.train.experimental.enable_mixed_precision_graph_rewrite(opt)
+      opt = tf.compat.v1.train.experimental.enable_mixed_precision_graph_rewrite(opt)
 
   opt_summaries = []
   if common_layers.should_generate_summaries():
-    tf.summary.scalar("learning_rate", learning_rate)
+    tf.compat.v1.summary.scalar("learning_rate", learning_rate)
     opt_summaries.append("loss")
     if hparams.summarize_grads:
-      tf.logging.info("Summarizing gradients")
+      tf.compat.v1.logging.info("Summarizing gradients")
       opt_summaries.extend(
           ["gradients", "gradient_norm", "global_gradient_norm"])
 
   if hparams.clip_grad_norm:
-    tf.logging.info("Clipping gradients, norm: %0.5f", hparams.clip_grad_norm)
+    tf.compat.v1.logging.info("Clipping gradients, norm: %0.5f", hparams.clip_grad_norm)
   if hparams.grad_noise_scale:
-    tf.logging.info("Adding noise to gradients, noise scale: %0.5f",
+    tf.compat.v1.logging.info("Adding noise to gradients, noise scale: %0.5f",
                     hparams.grad_noise_scale)
 
   train_op = contrib.layers().optimize_loss(
       name="training",
       loss=loss,
-      global_step=tf.train.get_or_create_global_step(),
+      global_step=tf.compat.v1.train.get_or_create_global_step(),
       learning_rate=learning_rate,
       clip_gradients=hparams.clip_grad_norm or None,
       gradient_noise_scale=hparams.grad_noise_scale or None,
@@ -142,7 +142,7 @@ def multistep_adam(learning_rate, hparams):
 
 @registry.register_optimizer
 def momentum(learning_rate, hparams):
-  return tf.train.MomentumOptimizer(
+  return tf.compat.v1.train.MomentumOptimizer(
       learning_rate,
       momentum=hparams.optimizer_momentum_momentum,
       use_nesterov=hparams.optimizer_momentum_nesterov)
@@ -157,7 +157,7 @@ def yellow_fin(learning_rate, hparams):
 
 @registry.register_optimizer
 def true_adam(learning_rate, hparams):
-  return tf.train.AdamOptimizer(
+  return tf.compat.v1.train.AdamOptimizer(
       learning_rate,
       beta1=hparams.optimizer_adam_beta1,
       beta2=hparams.optimizer_adam_beta2,
@@ -193,11 +193,11 @@ for _name, _opt in contrib.layers().OPTIMIZER_CLS_NAMES.items():
   _register_base_optimizer(_name, _opt)
 
 
-class ConditionalOptimizer(tf.train.Optimizer):
+class ConditionalOptimizer(tf.compat.v1.train.Optimizer):
   """Conditional optimizer."""
 
   def __init__(self, optimizer_name, lr, hparams, use_tpu=False):  # pylint: disable=super-init-not-called
-    tf.logging.info("Using optimizer %s", optimizer_name)
+    tf.compat.v1.logging.info("Using optimizer %s", optimizer_name)
 
     mlperf_log.transformer_print(key=mlperf_log.OPT_NAME,
                                  value=optimizer_name,
@@ -216,13 +216,13 @@ class ConditionalOptimizer(tf.train.Optimizer):
     self._opt = registry.optimizer(optimizer_name)(lr, hparams)
     if _mixed_precision_is_enabled(hparams):
       if not hparams.mixed_precision_optimizer_loss_scaler:
-        tf.logging.warning("Using mixed precision without a loss scaler will "
+        tf.compat.v1.logging.warning("Using mixed precision without a loss scaler will "
                            "likely cause numerical errors.")
       elif hparams.mixed_precision_optimizer_loss_scaler != "exponential":
         raise ValueError("Mixed precision training only supports the "
                          "exponential loss scaler")
       else:
-        tf.logging.info(
+        tf.compat.v1.logging.info(
             ("Using Exponential Update Loss Scaler with",
              "init loss scale of {}".format(
                  hparams.mixed_precision_optimizer_init_loss_scale)))
@@ -284,7 +284,7 @@ class ConditionalOptimizer(tf.train.Optimizer):
   def apply_gradients(self, grads_and_vars, global_step=None, name=None):
     if contrib.is_tf2:
       with tf.control_dependencies(
-          [tf.assign_add(tf.train.get_or_create_global_step(), 1)]):
+          [tf.compat.v1.assign_add(tf.compat.v1.train.get_or_create_global_step(), 1)]):
         return self._opt.apply_gradients(grads_and_vars, name=name)
     else:
       return self._opt.apply_gradients(
@@ -294,14 +294,14 @@ class ConditionalOptimizer(tf.train.Optimizer):
 def weight_decay_and_noise(loss, hparams, learning_rate, var_list=None):
   """Apply weight decay and weight noise."""
   if var_list is None:
-    var_list = tf.trainable_variables()
+    var_list = tf.compat.v1.trainable_variables()
 
   decay_vars = [v for v in var_list]
   noise_vars = [v for v in var_list if "/body/" in v.name]
 
   weight_decay_loss = weight_decay(hparams.weight_decay, decay_vars)
   if hparams.weight_decay and common_layers.should_generate_summaries():
-    tf.summary.scalar("losses/weight_decay", weight_decay_loss)
+    tf.compat.v1.summary.scalar("losses/weight_decay", weight_decay_loss)
   weight_noise_ops = weight_noise(hparams.weight_noise, learning_rate,
                                   noise_vars)
 
@@ -317,7 +317,7 @@ def weight_noise(noise_rate, learning_rate, var_list):
   if not noise_rate:
     return [tf.no_op()]
 
-  tf.logging.info("Applying weight noise scaled by learning rate, "
+  tf.compat.v1.logging.info("Applying weight noise scaled by learning rate, "
                   "noise_rate: %0.5f", noise_rate)
 
   noise_ops = []
@@ -326,8 +326,8 @@ def weight_noise(noise_rate, learning_rate, var_list):
     with tf.device(v.device):  # pylint: disable=protected-access
       scale = noise_rate * learning_rate * 0.001
       if common_layers.should_generate_summaries():
-        tf.summary.scalar("weight_noise_scale", scale)
-      noise = tf.truncated_normal(v.shape) * scale
+        tf.compat.v1.summary.scalar("weight_noise_scale", scale)
+      noise = tf.random.truncated_normal(v.shape) * scale
       noise_op = v.assign_add(noise)
       noise_ops.append(noise_op)
 
@@ -339,7 +339,7 @@ def weight_decay(decay_rate, var_list, skip_biases=True):
   if not decay_rate:
     return 0.
 
-  tf.logging.info("Applying weight decay, decay_rate: %0.5f", decay_rate)
+  tf.compat.v1.logging.info("Applying weight decay, decay_rate: %0.5f", decay_rate)
 
   weight_decays = []
   for v in var_list:
@@ -363,7 +363,7 @@ def log_variable_sizes(var_list=None, tag=None, verbose=False):
     verbose: bool, if True, log every weight; otherwise, log total size only.
   """
   if var_list is None:
-    var_list = tf.trainable_variables()
+    var_list = tf.compat.v1.trainable_variables()
   if tag is None:
     tag = "Trainable Variables"
 
@@ -376,11 +376,11 @@ def log_variable_sizes(var_list=None, tag=None, verbose=False):
     v = name_to_var[v_name]
     v_size = int(np.prod(np.array(v.shape.as_list())))
     if verbose:
-      tf.logging.info("Weight    %s\tshape    %s\tsize    %d",
+      tf.compat.v1.logging.info("Weight    %s\tshape    %s\tsize    %d",
                       v.name[:-2].ljust(80),
                       str(v.shape).ljust(20), v_size)
     total_size += v_size
-  tf.logging.info("%s Total size: %d", tag, total_size)
+  tf.compat.v1.logging.info("%s Total size: %d", tag, total_size)
 
 
 def summarize_variables(var_list=None, tag=None):
@@ -391,14 +391,14 @@ def summarize_variables(var_list=None, tag=None):
     tag: name scope of the summary; defaults to training_variables/.
   """
   if var_list is None:
-    var_list = tf.trainable_variables()
+    var_list = tf.compat.v1.trainable_variables()
   if tag is None:
     tag = "training_variables/"
 
   name_to_var = {v.name: v for v in var_list}
   for v_name in list(name_to_var):
     v = name_to_var[v_name]
-    tf.summary.histogram(tag + v_name, v)
+    tf.compat.v1.summary.histogram(tag + v_name, v)
 
 
 def get_variable_initializer(hparams):
@@ -411,19 +411,19 @@ def get_variable_initializer(hparams):
                                hparams=hparams)
 
   if not tf.executing_eagerly():
-    tf.logging.info("Using variable initializer: %s", hparams.initializer)
+    tf.compat.v1.logging.info("Using variable initializer: %s", hparams.initializer)
   if hparams.initializer == "orthogonal":
-    return tf.orthogonal_initializer(gain=hparams.initializer_gain)
+    return tf.compat.v1.orthogonal_initializer(gain=hparams.initializer_gain)
   elif hparams.initializer == "uniform":
     max_val = 0.1 * hparams.initializer_gain
-    return tf.random_uniform_initializer(-max_val, max_val)
+    return tf.compat.v1.random_uniform_initializer(-max_val, max_val)
   elif hparams.initializer == "normal_unit_scaling":
-    return tf.variance_scaling_initializer(
+    return tf.compat.v1.variance_scaling_initializer(
         hparams.initializer_gain, mode="fan_avg", distribution="normal")
   elif hparams.initializer == "uniform_unit_scaling":
-    return tf.variance_scaling_initializer(
+    return tf.compat.v1.variance_scaling_initializer(
         hparams.initializer_gain, mode="fan_avg", distribution="uniform")
   elif hparams.initializer == "xavier":
-    return tf.initializers.glorot_uniform()
+    return tf.compat.v1.initializers.glorot_uniform()
   else:
     raise ValueError("Unrecognized initializer: %s" % hparams.initializer)

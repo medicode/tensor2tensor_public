@@ -40,7 +40,7 @@ from tensor2tensor.utils import metrics
 from tensor2tensor.utils import mlperf_log
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 class VocabType(object):
@@ -392,16 +392,16 @@ class Text2TextProblem(problem.Problem):
       p.vocab_size["targets_position"] = None
 
   def example_reading_spec(self):
-    data_fields = {"targets": tf.VarLenFeature(tf.int64)}
+    data_fields = {"targets": tf.io.VarLenFeature(tf.int64)}
     if self.has_inputs:
-      data_fields["inputs"] = tf.VarLenFeature(tf.int64)
+      data_fields["inputs"] = tf.io.VarLenFeature(tf.int64)
 
     if self.packed_length:
       if self.has_inputs:
-        data_fields["inputs_segmentation"] = tf.VarLenFeature(tf.int64)
-        data_fields["inputs_position"] = tf.VarLenFeature(tf.int64)
-      data_fields["targets_segmentation"] = tf.VarLenFeature(tf.int64)
-      data_fields["targets_position"] = tf.VarLenFeature(tf.int64)
+        data_fields["inputs_segmentation"] = tf.io.VarLenFeature(tf.int64)
+        data_fields["inputs_position"] = tf.io.VarLenFeature(tf.int64)
+      data_fields["targets_segmentation"] = tf.io.VarLenFeature(tf.int64)
+      data_fields["targets_position"] = tf.io.VarLenFeature(tf.int64)
 
     data_items_to_decoders = None
     return (data_fields, data_items_to_decoders)
@@ -468,7 +468,7 @@ class QuestionAndContext2TextProblem(Text2TextProblem):
     data_fields, data_items_to_decoders = (super(QuestionAndContext2TextProblem,
                                                  self)
                                            .example_reading_spec())
-    data_fields["context"] = tf.VarLenFeature(tf.int64)
+    data_fields["context"] = tf.io.VarLenFeature(tf.int64)
     return (data_fields, data_items_to_decoders)
 
 
@@ -569,8 +569,8 @@ class Text2ClassProblem(Text2TextProblem):
 
   def example_reading_spec(self):
     data_fields = {
-        "inputs": tf.VarLenFeature(tf.int64),
-        "targets": tf.FixedLenFeature([1], tf.int64),
+        "inputs": tf.io.VarLenFeature(tf.int64),
+        "targets": tf.io.FixedLenFeature([1], tf.int64),
     }
     data_items_to_decoders = None
     return (data_fields, data_items_to_decoders)
@@ -683,8 +683,8 @@ class Text2RealProblem(Text2TextProblem):
 
   def example_reading_spec(self):
     data_fields = {
-        "inputs": tf.VarLenFeature(tf.int64),
-        "targets": tf.FixedLenFeature([self.ntasks], tf.float32),
+        "inputs": tf.io.VarLenFeature(tf.int64),
+        "targets": tf.io.FixedLenFeature([self.ntasks], tf.float32),
     }
     data_items_to_decoders = None
     return (data_fields, data_items_to_decoders)
@@ -698,7 +698,7 @@ class Text2RealProblem(Text2TextProblem):
 
 def txt_line_iterator(txt_path):
   """Iterate through lines of file."""
-  with tf.gfile.Open(txt_path) as f:
+  with tf.io.gfile.GFile(txt_path) as f:
     for line in f:
       yield line.strip()
 
@@ -706,7 +706,7 @@ def txt_line_iterator(txt_path):
 def txt_and_label_iterator(txt_path):
   """Iterate through lines of file."""
   problem_pattern_without_vocab_size = re.compile("(.*)\tExtra_Label: (.*)")
-  with tf.gfile.Open(txt_path) as f:
+  with tf.io.gfile.GFile(txt_path) as f:
     for line in f:
       results = problem_pattern_without_vocab_size.search(line.strip())
       try:
@@ -801,9 +801,9 @@ def text2real_txt_iterator(source_txt_path, target_txt_path):
 
 def txt_line_sharded_iterator(txt_pattern):
   """Iterate through lines of sharded file."""
-  all_files = tf.gfile.Glob(txt_pattern)
+  all_files = tf.io.gfile.glob(txt_pattern)
   for txt_path in all_files:
-    with tf.gfile.Open(txt_path) as f:
+    with tf.io.gfile.GFile(txt_path) as f:
       for line in f:
         yield line.strip()
 
@@ -942,7 +942,7 @@ class Text2textTmpdirTokens(Text2textTmpdir):
   def _generate_vocab(self, tmp_dir):
     vocab_list = [self.oov_token]
     user_vocab_file = os.path.join(tmp_dir, "vocab.txt")
-    with tf.gfile.GFile(user_vocab_file, "r") as vocab_file:
+    with tf.io.gfile.GFile(user_vocab_file, "r") as vocab_file:
       for line in vocab_file:
         token = line.strip()
         vocab_list.append(token)
@@ -951,7 +951,7 @@ class Text2textTmpdirTokens(Text2textTmpdir):
 
   def generate_samples(self, data_dir, tmp_dir, dataset_split):
     vocab_filepath = os.path.join(data_dir, self.vocab_filename)
-    if not tf.gfile.Exists(vocab_filepath):
+    if not tf.io.gfile.exists(vocab_filepath):
       token_encoder = self._generate_vocab(tmp_dir)
       token_encoder.store_to_file(vocab_filepath)
     return super(Text2textTmpdirTokens, self).generate_samples(data_dir,
@@ -1037,7 +1037,7 @@ class ChoppedTextProblem(Text2SelfProblem):
     Yields:
       unicode strings.
     """
-    f = tf.gfile.Open(filepath)
+    f = tf.io.gfile.GFile(filepath)
     b = f.read()
     yield text_encoder.to_unicode_ignore_errors(b)
 
@@ -1065,7 +1065,7 @@ class ChoppedTextProblem(Text2SelfProblem):
     chars_total = 0
     for fname in filepaths:
       chars_this_file = 0
-      tf.logging.info("reading file %s" % fname)
+      tf.compat.v1.logging.info("reading file %s" % fname)
       for text in self.filepath_to_unicode_strings(fname):
         if (max_chars_per_file and
             chars_this_file + len(text) > max_chars_per_file):
@@ -1145,7 +1145,7 @@ class ChoppedTextProblem(Text2SelfProblem):
     Returns:
       shard or shards for which data was generated.
     """
-    tf.logging.info("generate_data task_id=%s" % task_id)
+    tf.compat.v1.logging.info("generate_data task_id=%s" % task_id)
     encoder = self.get_or_create_vocab(data_dir, tmp_dir)
     assert task_id >= 0 and task_id < self.num_generate_tasks
     if task_id < self.num_train_shards:
@@ -1375,7 +1375,7 @@ class DistributedText2TextProblem(Text2TextProblem):
     # its own vocabulary, so we assume that the dictionary is already created
     # for example by using build_vocab.py
     vocab_filepath = os.path.join(data_dir, self.vocab_filename)
-    if not tf.gfile.Exists(vocab_filepath):
+    if not tf.io.gfile.exists(vocab_filepath):
       raise ValueError("Vocab file: %s doesn't exist, please use "
                        "build_vocab.py to create one." % vocab_filepath)
     encoder = self.get_or_create_vocab(data_dir, tmp_dir, force_get=True)

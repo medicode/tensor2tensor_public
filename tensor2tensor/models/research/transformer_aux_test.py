@@ -24,7 +24,7 @@ from absl.testing import parameterized
 import numpy as np
 from tensor2tensor.data_generators import problem_hparams
 from tensor2tensor.models.research import transformer_aux
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -100,7 +100,7 @@ class TransformerAuxTest(parameterized.TestCase, tf.test.TestCase):
         "targets": tf.constant(targets, dtype=tf.int32),
         "target_space_id": tf.constant(1, dtype=tf.int32),
     }
-    tf.train.create_global_step()
+    tf.compat.v1.train.create_global_step()
     model = transformer_aux.TransformerAux(hparams, tf_estimator.ModeKeys.TRAIN,
                                            p_hparams)
     logits, losses = model(features)
@@ -109,7 +109,7 @@ class TransformerAuxTest(parameterized.TestCase, tf.test.TestCase):
     self.assertIn("auxiliary", losses)
 
     with self.test_session() as session:
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       logits_val = session.run(logits)
       self.assertEqual(logits_val.shape,
                        (batch_size, target_length, 1, 1, vocab_size))

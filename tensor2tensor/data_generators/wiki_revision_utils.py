@@ -30,7 +30,7 @@ import subprocess
 from tensor2tensor.data_generators import generator_utils
 from tensor2tensor.data_generators import text_encoder
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 def to_unicode(s):
@@ -195,19 +195,19 @@ def maybe_copy_file_to_directory(source_filepath, target_directory):
   Returns:
     a string
   """
-  if not tf.gfile.Exists(target_directory):
-    tf.logging.info("Creating directory %s" % target_directory)
+  if not tf.io.gfile.exists(target_directory):
+    tf.compat.v1.logging.info("Creating directory %s" % target_directory)
     os.mkdir(target_directory)
   target_filepath = os.path.join(target_directory,
                                  os.path.basename(source_filepath))
-  if not tf.gfile.Exists(target_filepath):
-    tf.logging.info("Copying %s to %s" % (source_filepath, target_filepath))
-    tf.gfile.Copy(source_filepath, target_filepath)
+  if not tf.io.gfile.exists(target_filepath):
+    tf.compat.v1.logging.info("Copying %s to %s" % (source_filepath, target_filepath))
+    tf.io.gfile.copy(source_filepath, target_filepath)
     statinfo = os.stat(target_filepath)
-    tf.logging.info("Successfully copied %s, %s bytes." % (target_filepath,
+    tf.compat.v1.logging.info("Successfully copied %s, %s bytes." % (target_filepath,
                                                            statinfo.st_size))
   else:
-    tf.logging.info("Not copying, file already found: %s" % target_filepath)
+    tf.compat.v1.logging.info("Not copying, file already found: %s" % target_filepath)
   return target_filepath
 
 
@@ -225,10 +225,10 @@ def corpus_page_generator(corpus_files, tmp_dir, max_page_size_exp):
   for remote_filepath in corpus_files:
 
     filepath = maybe_copy_file_to_directory(remote_filepath, tmp_dir)
-    tf.logging.info("Reading from " + filepath)
+    tf.compat.v1.logging.info("Reading from " + filepath)
 
     command = ["7z", "x", "-so", filepath]
-    tf.logging.info("Running command: %s", command)
+    tf.compat.v1.logging.info("Running command: %s", command)
 
     p = subprocess.Popen(command, stdout=subprocess.PIPE, bufsize=-1)
 
@@ -386,7 +386,7 @@ def _remove_boring_lines(text):
 
 
 def all_corpus_files(data_prefix):
-  return sorted(tf.gfile.Glob(data_prefix + "*"))
+  return sorted(tf.io.gfile.glob(data_prefix + "*"))
 
 
 def corpus_files_for_shard(shard_num, train_shards, dev_shards, data_prefix):
@@ -394,7 +394,7 @@ def corpus_files_for_shard(shard_num, train_shards, dev_shards, data_prefix):
       filename for i, filename in enumerate(all_corpus_files(data_prefix))
       if i % (train_shards + dev_shards) == shard_num
   ]
-  tf.logging.info("Corpus files for shard %s: %s", shard_num, corpus_files)
+  tf.compat.v1.logging.info("Corpus files for shard %s: %s", shard_num, corpus_files)
 
   assert shard_num < (train_shards + dev_shards)
   return corpus_files
@@ -438,7 +438,7 @@ def get_or_generate_vocabulary(data_dir,
         yield text
         count += 1
         if count % 100 == 0:
-          tf.logging.info("reading pages for vocab %d" % count)
+          tf.compat.v1.logging.info("reading pages for vocab %d" % count)
         if count > num_pages_for_vocab_generation:
           break
 
@@ -460,10 +460,10 @@ def get_encoder_from_vocab(vocab_filepath):
     A SubwordTextEncoder vocabulary object. None if the output_parallel_text
     is set.
   """
-  if not tf.gfile.Exists(vocab_filepath):
+  if not tf.io.gfile.exists(vocab_filepath):
     raise ValueError("Vocab file does not exist: {}.".format(vocab_filepath))
 
-  tf.logging.info("Found vocab file: %s", vocab_filepath)
+  tf.compat.v1.logging.info("Found vocab file: %s", vocab_filepath)
   encoder = text_encoder.SubwordTextEncoder(vocab_filepath)
   return encoder
 

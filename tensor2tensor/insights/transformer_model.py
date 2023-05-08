@@ -37,7 +37,7 @@ from tensor2tensor.utils import decoding
 from tensor2tensor.utils import trainer_lib
 from tensor2tensor.utils import usr_dir
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.python import debug as tfdbg
 
 flags = tf.flags
@@ -152,7 +152,7 @@ class TransformerModel(query_processor.QueryProcessor):
     Returns:
       A dictionary of results with processing and graph visualizations.
     """
-    tf.logging.info("Processing new query [%s]" %query)
+    tf.compat.v1.logging.info("Processing new query [%s]" %query)
 
     # Create the new TFDBG hook directory.
     hook_dir = "/tmp/t2t_server_dump/request_%d" %int(time.time())

@@ -20,7 +20,7 @@ from __future__ import print_function
 
 from tensor2tensor.rl import trainer_model_based
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 FLAGS = tf.flags.FLAGS
 
@@ -28,7 +28,7 @@ FLAGS = tf.flags.FLAGS
 class ModelRLExperimentTest(tf.test.TestCase):
 
   def _test_hparams_skip_evaluation(self, hparams_set):
-    FLAGS.output_dir = tf.test.get_temp_dir()
+    FLAGS.output_dir = tf.compat.v1.test.get_temp_dir()
     FLAGS.loop_hparams_set = hparams_set
     FLAGS.schedule = "train"  # skip evaluation for world model training
     trainer_model_based.main(None)

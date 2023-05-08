@@ -23,8 +23,8 @@ from tensor2tensor.layers import ngram
 
 from tensor2tensor.utils import test_utils
 
-import tensorflow.compat.v1 as tf
-tf.enable_eager_execution()
+import tensorflow as tf
+tf.compat.v1.enable_eager_execution()
 
 
 class NGramTest(tf.test.TestCase):
@@ -36,7 +36,7 @@ class NGramTest(tf.test.TestCase):
     vocab_size = 3
     minval = 1
     maxval = 4
-    inputs = tf.random_uniform(
+    inputs = tf.random.uniform(
         [batch_size, length], minval=0, maxval=vocab_size, dtype=tf.int32)
     layer = ngram.NGram(vocab_size, minval, maxval)
     outputs = layer(inputs)

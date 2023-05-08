@@ -36,7 +36,7 @@ from tensor2tensor.layers import modalities
 from tensor2tensor.utils import contrib
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 DATA_URL = (
     "http://rail.eecs.berkeley.edu/datasets/bair_robot_pushing_dataset_v0.tar")
@@ -100,7 +100,7 @@ class VideoBairRobotPushing(video_utils.VideoProblem):
   def extra_reading_spec(self):
     """Additional data fields to store on disk and their decoders."""
     data_fields = {
-        "frame_number": tf.FixedLenFeature([1], tf.int64),
+        "frame_number": tf.io.FixedLenFeature([1], tf.int64),
     }
     decoders = {
         "frame_number":
@@ -122,7 +122,7 @@ class VideoBairRobotPushing(video_utils.VideoProblem):
 
     for f in filenames:
       print("Parsing ", f)
-      for serialized_example in tf.python_io.tf_record_iterator(f):
+      for serialized_example in tf.compat.v1.python_io.tf_record_iterator(f):
         x = tf.train.Example()
         x.ParseFromString(serialized_example)
         # there are 4 features per frame
@@ -156,10 +156,10 @@ class VideoBairRobotPushing(video_utils.VideoProblem):
 
     if dataset_split == problem.DatasetSplit.TEST:
       base_dir = os.path.join(tmp_dir, "softmotion30_44k/test/*")
-      filenames = tf.gfile.Glob(base_dir)
+      filenames = tf.io.gfile.glob(base_dir)
     else:
       base_dir = os.path.join(tmp_dir, "softmotion30_44k/train/*")
-      filenames = tf.gfile.Glob(base_dir)
+      filenames = tf.io.gfile.glob(base_dir)
 
       # the test-set contains just 256 videos so this should be sufficient.
       if dataset_split == problem.DatasetSplit.TRAIN:
@@ -184,8 +184,8 @@ class VideoBairRobotPushingWithActions(VideoBairRobotPushing):
   def extra_reading_spec(self):
     """Additional data fields to store on disk and their decoders."""
     data_fields = {
-        "frame_number": tf.FixedLenFeature([1], tf.int64),
-        "action": tf.FixedLenFeature([4], tf.float32),
+        "frame_number": tf.io.FixedLenFeature([1], tf.int64),
+        "action": tf.io.FixedLenFeature([4], tf.float32),
     }
     decoders = {
         "frame_number":

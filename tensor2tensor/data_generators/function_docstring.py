@@ -20,7 +20,7 @@ from tensor2tensor.data_generators import generator_utils
 from tensor2tensor.data_generators import text_problems
 from tensor2tensor.utils import metrics
 from tensor2tensor.utils import registry
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -88,7 +88,7 @@ class GithubFunctionDocstring(text_problems.Text2TextProblem):
     ]
 
     for pairs_file in csv_files:
-      tf.logging.debug("Reading {}".format(pairs_file))
+      tf.compat.v1.logging.debug("Reading {}".format(pairs_file))
       with open(pairs_file, "r") as csv_file:
         for line in csv_file:
           reader = csv.reader(StringIO(line))

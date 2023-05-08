@@ -21,7 +21,7 @@ from __future__ import print_function
 
 import numpy as np
 from tensor2tensor.data_generators.ops import pack_sequences_ops
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 def _pack_sequences_k(inputs, targets, input_max_length, target_max_length):
@@ -476,5 +476,5 @@ class PackSequencesOpsTest(tf.test.TestCase):
 
 
 if __name__ == "__main__":
-  tf.enable_eager_execution()
+  tf.compat.v1.enable_eager_execution()
   tf.test.main()

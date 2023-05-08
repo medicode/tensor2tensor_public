@@ -23,7 +23,7 @@ import os
 import numpy as np
 from tensor2tensor.envs import time_step
 from tensor2tensor.envs import trajectory
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1.io import gfile
 
 

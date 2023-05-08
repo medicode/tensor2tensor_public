@@ -19,7 +19,7 @@ import os
 
 from tensor2tensor.rl.restarter import Restarter
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 TEST_MODE_1 = "mode1"
@@ -30,18 +30,18 @@ TEST_NUM_STEPS = 2
 class RestarterTest(tf.test.TestCase):
 
   def setUp(self):
-    self.out_dir = tf.test.get_temp_dir()
-    tf.gfile.DeleteRecursively(self.out_dir)
-    tf.gfile.MkDir(self.out_dir)
+    self.out_dir = tf.compat.v1.test.get_temp_dir()
+    tf.io.gfile.rmtree(self.out_dir)
+    tf.io.gfile.mkdir(self.out_dir)
 
   def create_checkpoint(self, global_step):
     checkpoint_name = "model.ckpt-{}".format(global_step)
     for suffix in ("index", "meta", "data-00000-of-00001"):
       filename = "{}.{}".format(checkpoint_name, suffix)
       # Just create the file.
-      with tf.gfile.Open(os.path.join(self.out_dir, filename), "w") as f:
+      with tf.io.gfile.GFile(os.path.join(self.out_dir, filename), "w") as f:
         f.write("")
-    tf.train.update_checkpoint_state(self.out_dir, checkpoint_name)
+    tf.compat.v1.train.update_checkpoint_state(self.out_dir, checkpoint_name)
 
   def run_single_mode(self, mode, target_local_step, target_global_step):
     restarter = Restarter(mode, self.out_dir, target_local_step)

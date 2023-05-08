@@ -25,7 +25,7 @@ from tensor2tensor.models import transformer  # pylint: disable=unused-import
 from tensor2tensor.utils import data_reader
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import trainer_lib
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -82,7 +82,7 @@ class TrainerLibTest(tf.test.TestCase):
     dataset = problem.dataset(tf_estimator.ModeKeys.TRAIN,
                               algorithmic.TinyAlgo.data_dir)
     dataset = dataset.repeat(None).padded_batch(10, dataset.output_shapes)
-    features = dataset.make_one_shot_iterator().get_next()
+    features = tf.compat.v1.data.make_one_shot_iterator(dataset).get_next()
     features = data_reader.standardize_shapes(features)
 
     # Model
@@ -93,7 +93,7 @@ class TrainerLibTest(tf.test.TestCase):
     loss = losses["training"]
 
     with self.test_session() as sess:
-      sess.run(tf.global_variables_initializer())
+      sess.run(tf.compat.v1.global_variables_initializer())
       logits_val, loss_val = sess.run([logits, loss])
       logits_shape = list(logits_val.shape)
       logits_shape[1] = None
@@ -124,7 +124,7 @@ class TrainerLibTest(tf.test.TestCase):
     dataset = problem.dataset(tf_estimator.ModeKeys.TRAIN,
                               algorithmic.TinyAlgo.data_dir)
     dataset = dataset.repeat(None).padded_batch(10, dataset.output_shapes)
-    features = dataset.make_one_shot_iterator().get_next()
+    features = tf.compat.v1.data.make_one_shot_iterator(dataset).get_next()
     features = data_reader.standardize_shapes(features)
     features["targets_A"] = features["targets_B"] = features["targets"]
 
@@ -143,7 +143,7 @@ class TrainerLibTest(tf.test.TestCase):
     loss = losses["training"]
 
     with self.test_session() as sess:
-      sess.run(tf.global_variables_initializer())
+      sess.run(tf.compat.v1.global_variables_initializer())
       sess.run([logits, loss])
 
   def testCreateHparams(self):

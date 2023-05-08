@@ -35,7 +35,7 @@ from tensor2tensor.models.video import sv2p_params
 from tensor2tensor.utils import contrib
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 tfl = tf.layers
 tfcl = contrib.layers()
@@ -286,14 +286,14 @@ class NextFrameEmily(sv2p.NextFrameSv2pLegacy):
     posterior_states = [None] * posterior_rnn_layers
     predictor_states = [None] * predictor_rnn_layers
 
-    tf.logging.info(">>>> Encoding")
+    tf.compat.v1.logging.info(">>>> Encoding")
     # Encoding:
     enc_images, enc_skips = [], []
     enc_actions = []
     images = tf.unstack(images, axis=0)
     actions = tf.unstack(actions, axis=0)
     for i, image in enumerate(images):
-      with tf.variable_scope("encoder", reuse=tf.AUTO_REUSE):
+      with tf.compat.v1.variable_scope("encoder", reuse=tf.compat.v1.AUTO_REUSE):
         enc, skips = self.encoder(image, g_dim, has_batchnorm=has_batchnorm)
         enc = tfl.flatten(enc)
         enc_images.append(enc)
@@ -304,7 +304,7 @@ class NextFrameEmily(sv2p.NextFrameSv2pLegacy):
           enc_action = tfl.flatten(enc_action)
           enc_actions.append(enc_action)
 
-    tf.logging.info(">>>> Prediction")
+    tf.compat.v1.logging.info(">>>> Prediction")
     # Prediction
     pred_mu_pos = []
     pred_logvar_pos = []
@@ -312,7 +312,7 @@ class NextFrameEmily(sv2p.NextFrameSv2pLegacy):
     pred_logvar_prior = []
     gen_images = []
     for i in range(1, seq_len):
-      with tf.variable_scope("encoder", reuse=tf.AUTO_REUSE):
+      with tf.compat.v1.variable_scope("encoder", reuse=tf.compat.v1.AUTO_REUSE):
         # current encoding
         if self.is_training or len(gen_images) < context_frames:
           h_current = enc_images[i - 1]
@@ -330,7 +330,7 @@ class NextFrameEmily(sv2p.NextFrameSv2pLegacy):
           h_current = tf.concat([h_current, actions[i - 1]], axis=1)
           h_target = tf.concat([h_target, actions[i]], axis=1)
 
-      with tf.variable_scope("prediction", reuse=tf.AUTO_REUSE):
+      with tf.compat.v1.variable_scope("prediction", reuse=tf.compat.v1.AUTO_REUSE):
         # Prior parameters
         if self.hparams.learned_prior:
           mu_prior, logvar_prior, prior_states = self.lstm_gaussian(
@@ -363,7 +363,7 @@ class NextFrameEmily(sv2p.NextFrameSv2pLegacy):
         pred_mu_prior.append(tf.identity(mu_prior, "mu_prior"))
         pred_logvar_prior.append(tf.identity(logvar_prior, "logvar_prior"))
 
-      with tf.variable_scope("decoding", reuse=tf.AUTO_REUSE):
+      with tf.compat.v1.variable_scope("decoding", reuse=tf.compat.v1.AUTO_REUSE):
         skip_index = min(context_frames-1, i-1)
         if action_type == "vector":
           h_pred = tf.concat([h_pred, actions[i - 1]], axis=-1)
@@ -379,7 +379,7 @@ class NextFrameEmily(sv2p.NextFrameSv2pLegacy):
               h_pred, color_channels, has_batchnorm=has_batchnorm)
         gen_images.append(x_pred)
 
-    tf.logging.info(">>>> Done")
+    tf.compat.v1.logging.info(">>>> Done")
     gen_images = tf.stack(gen_images, axis=0)
     return {"gen_images": gen_images,
             "fake_reward_prediction": fake_reward_prediction,

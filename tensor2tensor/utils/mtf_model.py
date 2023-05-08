@@ -28,7 +28,7 @@ from tensor2tensor.utils import learning_rate
 from tensor2tensor.utils import metrics
 from tensor2tensor.utils import t2t_model
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 from tensorflow.contrib.tpu.python.tpu import tpu_estimator
@@ -53,7 +53,7 @@ class MtfModel(t2t_model.T2TModel):
     if mode == tf_estimator.ModeKeys.PREDICT and decode_hparams is not None:
       for k, v in six.iteritems(decode_hparams.values()):
         if hasattr(hparams, k) and getattr(hparams, k) != v:
-          tf.logging.warning("Overriding hparams.%s with %s from decode_hparams"
+          tf.compat.v1.logging.warning("Overriding hparams.%s with %s from decode_hparams"
                              % (k, v))
         setattr(hparams, k, v)
 
@@ -67,7 +67,7 @@ class MtfModel(t2t_model.T2TModel):
         data_parallelism=data_parallelism,
         decode_hparams=decode_hparams)
 
-    global_step = tf.train.get_global_step()
+    global_step = tf.compat.v1.train.get_global_step()
 
     mesh_shape = mtf.convert_to_shape(hparams.mesh_shape)
     layout_rules = mtf.convert_to_layout_rules(hparams.layout)
@@ -111,7 +111,7 @@ class MtfModel(t2t_model.T2TModel):
       var_grads = mtf.gradients(
           [loss], [v.outputs[0] for v in graph.trainable_variables])
       lr = learning_rate.learning_rate_schedule(hparams)
-      tf.summary.scalar("learning_rate", lr)
+      tf.compat.v1.summary.scalar("learning_rate", lr)
       mtf_lr = mtf.import_tf_tensor(
           mesh, tf.convert_to_tensor(lr, dtype=tf.float32), mtf.Shape([]))
       optimizer = mtf.optimize.make_optimizer(hparams, mtf_lr)
@@ -120,29 +120,29 @@ class MtfModel(t2t_model.T2TModel):
     lowering = mtf.Lowering(graph, {mesh: mesh_impl})
 
     tf_loss = lowering.export_to_tf_tensor(loss)
-    tf_loss = tf.to_float(tf_loss)
+    tf_loss = tf.cast(tf_loss, dtype=tf.float32)
     if logits and mode != tf_estimator.ModeKeys.TRAIN:
       tf_logits = lowering.export_to_tf_tensor(logits)
 
     if mode == tf_estimator.ModeKeys.TRAIN:
       tf_update_ops = [lowering.lowered_operation(op) for op in update_ops]
-      tf_update_ops.append(tf.assign_add(global_step, 1))
+      tf_update_ops.append(tf.compat.v1.assign_add(global_step, 1))
       # tf.logging.info("tf_update_ops: {}".format(tf_update_ops))
       train_op = tf.group(tf_update_ops)
 
     with mtf.utils.outside_all_rewrites():
       # Copy master variables to slices. Must be called first.
       restore_hook = mtf.MtfRestoreHook(lowering)
-      saver = tf.train.Saver(
-          tf.global_variables(),
+      saver = tf.compat.v1.train.Saver(
+          tf.compat.v1.global_variables(),
           sharded=True,
           max_to_keep=10,
           keep_checkpoint_every_n_hours=2,
           defer_build=False,
           save_relative_paths=True)
-      tf.add_to_collection(tf.GraphKeys.SAVERS, saver)
+      tf.compat.v1.add_to_collection(tf.compat.v1.GraphKeys.SAVERS, saver)
       saver_listener = mtf.MtfCheckpointSaverListener(lowering)
-      saver_hook = tf.train.CheckpointSaverHook(
+      saver_hook = tf.estimator.CheckpointSaverHook(
           hparams.model_dir,
           save_steps=1000,
           saver=saver,
@@ -166,7 +166,7 @@ class MtfModel(t2t_model.T2TModel):
         def scaffold_fn():
           t2t_model.initialize_from_ckpt(
               ckpt_dir=hparams.warm_start_from, hparams=hparams)
-          return tf.train.Scaffold()
+          return tf.compat.v1.train.Scaffold()
       else:
         scaffold_fn = None
 

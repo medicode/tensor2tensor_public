@@ -23,7 +23,7 @@ from tensor2tensor.data_generators import problem_hparams
 from tensor2tensor.models import evolved_transformer
 from tensor2tensor.models import transformer
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 BATCH_SIZE = 3
@@ -36,16 +36,16 @@ DECODE_LENGTH = 3
 def print_vars(all_vars=None):
   """Print info about a list of variables."""
   if not all_vars:
-    all_vars = tf.trainable_variables()
-  tf.logging.info("Format: <name>, <shape>, <(soft) device placement>")
+    all_vars = tf.compat.v1.trainable_variables()
+  tf.compat.v1.logging.info("Format: <name>, <shape>, <(soft) device placement>")
   for var in all_vars:
-    tf.logging.info("  %s, %s, %s" %
+    tf.compat.v1.logging.info("  %s, %s, %s" %
                     (var.name, str(var.get_shape()), var.op.device))
 
 
 def get_var(name):
   """Get trainable variable by name."""
-  variables = [var for var in tf.trainable_variables() if var.name == name]
+  variables = [var for var in tf.compat.v1.trainable_variables() if var.name == name]
   if len(variables) == 1:
     return variables[0]
   raise ValueError("`name` must match exactly one variable. '%s' matched %d" %
@@ -61,7 +61,7 @@ def assert_with_message(assert_method, a, b, message):
   try:
     assert_method(a, b)
   except AssertionError as e:
-    tf.logging.error(message)
+    tf.compat.v1.logging.error(message)
     raise e
 
 
@@ -99,12 +99,12 @@ class EvolvedTransformerTest(tf.test.TestCase):
     model, features = get_model(hparams=transformer.transformer_tiny())
     logits, _ = model(features)
     with self.test_session() as session:
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       res = session.run(logits)
     self.assertEqual(res.shape, (BATCH_SIZE, TARGET_LENGTH, 1, 1, VOCAB_SIZE))
 
   def testSlowVsFast(self):
-    tf.set_random_seed(1234)
+    tf.compat.v1.set_random_seed(1234)
     model, features = get_model(transformer.transformer_tiny())
 
     decode_length = DECODE_LENGTH
@@ -115,16 +115,16 @@ class EvolvedTransformerTest(tf.test.TestCase):
         logits=tf.reshape(out_logits, [-1, VOCAB_SIZE]),
         labels=tf.reshape(features["targets"], [-1]))
     loss = tf.reduce_mean(loss)
-    apply_grad = tf.train.AdamOptimizer(0.001).minimize(loss)
+    apply_grad = tf.compat.v1.train.AdamOptimizer(0.001).minimize(loss)
 
     with self.test_session():
-      tf.global_variables_initializer().run()
+      tf.compat.v1.global_variables_initializer().run()
       for _ in range(10):
         apply_grad.run()
 
     model.set_mode(tf_estimator.ModeKeys.PREDICT)
 
-    with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+    with tf.compat.v1.variable_scope(tf.compat.v1.get_variable_scope(), reuse=True):
       greedy_result = model._slow_greedy_infer(features,
                                                decode_length)["outputs"]
       greedy_result = tf.squeeze(greedy_result, axis=[2, 3])
@@ -149,16 +149,16 @@ class EvolvedTransformerTest(tf.test.TestCase):
         logits=tf.reshape(out_logits, [-1, VOCAB_SIZE]),
         labels=tf.reshape(features["targets"], [-1]))
     loss = tf.reduce_mean(loss)
-    apply_grad = tf.train.AdamOptimizer(0.001).minimize(loss)
+    apply_grad = tf.compat.v1.train.AdamOptimizer(0.001).minimize(loss)
 
     with self.test_session():
-      tf.global_variables_initializer().run()
+      tf.compat.v1.global_variables_initializer().run()
       for _ in range(10):
         apply_grad.run()
 
     model.set_mode(tf_estimator.ModeKeys.PREDICT)
 
-    with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+    with tf.compat.v1.variable_scope(tf.compat.v1.get_variable_scope(), reuse=True):
       slow_result = model._slow_greedy_infer(features, decode_length)["outputs"]
       slow_result = tf.squeeze(slow_result, axis=[2, 3])
 
@@ -182,16 +182,16 @@ class EvolvedTransformerTest(tf.test.TestCase):
         logits=tf.reshape(out_logits, [-1, VOCAB_SIZE]),
         labels=tf.reshape(features["targets"], [-1]))
     loss = tf.reduce_mean(loss)
-    apply_grad = tf.train.AdamOptimizer(0.001).minimize(loss)
+    apply_grad = tf.compat.v1.train.AdamOptimizer(0.001).minimize(loss)
 
     with self.test_session():
-      tf.global_variables_initializer().run()
+      tf.compat.v1.global_variables_initializer().run()
       for _ in range(10):
         apply_grad.run()
 
     model.set_mode(tf_estimator.ModeKeys.PREDICT)
 
-    with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+    with tf.compat.v1.variable_scope(tf.compat.v1.get_variable_scope(), reuse=True):
       beam_result = model._beam_decode_slow(
           features, decode_length, beam_size=4, top_beams=1,
           alpha=1.0)["outputs"]
@@ -221,10 +221,10 @@ class EvolvedTransformerTest(tf.test.TestCase):
         logits=tf.reshape(out_logits, [-1, VOCAB_SIZE]),
         labels=tf.reshape(features["targets"], [-1]))
     loss = tf.reduce_mean(loss)
-    apply_grad = tf.train.AdamOptimizer(0.001).minimize(loss)
+    apply_grad = tf.compat.v1.train.AdamOptimizer(0.001).minimize(loss)
 
     with self.test_session():
-      tf.global_variables_initializer().run()
+      tf.compat.v1.global_variables_initializer().run()
       for _ in range(10):
         apply_grad.run()
 
@@ -237,7 +237,7 @@ class EvolvedTransformerTest(tf.test.TestCase):
 
     model, features = self._create_greedy_infer_model()
 
-    with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+    with tf.compat.v1.variable_scope(tf.compat.v1.get_variable_scope(), reuse=True):
       slow_result_non_tpu = model._slow_greedy_infer(features,
                                                      decode_length)["outputs"]
       slow_result_non_tpu = tf.squeeze(slow_result_non_tpu, axis=[2, 3])
@@ -255,12 +255,12 @@ class EvolvedTransformerTest(tf.test.TestCase):
     self.assertAllClose(slow_tpu_res, slow_non_tpu_res)
 
   def testGreedyFastTPUVsNonTPU(self):
-    tf.set_random_seed(1234)
+    tf.compat.v1.set_random_seed(1234)
     decode_length = DECODE_LENGTH
 
     model, features = self._create_greedy_infer_model()
 
-    with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+    with tf.compat.v1.variable_scope(tf.compat.v1.get_variable_scope(), reuse=True):
       fast_result_non_tpu = model._greedy_infer(
           features, decode_length, use_tpu=False)["outputs"]
 
@@ -276,12 +276,12 @@ class EvolvedTransformerTest(tf.test.TestCase):
     self.assertAllClose(fast_tpu_res, fast_non_tpu_res)
 
   def testGreedyTPUSlowVsFast(self):
-    tf.set_random_seed(1234)
+    tf.compat.v1.set_random_seed(1234)
     decode_length = DECODE_LENGTH
 
     model, features = self._create_greedy_infer_model()
 
-    with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+    with tf.compat.v1.variable_scope(tf.compat.v1.get_variable_scope(), reuse=True):
       slow_result = model._slow_greedy_infer_tpu(features,
                                                  decode_length)["outputs"]
       slow_result = tf.squeeze(slow_result, axis=[2, 3])
@@ -307,7 +307,7 @@ class EvolvedTransformerTest(tf.test.TestCase):
         logits=tf.reshape(out_logits, [-1, VOCAB_SIZE]),
         labels=tf.reshape(features["targets"], [-1]))
     loss = tf.reduce_mean(loss)
-    apply_grad = tf.train.AdamOptimizer(0.001).minimize(loss)
+    apply_grad = tf.compat.v1.train.AdamOptimizer(0.001).minimize(loss)
     frozen_names = [
         "evolved_transformer/symbol_modality_10_4/shared/weights_0:0",
         "evolved_transformer/symbol_modality_10_4/shared/weights_1:0",
@@ -500,7 +500,7 @@ class EvolvedTransformerTest(tf.test.TestCase):
 
     # Act.
     with self.test_session() as session:
-      tf.global_variables_initializer().run()
+      tf.compat.v1.global_variables_initializer().run()
       frozen_values_before = session.run(frozen_vars)
       train_values_before = session.run(train_vars)
       for _ in range(10):  # Arbitrary number of training steps.
@@ -534,7 +534,7 @@ class EvolvedTransformerTest(tf.test.TestCase):
         logits=tf.reshape(out_logits, [-1, VOCAB_SIZE]),
         labels=tf.reshape(features["targets"], [-1]))
     loss = tf.reduce_mean(loss)
-    apply_grad = tf.train.AdamOptimizer(0.001).minimize(loss)
+    apply_grad = tf.compat.v1.train.AdamOptimizer(0.001).minimize(loss)
     var_names = [
         "evolved_transformer/symbol_modality_10_4/shared/weights_0:0",
         "evolved_transformer/symbol_modality_10_4/shared/weights_1:0",
@@ -721,7 +721,7 @@ class EvolvedTransformerTest(tf.test.TestCase):
 
     # Act.
     with self.test_session() as session:
-      tf.global_variables_initializer().run()
+      tf.compat.v1.global_variables_initializer().run()
       values_before = session.run(variables)
       for _ in range(10):  # Arbitrary number of training steps.
         apply_grad.run()
@@ -733,7 +733,7 @@ class EvolvedTransformerTest(tf.test.TestCase):
     self.assertTrue(model.hparams.shared_embedding_and_softmax_weights)
     self.assertFalse(model.hparams.shared_embedding)
     self.assertSameElements(var_names,
-                            [var.name for var in tf.trainable_variables()])
+                            [var.name for var in tf.compat.v1.trainable_variables()])
     empty_vars = {
         "evolved_transformer/symbol_modality_10_4/shared/weights_10:0",
         "evolved_transformer/symbol_modality_10_4/shared/weights_11:0",

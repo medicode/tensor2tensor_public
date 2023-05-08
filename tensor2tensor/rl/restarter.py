@@ -18,7 +18,7 @@
 import contextlib
 import os
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 class Restarter(object):
@@ -59,7 +59,7 @@ class Restarter(object):
     )
 
     self._global_step = self._get_global_step()
-    tf.logging.info(
+    tf.compat.v1.logging.info(
         "Will load %s checkpoint %d", self.model_mode, self._global_step
     )
 
@@ -67,7 +67,7 @@ class Restarter(object):
 
     self.steps_to_go = target_local_step - self._local_step_at_start
     if self.steps_to_go <= 0:
-      tf.logging.info(
+      tf.compat.v1.logging.info(
           "Skipping training %s, requested %d steps, already done %d",
           self.model_mode, target_local_step, self._local_step_at_start
       )
@@ -78,7 +78,7 @@ class Restarter(object):
       # Restart.
       steps_done_this_epoch = self._global_step - global_step_at_start
       self.steps_to_go -= steps_done_this_epoch
-      tf.logging.info(
+      tf.compat.v1.logging.info(
           "Restarting training %s, %d steps already done this epoch",
           self.model_mode, steps_done_this_epoch
       )
@@ -92,7 +92,7 @@ class Restarter(object):
     if not self.restarting:
       self._write_counters(self._local_step_at_start, self._global_step)
 
-    tf.logging.info(
+    tf.compat.v1.logging.info(
         "Training %s up to %d, %d to go", self.model_mode,
         self.target_local_step, self.steps_to_go
     )
@@ -110,7 +110,7 @@ class Restarter(object):
 
   def _read_counters(self):
     try:
-      with tf.gfile.Open(self._counter_path, "r") as f:
+      with tf.io.gfile.GFile(self._counter_path, "r") as f:
         return tuple(
             int(counter) for counter in f.read().split(" ")
         )
@@ -118,5 +118,5 @@ class Restarter(object):
       return (0, -1)
 
   def _write_counters(self, local_step, global_step):
-    with tf.gfile.Open(self._counter_path, "w") as f:
+    with tf.io.gfile.GFile(self._counter_path, "w") as f:
       f.write("{} {}".format(local_step, global_step))

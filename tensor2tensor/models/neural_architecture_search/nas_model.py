@@ -39,7 +39,7 @@ from tensor2tensor.utils import contrib
 from tensor2tensor.utils import metrics
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import t2t_model
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -302,7 +302,7 @@ class NasSeq2Seq(transformer.Transformer):
             inputs, target_space, hparams, features=features))
 
     encoder_input = tf.nn.dropout(encoder_input,
-                                  1.0 - hparams.layer_prepostprocess_dropout)
+                                  rate=1 - (1.0 - hparams.layer_prepostprocess_dropout))
 
     encoder_output = self._encoder(
         encoder_input,
@@ -346,7 +346,7 @@ class NasSeq2Seq(transformer.Transformer):
       Final decoder representation. [batch_size, decoder_length, hidden_dim]
     """
     decoder_input = tf.nn.dropout(decoder_input,
-                                  1.0 - hparams.layer_prepostprocess_dropout)
+                                  rate=1 - (1.0 - hparams.layer_prepostprocess_dropout))
 
     decoder_output = self._decoder(
         decoder_input,
@@ -504,7 +504,7 @@ def _apply_nas_branch(norm, layer_norm_dict, hidden_states, nonpadding, hparams,
                       encoder_cell_outputs, decoder_self_attention_bias,
                       cell_number):
   """Applies a single NAS branch."""
-  with tf.variable_scope(branch_scope_name):
+  with tf.compat.v1.variable_scope(branch_scope_name):
     # Apply layer norm to an individual layer at most one time.
     if norm == LAYER_NORM_KEY:
       try:
@@ -638,7 +638,7 @@ def apply_nas_layers(input_tensor,
 
   cell_outputs = []
 
-  with tf.variable_scope(var_scope):
+  with tf.compat.v1.variable_scope(var_scope):
     dropout_broadcast_dims = (
         common_layers.comma_separated_string_to_integer_list(
             getattr(hparams, "attention_dropout_broadcast_dims", "")))
@@ -652,7 +652,7 @@ def apply_nas_layers(input_tensor,
         cell_hidden_states = [input_tensor]
       layer_norm_dict = {}
 
-      with tf.variable_scope("cell_%d" % cell_num):
+      with tf.compat.v1.variable_scope("cell_%d" % cell_num):
 
         for i, (left_input, left_layer_name, left_activation_name,
                 left_output_dim, left_norm, right_input, right_layer_name,
@@ -665,7 +665,7 @@ def apply_nas_layers(input_tensor,
           left_input = int(left_input)
           right_input = int(right_input)
 
-          with tf.variable_scope("layer_%d" % i):
+          with tf.compat.v1.variable_scope("layer_%d" % i):
 
             assert not (left_layer_name == DEAD_BRANCH_KEY and
                         right_layer_name == DEAD_BRANCH_KEY)

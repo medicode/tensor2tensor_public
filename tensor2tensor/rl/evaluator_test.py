@@ -21,7 +21,7 @@ from __future__ import print_function
 from tensor2tensor.rl import evaluator
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 class EvalTest(tf.test.TestCase):
@@ -29,7 +29,7 @@ class EvalTest(tf.test.TestCase):
   def test_evaluate_pong_random_agent(self):
     loop_hparams = registry.hparams("rlmb_tiny")
     planner_hparams = registry.hparams("planner_tiny")
-    temp_dir = tf.test.get_temp_dir()
+    temp_dir = tf.compat.v1.test.get_temp_dir()
     evaluator.evaluate(
         loop_hparams, planner_hparams, temp_dir, temp_dir, temp_dir,
         agent_type="random", eval_mode="agent_real", eval_with_learner=False,

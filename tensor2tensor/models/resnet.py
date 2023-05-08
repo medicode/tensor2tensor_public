@@ -26,7 +26,7 @@ from tensor2tensor.utils import hparam
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import t2t_model
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -59,9 +59,9 @@ def batch_norm_relu(inputs,
     A normalized `Tensor` with the same `data_format`.
   """
   if init_zero:
-    gamma_initializer = tf.zeros_initializer()
+    gamma_initializer = tf.compat.v1.zeros_initializer()
   else:
-    gamma_initializer = tf.ones_initializer()
+    gamma_initializer = tf.compat.v1.ones_initializer()
 
   if data_format == "channels_first":
     axis = 1
@@ -154,7 +154,7 @@ def conv2d_fixed_padding(inputs,
         size = kernel_size * kernel_size * inputs_shape[-1]
       else:
         size = kernel_size * kernel_size * inputs_shape[1]
-      targeting_count = targeting_rate * tf.to_float(size)
+      targeting_count = targeting_rate * tf.cast(size, dtype=tf.float32)
       targeting_fn = common_layers.weight_targeting
     elif use_td == "unit":
       targeting_count = targeting_rate * filters
@@ -175,7 +175,7 @@ def conv2d_fixed_padding(inputs,
         padding=("SAME" if strides == 1 else "VALID"),
         data_format=data_format,
         use_bias=False,
-        kernel_initializer=tf.variance_scaling_initializer())
+        kernel_initializer=tf.compat.v1.variance_scaling_initializer())
   else:
     y = layers().Conv2D(
         filters=filters,
@@ -183,7 +183,7 @@ def conv2d_fixed_padding(inputs,
         strides=strides,
         padding=("SAME" if strides == 1 else "VALID"),
         use_bias=False,
-        kernel_initializer=tf.variance_scaling_initializer(),
+        kernel_initializer=tf.compat.v1.variance_scaling_initializer(),
         data_format=data_format)(inputs)
 
   return y
@@ -600,7 +600,7 @@ class Resnet(t2t_model.T2TModel):
 
     losses = {"training": 0.0}
     if is_training:
-      loss = tf.losses.sparse_softmax_cross_entropy(
+      loss = tf.compat.v1.losses.sparse_softmax_cross_entropy(
           labels=tf.squeeze(targets), logits=logits)
       loss = tf.reduce_mean(loss)
 

@@ -39,7 +39,7 @@ from tensor2tensor.rl.ppo_learner import PPOLearner
 from tensor2tensor.utils import misc_utils
 from tensor2tensor.utils import trainer_lib
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -80,7 +80,7 @@ def evaluate_single_config(
     eval_fn=_eval_fn_with_learner
 ):
   """Evaluate the PPO agent in the real environment."""
-  tf.logging.info("Evaluating metric %s", get_metric_name(
+  tf.compat.v1.logging.info("Evaluating metric %s", get_metric_name(
       sampling_temp, max_num_noops, clipped=False
   ))
   eval_hparams = trainer_lib.create_hparams(hparams.base_algo_params)
@@ -253,7 +253,7 @@ def evaluate_world_model(
 def summarize_metrics(eval_metrics_writer, metrics, epoch):
   """Write metrics to summary."""
   for (name, value) in six.iteritems(metrics):
-    summary = tf.Summary()
+    summary = tf.compat.v1.Summary()
     summary.value.add(tag=name, simple_value=value)
     eval_metrics_writer.add_summary(summary, epoch)
   eval_metrics_writer.flush()
@@ -495,7 +495,7 @@ def run_rollouts(
 
     # TODO(afrozm): Clean this up with tf.logging.log_every_n
     if log_every_steps is not None and step_index % log_every_steps == 0:
-      tf.logging.info("Step %d, mean_score: %f", step_index, cum_rewards.mean())
+      tf.compat.v1.logging.info("Step %d, mean_score: %f", step_index, cum_rewards.mean())
 
   return (observations, cum_rewards)
 
@@ -583,7 +583,7 @@ class PolicyAgent(BatchAgent):
     )
     self._sampling_temp = sampling_temp
     with tf.Graph().as_default():
-      self._observations_t = tf.placeholder(
+      self._observations_t = tf.compat.v1.placeholder(
           shape=((batch_size,) + self.observation_space.shape),
           dtype=self.observation_space.dtype
       )
@@ -593,11 +593,11 @@ class PolicyAgent(BatchAgent):
       actions = common_layers.sample_with_temperature(logits, sampling_temp)
       self._probs_t = tf.nn.softmax(logits / sampling_temp)
       self._actions_t = tf.cast(actions, tf.int32)
-      model_saver = tf.train.Saver(
-          tf.global_variables(policy_hparams.policy_network + "/.*")  # pylint: disable=unexpected-keyword-arg
+      model_saver = tf.compat.v1.train.Saver(
+          tf.compat.v1.global_variables(policy_hparams.policy_network + "/.*")  # pylint: disable=unexpected-keyword-arg
       )
-      self._sess = tf.Session()
-      self._sess.run(tf.global_variables_initializer())
+      self._sess = tf.compat.v1.Session()
+      self._sess.run(tf.compat.v1.global_variables_initializer())
       trainer_lib.restore_checkpoint(policy_dir, model_saver, self._sess)
 
   def _run(self, observations):

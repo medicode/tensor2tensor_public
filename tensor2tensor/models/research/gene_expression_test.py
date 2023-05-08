@@ -23,7 +23,7 @@ from tensor2tensor.data_generators import gene_expression as gene_data
 from tensor2tensor.layers import modalities  # pylint: disable=unused-import
 from tensor2tensor.models.research import gene_expression
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -57,7 +57,7 @@ class GeneExpressionModelsTest(tf.test.TestCase):
         hparams, tf_estimator.ModeKeys.TRAIN, p_hparams)(features)
 
     with self.test_session() as sess:
-      sess.run(tf.global_variables_initializer())
+      sess.run(tf.compat.v1.global_variables_initializer())
       res = sess.run(logits)
 
     self.assertEqual(res.shape, (batch_size, target_length, 1, target_out))

@@ -36,7 +36,7 @@ from tensor2tensor.utils import registry
 from tensor2tensor.utils import t2t_model
 
 from tensorflow.python.training.session_run_hook import SessionRunHook, SessionRunArgs
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 from tensorflow.core.protobuf import rewriter_config_pb2
@@ -71,7 +71,7 @@ def next_checkpoint(model_dir, timeout_mins=240):
         model_dir, last_ckpt, seconds_to_sleep=60, timeout=timeout_secs)
 
     if last_ckpt is None:
-      tf.logging.info(
+      tf.compat.v1.logging.info(
           "Eval timeout: no new checkpoints within %dm" % timeout_mins)
       break
 
@@ -100,7 +100,7 @@ def next_undecoded_checkpoint(model_dir, timeout_mins=240):
 
     # If all the checkpoints have been evaluated.
     if last_ckpt is None and next_ckpt is None:
-      tf.logging.info(
+      tf.compat.v1.logging.info(
           "Eval timeout: no new checkpoints within %dm" % timeout_mins)
       break
 
@@ -115,27 +115,27 @@ def create_session_config(log_device_placement=False,
                           enable_graph_rewriter=False,
                           gpu_mem_fraction=0.95,
                           use_tpu=False,
-                          xla_jit_level=tf.OptimizerOptions.OFF,
+                          xla_jit_level=tf.compat.v1.OptimizerOptions.OFF,
                           inter_op_parallelism_threads=0,
                           intra_op_parallelism_threads=0):
   """The TensorFlow Session config to use."""
   if use_tpu:
-    graph_options = tf.GraphOptions()
+    graph_options = tf.compat.v1.GraphOptions()
   else:
     if enable_graph_rewriter:
       rewrite_options = rewriter_config_pb2.RewriterConfig()
       rewrite_options.layout_optimizer = rewriter_config_pb2.RewriterConfig.ON
-      graph_options = tf.GraphOptions(rewrite_options=rewrite_options)
+      graph_options = tf.compat.v1.GraphOptions(rewrite_options=rewrite_options)
     else:
-      graph_options = tf.GraphOptions(
-          optimizer_options=tf.OptimizerOptions(
-              opt_level=tf.OptimizerOptions.L1,
+      graph_options = tf.compat.v1.GraphOptions(
+          optimizer_options=tf.compat.v1.OptimizerOptions(
+              opt_level=tf.compat.v1.OptimizerOptions.L1,
               do_function_inlining=False,
               global_jit_level=xla_jit_level))
 
-  gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=gpu_mem_fraction)
+  gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=gpu_mem_fraction)
 
-  config = tf.ConfigProto(
+  config = tf.compat.v1.ConfigProto(
       allow_soft_placement=True,
       graph_options=graph_options,
       gpu_options=gpu_options,
@@ -180,7 +180,7 @@ def create_run_config(model_name,
                       tpu_infeed_sleep_secs=None,
                       use_tpu=False,
                       use_tpu_estimator=False,
-                      xla_jit_level=tf.OptimizerOptions.OFF,
+                      xla_jit_level=tf.compat.v1.OptimizerOptions.OFF,
                       inter_op_parallelism_threads=0,
                       log_step_count_steps=100,
                       intra_op_parallelism_threads=0,
@@ -273,7 +273,7 @@ def create_run_config(model_name,
         num_async_replicas == 1)
 
     if use_distribution_strategy:
-      tf.logging.info(
+      tf.compat.v1.logging.info(
           "Configuring MirroredStrategy DistributionStrategy to replicate the "
           "model."
       )
@@ -281,7 +281,7 @@ def create_run_config(model_name,
       config = config.replace(train_distribute=distribution)
       config.data_parallelism = None
     else:
-      tf.logging.info("Configuring DataParallelism to replicate the model.")
+      tf.compat.v1.logging.info("Configuring DataParallelism to replicate the model.")
       config.data_parallelism = devices.data_parallelism(
           daisy_chain_variables=daisy_chain_variables,
           ps_replicas=ps_replicas,
@@ -354,7 +354,7 @@ def create_estimator(model_name,
 
         @contextlib.contextmanager
         def guarantee_const_scope():
-          var_scope = tf.get_variable_scope()
+          var_scope = tf.compat.v1.get_variable_scope()
           prev_custom_getter = var_scope.custom_getter
           prev_caching_device = var_scope.caching_device
           var_scope.set_custom_getter(guarantee_const_getter)
@@ -430,7 +430,7 @@ class MemoryReportingHook(SessionRunHook):
         if options:
             options.report_tensor_allocations_upon_oom = True
         else:
-            options = tf.RunOptions(
+            options = tf.compat.v1.RunOptions(
                 report_tensor_allocations_upon_oom=True)
         session_args = SessionRunArgs(
             fetches=fetches,
@@ -458,13 +458,13 @@ def create_hooks(use_tfdbg=False,
   if use_dbgprofile:
     # Recorded traces can be visualized with chrome://tracing/
     # The memory/tensor lifetime is also profiled
-    tf.logging.info("Using ProfilerHook")
+    tf.compat.v1.logging.info("Using ProfilerHook")
     defaults = dict(save_steps=10, show_dataflow=True, show_memory=True)
     defaults.update(dbgprofile_kwargs)
-    train_hooks.append(tf.train.ProfilerHook(**defaults))
+    train_hooks.append(tf.estimator.ProfilerHook(**defaults))
 
   if use_validation_monitor:
-    tf.logging.info("Using ValidationMonitor")
+    tf.compat.v1.logging.info("Using ValidationMonitor")
     # Fathom
     # continuous_train_and_eval breaks early stopping
     flags = tf.flags
@@ -476,7 +476,7 @@ def create_hooks(use_tfdbg=False,
             hooks=eval_hooks, **validation_monitor_kwargs))
 
   if use_early_stopping:
-    tf.logging.info("Using EarlyStoppingHook")
+    tf.compat.v1.logging.info("Using EarlyStoppingHook")
     hook = metrics_hook.EarlyStoppingHook(**early_stopping_kwargs)
     # Adding to both training and eval so that eval aborts as well
     train_hooks.append(hook)
@@ -531,7 +531,7 @@ class T2TExperiment(object):
 
   def train_and_evaluate(self):
     if self._use_validation_monitor:
-      tf.logging.warning("EvalSpec not provided. Estimator will not manage "
+      tf.compat.v1.logging.warning("EvalSpec not provided. Estimator will not manage "
                          "model evaluation. Assuming ValidationMonitor present "
                          "in train_hooks.")
       self.train()
@@ -623,7 +623,7 @@ class T2TExperiment(object):
       # Skip zero'th step.
       train_step = decoding.get_step_from_ckpt_path(ckpt_path)
       if train_step == 0:
-        tf.logging.info("Skipping evaluation at step 0")
+        tf.compat.v1.logging.info("Skipping evaluation at step 0")
         continue
       self.evaluate()
 
@@ -634,7 +634,7 @@ class T2TExperiment(object):
       # Skip zero'th step.
       train_step = decoding.get_step_from_ckpt_path(ckpt_path)
       if train_step == 0:
-        tf.logging.info("Skipping evaluation at step 0")
+        tf.compat.v1.logging.info("Skipping evaluation at step 0")
         continue
       self.evaluate_on_train_data()
 
@@ -659,7 +659,7 @@ class T2TExperiment(object):
         config to create a server.
     """
     config = tf_estimator.RunConfig()
-    server = tf.train.Server(
+    server = tf.distribute.Server(
         config.cluster_spec,
         job_name=config.task_type,
         task_index=config.task_id,
@@ -709,7 +709,7 @@ class T2TExperiment(object):
 
     for ckpt in ckpt_generator:
       current_step = decoding.get_step_from_ckpt_path(ckpt)
-      tf.logging.info("Decoding step %d" % current_step)
+      tf.compat.v1.logging.info("Decoding step %d" % current_step)
       # Skip checkpoint 0.
       if current_step == 0:
         continue
@@ -821,7 +821,7 @@ def create_experiment(
   if isinstance(problem, FPRecordTextProblem):
     problem.sanity_check_tfproto(hparams)
   else:
-    tf.logging.warning(
+    tf.compat.v1.logging.warning(
       'No tfproto sanity checks to be performed. '
       'Tfproto sanity checks only exist for FPRecordTextProblem.')
 
@@ -864,7 +864,7 @@ def create_experiment(
 
   # In-process eval (and possible early stopping)
   if schedule == "continuous_train_and_eval" and min_eval_frequency:
-    tf.logging.warn("ValidationMonitor only works with "
+    tf.compat.v1.logging.warn("ValidationMonitor only works with "
                     "--schedule=train_and_evaluate")
   use_validation_monitor = (
       schedule == "train_and_evaluate" and min_eval_frequency)
@@ -877,7 +877,7 @@ def create_experiment(
   # Fathom
   # Can't add early stopping on TPU
   if use_tpu:
-      tf.logging.info('Turning off use_early_stopping for use_tpu')
+      tf.compat.v1.logging.info('Turning off use_early_stopping for use_tpu')
       use_early_stopping = False
 
   train_hooks, eval_hooks = create_hooks(
@@ -928,11 +928,11 @@ def create_experiment_fn(*args, **kwargs):
 
 
 def set_random_seed(seed):
-  tf.set_random_seed(seed)
+  tf.compat.v1.set_random_seed(seed)
   random.seed(seed)
   np.random.seed(seed)
   # Fathom
-  tf.logging.info("Set random seed to: %s", seed)
+  tf.compat.v1.logging.info("Set random seed to: %s", seed)
 
 
 def restore_checkpoint(ckpt_dir, saver, sess, must_restore=False):
@@ -944,7 +944,7 @@ def restore_checkpoint(ckpt_dir, saver, sess, must_restore=False):
     return 0
 
   path = ckpt.model_checkpoint_path
-  tf.logging.info("Restoring checkpoint %s", path)
+  tf.compat.v1.logging.info("Restoring checkpoint %s", path)
   saver.restore(sess, path)
   step = int(path.split("-")[-1])
   return step

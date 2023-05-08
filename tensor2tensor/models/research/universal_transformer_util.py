@@ -57,7 +57,7 @@ from tensor2tensor.models import transformer
 from tensor2tensor.utils import contrib
 from tensor2tensor.utils import expert_utils
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 def universal_transformer_encoder(encoder_input,
@@ -98,7 +98,7 @@ def universal_transformer_encoder(encoder_input,
   attention_dropout_broadcast_dims = (
       common_layers.comma_separated_string_to_integer_list(
           getattr(hparams, "attention_dropout_broadcast_dims", "")))
-  with tf.variable_scope(name):
+  with tf.compat.v1.variable_scope(name):
     if nonpadding is not None:
       padding = 1.0 - nonpadding
     else:
@@ -170,7 +170,7 @@ def universal_transformer_decoder(decoder_input,
   attention_dropout_broadcast_dims = (
       common_layers.comma_separated_string_to_integer_list(
           getattr(hparams, "attention_dropout_broadcast_dims", "")))
-  with tf.variable_scope(name):
+  with tf.compat.v1.variable_scope(name):
     ffn_unit = functools.partial(
         transformer_decoder_ffn_unit,
         hparams=hparams,
@@ -230,11 +230,11 @@ def universal_transformer_layer(x,
       # the vanilla transformer, we need to add timing signal here.
       x = common_attention.add_timing_signal_1d(x)
     for layer in range(num_layers):
-      with tf.variable_scope(name + "layer_%d" % layer):
+      with tf.compat.v1.variable_scope(name + "layer_%d" % layer):
         x = ffn_unit(attention_unit(x))
     return x
 
-  with tf.variable_scope("universal_transformer_%s" % hparams.recurrence_type):
+  with tf.compat.v1.variable_scope("universal_transformer_%s" % hparams.recurrence_type):
     if (hparams.mix_with_transformer and
         "before_ut" in hparams.mix_with_transformer):
       x = add_vanilla_transformer_layer(x, hparams.num_mixedin_layers,
@@ -375,7 +375,7 @@ def transformer_encoder_ffn_unit(x,
     the output tensor
   """
 
-  with tf.variable_scope("ffn"):
+  with tf.compat.v1.variable_scope("ffn"):
     if hparams.transformer_ffn_type == "fc":
       y = transformer.transformer_ffn_layer(
           common_layers.layer_preprocess(x, hparams),
@@ -427,7 +427,7 @@ def transformer_encoder_attention_unit(x,
 
   """
 
-  with tf.variable_scope("self_attention"):
+  with tf.compat.v1.variable_scope("self_attention"):
     y = common_attention.multihead_attention(
         common_layers.layer_preprocess(x, hparams),
         None,
@@ -466,7 +466,7 @@ def transformer_decoder_ffn_unit(x,
 
   """
 
-  with tf.variable_scope("ffn"):
+  with tf.compat.v1.variable_scope("ffn"):
     if hparams.transformer_ffn_type == "fc":
       y = transformer.transformer_ffn_layer(
           common_layers.layer_preprocess(x, hparams),
@@ -520,7 +520,7 @@ def transformer_decoder_attention_unit(x,
     The output tensor
   """
 
-  with tf.variable_scope("self_attention"):
+  with tf.compat.v1.variable_scope("self_attention"):
     y = common_attention.multihead_attention(
         common_layers.layer_preprocess(x, hparams),
         None,
@@ -539,7 +539,7 @@ def transformer_decoder_attention_unit(x,
         hard_attention_k=hparams.hard_attention_k)
     x = common_layers.layer_postprocess(x, y, hparams)
   if encoder_output is not None:
-    with tf.variable_scope("encdec_attention"):
+    with tf.compat.v1.variable_scope("encdec_attention"):
       y = common_attention.multihead_attention(
           common_layers.layer_preprocess(x, hparams),
           encoder_output,
@@ -585,7 +585,7 @@ def universal_transformer_basic(layer_inputs,
   new_state = step_preprocess(state, step, hparams)
 
   for i in range(hparams.num_inrecurrence_layers):
-    with tf.variable_scope("rec_layer_%d" % i):
+    with tf.compat.v1.variable_scope("rec_layer_%d" % i):
       new_state = ffn_unit(attention_unit(new_state))
 
   return new_state, inputs, memory
@@ -629,7 +629,7 @@ def universal_transformer_highway(layer_inputs,
   new_state = step_preprocess(state, step, hparams)
 
   for i in range(hparams.num_inrecurrence_layers):
-    with tf.variable_scope("rec_layer_%d" % i):
+    with tf.compat.v1.variable_scope("rec_layer_%d" % i):
       new_state = ffn_unit(attention_unit(new_state))
 
   transformed_state = new_state
@@ -651,7 +651,7 @@ def universal_transformer_highway(layer_inputs,
       hparams,
       ffn_layer_type=gate_ffn_layer,
       name="transform",
-      bias_initializer=tf.constant_initializer(hparams.transform_bias_init),
+      bias_initializer=tf.compat.v1.constant_initializer(hparams.transform_bias_init),
       activation=tf.sigmoid,
       pad_remover=pad_remover,
       preprocess=True)
@@ -665,7 +665,7 @@ def universal_transformer_highway(layer_inputs,
         hparams,
         ffn_layer_type=gate_ffn_layer,
         name="carry",
-        bias_initializer=tf.constant_initializer(-hparams.transform_bias_init),
+        bias_initializer=tf.compat.v1.constant_initializer(-hparams.transform_bias_init),
         activation=tf.sigmoid,
         pad_remover=pad_remover,
         preprocess=True)
@@ -719,7 +719,7 @@ def universal_transformer_skip(layer_inputs,
   new_state = step_preprocess(state, step, hparams)
 
   for i in range(hparams.num_inrecurrence_layers):
-    with tf.variable_scope("rec_layer_%d" % i):
+    with tf.compat.v1.variable_scope("rec_layer_%d" % i):
       new_state = ffn_unit(attention_unit(new_state))
 
   transformed_state = new_state
@@ -743,7 +743,7 @@ def universal_transformer_skip(layer_inputs,
       hparams,
       ffn_layer_type=gate_ffn_layer,
       name="transform",
-      bias_initializer=tf.constant_initializer(hparams.transform_bias_init),
+      bias_initializer=tf.compat.v1.constant_initializer(hparams.transform_bias_init),
       activation=tf.sigmoid,
       pad_remover=pad_remover,
       preprocess=True)
@@ -757,7 +757,7 @@ def universal_transformer_skip(layer_inputs,
         hparams,
         ffn_layer_type=gate_ffn_layer,
         name="carry",
-        bias_initializer=tf.constant_initializer(-hparams.transform_bias_init),
+        bias_initializer=tf.compat.v1.constant_initializer(-hparams.transform_bias_init),
         activation=tf.sigmoid,
         pad_remover=pad_remover,
         preprocess=True)
@@ -820,7 +820,7 @@ def universal_transformer_depthwise_attention(layer_inputs,
   new_state = step_preprocess(state_to_be_transformed, step, hparams)
 
   for i in range(hparams.num_inrecurrence_layers):
-    with tf.variable_scope("rec_layer_%d" % i):
+    with tf.compat.v1.variable_scope("rec_layer_%d" % i):
       new_state = ffn_unit(attention_unit(new_state))
 
   # add the new state to the memory
@@ -870,13 +870,13 @@ def universal_transformer_with_gru_as_transition_function(
 
   transition_function_input = common_layers.layer_preprocess(
       transition_function_input, hparams)
-  with tf.variable_scope("gru"):
+  with tf.compat.v1.variable_scope("gru"):
     # gru update gate: z_t = sigmoid(W_z.x_t + U_z.h_{t-1})
     transition_function_update_gate = _ffn_layer_multi_inputs(
         [transition_function_input, state],
         hparams,
         name="update",
-        bias_initializer=tf.constant_initializer(1.0),
+        bias_initializer=tf.compat.v1.constant_initializer(1.0),
         activation=tf.sigmoid,
         pad_remover=pad_remover)
 
@@ -888,7 +888,7 @@ def universal_transformer_with_gru_as_transition_function(
         [transition_function_input, state],
         hparams,
         name="reset",
-        bias_initializer=tf.constant_initializer(1.0),
+        bias_initializer=tf.compat.v1.constant_initializer(1.0),
         activation=tf.sigmoid,
         pad_remover=pad_remover)
 
@@ -901,7 +901,7 @@ def universal_transformer_with_gru_as_transition_function(
         [transition_function_input, reset_state],
         hparams,
         name="candidate",
-        bias_initializer=tf.zeros_initializer(),
+        bias_initializer=tf.compat.v1.zeros_initializer(),
         activation=tf.tanh,
         pad_remover=pad_remover)
 
@@ -958,13 +958,13 @@ def universal_transformer_with_lstm_as_transition_function(
 
   transition_function_input = common_layers.layer_preprocess(
       transition_function_input, hparams)
-  with tf.variable_scope("lstm"):
+  with tf.compat.v1.variable_scope("lstm"):
     # lstm input gate: i_t = sigmoid(W_i.x_t + U_i.h_{t-1})
     transition_function_input_gate = _ffn_layer_multi_inputs(
         [transition_function_input, state],
         hparams,
         name="input",
-        bias_initializer=tf.zeros_initializer(),
+        bias_initializer=tf.compat.v1.zeros_initializer(),
         activation=tf.sigmoid,
         pad_remover=pad_remover)
 
@@ -976,7 +976,7 @@ def universal_transformer_with_lstm_as_transition_function(
         [transition_function_input, state],
         hparams,
         name="forget",
-        bias_initializer=tf.zeros_initializer(),
+        bias_initializer=tf.compat.v1.zeros_initializer(),
         activation=None,
         pad_remover=pad_remover)
     forget_bias_tensor = tf.constant(hparams.lstm_forget_bias)
@@ -991,7 +991,7 @@ def universal_transformer_with_lstm_as_transition_function(
         [transition_function_input, state],
         hparams,
         name="output",
-        bias_initializer=tf.zeros_initializer(),
+        bias_initializer=tf.compat.v1.zeros_initializer(),
         activation=tf.sigmoid,
         pad_remover=pad_remover)
 
@@ -1003,7 +1003,7 @@ def universal_transformer_with_lstm_as_transition_function(
         [transition_function_input, state],
         hparams,
         name="input_modulation",
-        bias_initializer=tf.zeros_initializer(),
+        bias_initializer=tf.compat.v1.zeros_initializer(),
         activation=tf.tanh,
         pad_remover=pad_remover)
 
@@ -1094,16 +1094,16 @@ def universal_transformer_act(x, hparams, ffn_unit, attention_unit):
 
     if hparams.act_type == "random":
       # random as halting probability
-      p = tf.random_uniform(
+      p = tf.random.uniform(
           shape=common_layers.shape_list(halting_probability))
     else:
-      with tf.variable_scope("sigmoid_activation_for_pondering"):
+      with tf.compat.v1.variable_scope("sigmoid_activation_for_pondering"):
         p = common_layers.dense(
             state,
             1,
             activation=tf.nn.sigmoid,
             use_bias=True,
-            bias_initializer=tf.constant_initializer(
+            bias_initializer=tf.compat.v1.constant_initializer(
                 hparams.act_halting_bias_init))
 
         if hparams.act_type == "global":
@@ -1152,7 +1152,7 @@ def universal_transformer_act(x, hparams, ffn_unit, attention_unit):
     # apply transformation on the state
     transformed_state = state
     for i in range(hparams.num_inrecurrence_layers):
-      with tf.variable_scope("rec_layer_%d" % i):
+      with tf.compat.v1.variable_scope("rec_layer_%d" % i):
         transformed_state = ffn_unit(attention_unit(transformed_state))
 
     # update running part in the weighted state and keep the rest
@@ -1183,8 +1183,8 @@ def universal_transformer_act(x, hparams, ffn_unit, attention_unit):
 
   # Do while loop iterations until predicate above is false.
   (_, _, _, remainder, n_updates, new_state) = tf.while_loop(
-      should_continue, ut_function,
-      (state, step, halting_probability, remainders, n_updates, previous_state),
+      cond=should_continue, body=ut_function,
+      loop_vars=(state, step, halting_probability, remainders, n_updates, previous_state),
       maximum_iterations=act_max_steps + 1)
 
   ponder_times = n_updates
@@ -1328,9 +1328,9 @@ def fill_memory_slot(memory, value, index):
     filled memory
 
   """
-  mask = tf.to_float(
+  mask = tf.cast(
       tf.one_hot(index,
-                 tf.shape(memory)[0])[:, None, None, None])
+                 tf.shape(memory)[0])[:, None, None, None], dtype=tf.float32)
   fill_memory = (1 - mask) * memory + mask * value[None, ...]
   return fill_memory
 
@@ -1352,10 +1352,10 @@ def add_depth_embedding(x):
   num_steps = x_shape[0]
   shape = [num_steps, 1, 1, depth]
   depth_embedding = (
-      tf.get_variable(
+      tf.compat.v1.get_variable(
           "depth_embedding",
           shape,
-          initializer=tf.random_normal_initializer(0, depth**-0.5)) * (depth**
+          initializer=tf.compat.v1.random_normal_initializer(0, depth**-0.5)) * (depth**
                                                                        0.5))
 
   x += depth_embedding
@@ -1413,7 +1413,7 @@ def add_position_timing_signal(x, step, hparams):
   elif hparams.position_start_index == "random":
     # Shift all positions randomly
     # TODO(dehghani): What would be reasonable for max number of shift?
-    index = tf.random_uniform(
+    index = tf.random.uniform(
         [], maxval=common_layers.shape_list(x)[1], dtype=tf.int32)
 
   elif hparams.position_start_index == "step":

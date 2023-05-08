@@ -39,7 +39,7 @@ from __future__ import print_function
 import collections
 
 import numpy as np
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 # The paper that intoduces the SARI score uses only the precision of the deleted
 # tokens (i.e. beta=0). To give more emphasis on recall, you may set, e.g.,
@@ -214,7 +214,7 @@ def get_sari(source_ids, prediction_ids, target_ids, max_gram_size=4):
     return (np.asarray(sari_scores), np.asarray(keep_scores),
             np.asarray(add_scores), np.asarray(deletion_scores))
 
-  sari, keep, add, deletion = tf.py_func(
+  sari, keep, add, deletion = tf.compat.v1.py_func(
       get_sari_numpy,
       [source_ids, prediction_ids, target_ids],
       [tf.float64, tf.float64, tf.float64, tf.float64])
@@ -241,7 +241,7 @@ def sari_score(predictions, labels, features, **unused_kwargs):
 
   # Convert the inputs and outputs to a [batch_size, sequence_length] tensor.
   inputs = tf.squeeze(features["inputs"], axis=[-1, -2])
-  outputs = tf.to_int32(tf.argmax(predictions, axis=-1))
+  outputs = tf.cast(tf.argmax(predictions, axis=-1), dtype=tf.int32)
   outputs = tf.squeeze(outputs, axis=[-1, -2])
 
   # Convert the labels to a [batch_size, 1, sequence_length] tensor.

@@ -26,7 +26,7 @@ from tensor2tensor.data_generators import problem
 from tensor2tensor.data_generators import text_problems
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 @registry.register_problem
@@ -63,7 +63,7 @@ class SentimentYelpPolarity(text_problems.Text2ClassProblem):
   def doc_generator(self, yelp_dir, dataset, include_label=False):
 
     file_path = os.path.join(yelp_dir, dataset + ".csv")
-    with tf.gfile.Open(file_path) as yelp_f:
+    with tf.io.gfile.GFile(file_path) as yelp_f:
       lines = yelp_f.readlines()
       for line in lines:
         label = line[1]
@@ -80,7 +80,7 @@ class SentimentYelpPolarity(text_problems.Text2ClassProblem):
     download_path = generator_utils.maybe_download(tmp_dir, compressed_filename,
                                                    self.URL)
     yelp_dir = os.path.join(tmp_dir, "yelp_review_polarity_csv")
-    if not tf.gfile.Exists(yelp_dir):
+    if not tf.io.gfile.exists(yelp_dir):
       with tarfile.open(download_path, "r:gz") as tar:
         tar.extractall(tmp_dir)
 

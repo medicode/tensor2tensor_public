@@ -23,7 +23,7 @@ from tensor2tensor.bin import t2t_trainer          # pylint: disable=unused-impo
 from tensor2tensor.data_generators import problem  # pylint: disable=unused-import
 from tensor2tensor.utils import trainer_lib
 from tensor2tensor.utils import usr_dir
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 flags = tf.flags
@@ -31,7 +31,7 @@ FLAGS = flags.FLAGS
 
 
 def main(_):
-  tf.logging.set_verbosity(tf.logging.INFO)
+  tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
   trainer_lib.set_random_seed(FLAGS.random_seed)
   usr_dir.import_usr_dir(FLAGS.t2t_usr_dir)
 
@@ -57,9 +57,9 @@ def main(_):
   for ckpt_path in ckpt_iter:
     predictions = estimator.evaluate(
         eval_input_fn, steps=FLAGS.eval_steps, checkpoint_path=ckpt_path)
-    tf.logging.info(predictions)
+    tf.compat.v1.logging.info(predictions)
 
 
 if __name__ == "__main__":
-  tf.logging.set_verbosity(tf.logging.INFO)
-  tf.app.run()
+  tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
+  tf.compat.v1.app.run()

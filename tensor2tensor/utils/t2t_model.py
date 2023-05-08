@@ -47,7 +47,7 @@ from tensor2tensor.utils import quantization
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import scheduled_sampling
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 from tensorflow.python.layers import base
@@ -256,7 +256,7 @@ class T2TModel(base.Layer):
     def create_hparams_summary(hparams, name):
       hparams_strs = [tf.convert_to_tensor([k, str(v)])
                       for k, v in hparams.values().items()]
-      tf.summary.text(name, tf.cast(tf.stack(hparams_strs), tf.string))
+      tf.compat.v1.summary.text(name, tf.cast(tf.stack(hparams_strs), tf.string))
 
     create_hparams_summary(self._hparams, "%s_hparams" % self.name)
     if self._problem_hparams:
@@ -330,7 +330,7 @@ class T2TModel(base.Layer):
     del kwargs
     features = inputs
     set_custom_getter_compose(self._custom_getter)
-    tf.get_variable_scope().set_initializer(
+    tf.compat.v1.get_variable_scope().set_initializer(
         optimize.get_variable_initializer(self.hparams))
     with self._eager_var_store.as_default():
       self._fill_problem_hparams_features(features)
@@ -446,7 +446,7 @@ class T2TModel(base.Layer):
     # use_resource = True when on TPU
     # use_resource = False when on TPU
     use_resource = common_layers.is_xla_compiled()
-    with tf.variable_scope(tf.get_variable_scope(), use_resource=use_resource) as vs:
+    with tf.compat.v1.variable_scope(tf.compat.v1.get_variable_scope(), use_resource=use_resource) as vs:
       self._add_variable_scope("model_fn", vs)
       transformed_features = self.bottom(features)
 
@@ -455,7 +455,7 @@ class T2TModel(base.Layer):
           if v.dtype == tf.float32:
             transformed_features[k] = tf.cast(v, tf.bfloat16)
 
-      with tf.variable_scope("body") as body_vs:
+      with tf.compat.v1.variable_scope("body") as body_vs:
         self._add_variable_scope("body", body_vs)
         log_info("Building model body")
         body_out = self.body(transformed_features)
@@ -497,7 +497,7 @@ class T2TModel(base.Layer):
     for feature_name, modality in sorted(
         six.iteritems(self._problem_hparams.modality)):
       if feature_name not in features:
-        tf.logging.warning("Missing feature %s - ignoring." % feature_name)
+        tf.compat.v1.logging.warning("Missing feature %s - ignoring." % feature_name)
         continue
       vocab_size = self._problem_hparams.vocab_size[feature_name]
       if vocab_size is not None and hasattr(self._hparams, "vocab_divisor"):
@@ -517,7 +517,7 @@ class T2TModel(base.Layer):
             feature_name,
             modalities.get_targets_bottom(modality))
         # TODO(aidangomez): share variables?
-        with tf.variable_scope(variable_scope_name) as vs:
+        with tf.compat.v1.variable_scope(variable_scope_name) as vs:
           self._add_variable_scope(variable_scope_name, vs)
           log_info("Transforming feature '%s' with %s.targets_bottom",
                    feature_name,
@@ -529,7 +529,7 @@ class T2TModel(base.Layer):
         bottom = self._hparams.bottom.get(feature_name,
                                           modalities.get_bottom(modality))
         do_reuse = modality_name in all_previous_modalities
-        with tf.variable_scope(modality_name, reuse=do_reuse) as vs:
+        with tf.compat.v1.variable_scope(modality_name, reuse=do_reuse) as vs:
           self._add_variable_scope(modality_name, vs)
           log_info("Transforming feature '%s' with %s.bottom",
                    feature_name,
@@ -581,7 +581,7 @@ class T2TModel(base.Layer):
     name = self._hparams.name.get(
         feature_name,
         modalities.get_name(modality))(self._hparams, vocab_size)
-    with tf.variable_scope(name) as tm_vs:
+    with tf.compat.v1.variable_scope(name) as tm_vs:
       self._add_variable_scope(tm_vs.name, tm_vs)
       log_info("Transforming body output with %s.top", name)
       top = self._hparams.top.get(feature_name, modalities.get_top(modality))
@@ -638,7 +638,7 @@ class T2TModel(base.Layer):
       logits = {}
       for k, v in six.iteritems(body_output):
         # TODO(aidangomez): share variables here?
-        with tf.variable_scope(k) as top_vs:
+        with tf.compat.v1.variable_scope(k) as top_vs:
           self._add_variable_scope("top_%s" % k, top_vs)
           logits[k] = self._top_single(v, k, features)
       return logits
@@ -709,7 +709,7 @@ class T2TModel(base.Layer):
       )
 
       for key, val in summaries:
-        tf.summary.scalar(key, val)
+        tf.compat.v1.summary.scalar(key, val)
 
     return loss_num, loss_den
 
@@ -742,11 +742,11 @@ class T2TModel(base.Layer):
 
         n, d = losses[k]
         if common_layers.should_generate_summaries():
-          tf.summary.scalar(k + "_loss", n / d)
-          tf.summary.scalar(k + "_loss_num", n)
-          tf.summary.scalar(k + "_loss_den", d)
+          tf.compat.v1.summary.scalar(k + "_loss", n / d)
+          tf.compat.v1.summary.scalar(k + "_loss_num", n)
+          tf.compat.v1.summary.scalar(k + "_loss_den", d)
           if getattr(self.hparams, "visualize_logits_histogram", False):
-            hist = tf.summary.histogram
+            hist = tf.compat.v1.summary.histogram
             hist(k + "_predict", tf.argmax(tf.squeeze(v), axis=-1))
             hist(k + "_targets", features[k])
 
@@ -1069,7 +1069,7 @@ class T2TModel(base.Layer):
       partial_targets = features.get("inputs")
       if partial_targets is None:
         partial_targets = features["targets"]
-      features["partial_targets"] = tf.to_int64(partial_targets)
+      features["partial_targets"] = tf.cast(partial_targets, dtype=tf.int64)
     # Save the targets in a var and reassign it after the tf.while loop to avoid
     # having targets being in a 'while' frame. This ensures targets when used
     # in metric functions stays in the same frame as other vars.
@@ -1097,7 +1097,7 @@ class T2TModel(base.Layer):
         cur_sample = samples[:, i, :, :]
       samples = tf.transpose(recent_output, perm=[1, 0, 2, 3])
       samples = inplace_ops.alias_inplace_update(samples, i,
-                                                 tf.to_int64(cur_sample))
+                                                 tf.cast(cur_sample, dtype=tf.int64))
       samples = tf.transpose(samples, perm=[1, 0, 2, 3])
       if not tf.executing_eagerly():
         samples.set_shape([None, None, None, 1])
@@ -1113,7 +1113,7 @@ class T2TModel(base.Layer):
     # Create an initial output tensor. This will be passed
     # to the infer_step, which adds one timestep at every iteration.
     if "partial_targets" in features:
-      initial_output = tf.to_int64(features["partial_targets"])
+      initial_output = tf.cast(features["partial_targets"], dtype=tf.int64)
       while len(initial_output.get_shape().as_list()) < 4:
         initial_output = tf.expand_dims(initial_output, 2)
       batch_size = common_layers.shape_list(initial_output)[0]
@@ -1178,8 +1178,8 @@ class T2TModel(base.Layer):
       return not_overflow
 
     _, result, logits, loss = tf.while_loop(
-        while_exit_cond,
-        infer_step, [tf.constant(0), result, logits, loss],
+        cond=while_exit_cond,
+        body=infer_step, loop_vars=[tf.constant(0), result, logits, loss],
         shape_invariants=[
             tf.TensorShape([]),
             tf.TensorShape([batch_size, decode_length, 1, 1]),
@@ -1238,7 +1238,7 @@ class T2TModel(base.Layer):
       partial_targets = features.get("inputs")
       if partial_targets is None:
         partial_targets = features["targets"]
-      features["partial_targets"] = tf.to_int64(partial_targets)
+      features["partial_targets"] = tf.cast(partial_targets, dtype=tf.int64)
     # Save the targets in a var and reassign it after the tf.while loop to avoid
     # having targets being in a 'while' frame. This ensures targets when used
     # in metric functions stays in the same frame as other vars.
@@ -1274,7 +1274,7 @@ class T2TModel(base.Layer):
         cur_sample = tf.expand_dims(cur_sample, axis=1)
         samples = tf.concat([recent_output, cur_sample], axis=1)
       else:
-        cur_sample = tf.to_int64(tf.expand_dims(cur_sample, axis=1))
+        cur_sample = tf.cast(tf.expand_dims(cur_sample, axis=1), dtype=tf.int64)
         samples = tf.concat([recent_output, cur_sample], axis=1)
         if not tf.executing_eagerly():
           samples.set_shape([None, None, None, 1])
@@ -1287,7 +1287,7 @@ class T2TModel(base.Layer):
     # Create an initial output tensor. This will be passed
     # to the infer_step, which adds one timestep at every iteration.
     if "partial_targets" in features:
-      initial_output = tf.to_int64(features["partial_targets"])
+      initial_output = tf.cast(features["partial_targets"], dtype=tf.int64)
       while len(initial_output.get_shape().as_list()) < 4:
         initial_output = tf.expand_dims(initial_output, 2)
       batch_size = common_layers.shape_list(initial_output)[0]
@@ -1361,8 +1361,8 @@ class T2TModel(base.Layer):
       return not_overflow
 
     result, logits, loss = tf.while_loop(
-        while_exit_cond,
-        infer_step, [result, logits, loss],
+        cond=while_exit_cond,
+        body=infer_step, loop_vars=[result, logits, loss],
         shape_invariants=[
             tf.TensorShape([None, None, None, None]),
             tf.TensorShape(logits_shape_inv),
@@ -1411,7 +1411,7 @@ class T2TModel(base.Layer):
         logits_shape = common_layers.shape_list(logits)
         logits /= tf.reshape(temperature, [-1] + [1] * (len(logits_shape) - 1))
         reshaped_logits = tf.reshape(logits, [-1, logits_shape[-1]])
-        choices = tf.multinomial(reshaped_logits, 1)
+        choices = tf.random.categorical(reshaped_logits, 1)
         choices = tf.reshape(choices, logits_shape[:-1])
         return choices
 
@@ -1429,7 +1429,7 @@ class T2TModel(base.Layer):
         v = tf.expand_dims(v, axis=-1)
         v_shape = [1]
       if v_shape == [1]:
-        v = tf.tile(v, tf.to_int32([self._num_datashards]))
+        v = tf.tile(v, tf.cast([self._num_datashards], dtype=tf.int32))
       sharded_features[k] = self._data_parallelism(
           tf.identity, tf.split(v, self._num_datashards, 0))
 
@@ -1520,7 +1520,7 @@ class T2TModel(base.Layer):
     data_parallelism = None
     if not use_tpu and config:
       data_parallelism = config.data_parallelism
-    reuse = tf.get_variable_scope().reuse
+    reuse = tf.compat.v1.get_variable_scope().reuse
     model = cls(
         hparams,
         mode,
@@ -1555,7 +1555,7 @@ class T2TModel(base.Layer):
     if isinstance(logits, dict) and "self_generated_targets" in logits:
       # Overwrite 'features["targets"]' and 'labels'
       # by logits["self_generated_targets"].
-      tf.logging.info("Replacing targets with model-provided targets.")
+      tf.compat.v1.logging.info("Replacing targets with model-provided targets.")
       features["targets"] = labels = logits.pop("self_generated_targets")
       assert list(logits.keys()) == ["logits"], (
           # See "Returns" in the "top" method docstring for the expected
@@ -1633,7 +1633,7 @@ class T2TModel(base.Layer):
       if self._hparams.warm_start_from:
         def scaffold_fn():
           self.initialize_from_ckpt(self._hparams.warm_start_from)
-          return tf.train.Scaffold()
+          return tf.compat.v1.train.Scaffold()
       else:
         scaffold_fn = None
 
@@ -1693,7 +1693,7 @@ class T2TModel(base.Layer):
             tensor=labels,
             shape=[-1, hparams.max_target_seq_length, 1, 1])
         logits.update({"labels": labels})
-        return tf.contrib.tpu.TPUEstimatorSpec(
+        return tf.compat.v1.estimator.tpu.TPUEstimatorSpec(
             tf.estimator.ModeKeys.EVAL,
             eval_metrics=(eval_metrics_fn, logits),
             loss=loss)
@@ -1755,7 +1755,7 @@ class T2TModel(base.Layer):
             # For example, an autoencoder or pure-video model can run on a gym
             # problem even if another model is also predicting other things,
             # like actions or rewards.
-            tf.logging.warning("No key %s in logits for evaluation." % k)
+            tf.compat.v1.logging.warning("No key %s in logits for evaluation." % k)
         else:
           # if dataset is packed, reshape targets
           if hasattr(problem, 'packed_length'):
@@ -1782,10 +1782,10 @@ class T2TModel(base.Layer):
       eval_dir = os.path.join(
           self.hparams.model_dir,
           self.hparams.get("eval_dir_name", "eval"))
-      eval_summary_hook = tf.train.SummarySaverHook(
+      eval_summary_hook = tf.estimator.SummarySaverHook(
           save_steps=1,
           output_dir=eval_dir,
-          summary_op=tf.summary.merge_all())
+          summary_op=tf.compat.v1.summary.merge_all())
       evaluation_hooks.append(eval_summary_hook)
 
       evaluation_hooks += problem.eval_hooks(features, logits, hparams)
@@ -1868,7 +1868,7 @@ class T2TModel(base.Layer):
       export_out["batch_prediction_key"] = predictions["batch_prediction_key"]
 
     export_outputs = {
-        tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
+        tf.saved_model.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
             tf_estimator.export.PredictOutput(export_out)
     }
     if use_tpu:
@@ -1909,9 +1909,9 @@ class T2TModel(base.Layer):
   def _summarize_losses(self, losses_dict):
     """Adds `tf.summary`s to all terms in the losses dictionary."""
     if common_layers.should_generate_summaries():
-      with tf.name_scope("losses"):
+      with tf.compat.v1.name_scope("losses"):
         for loss_name, loss_val in sorted(losses_dict.items()):
-          tf.summary.scalar(loss_name, loss_val)
+          tf.compat.v1.summary.scalar(loss_name, loss_val)
 
   def maybe_scheduled_sampling(self, features, logits, losses):
     """Scheduled sampling.
@@ -1962,7 +1962,7 @@ class T2TModel(base.Layer):
     # Only do scheduled sampling when training.
     is_training = (hparams.mode == tf_estimator.ModeKeys.TRAIN)
     if not is_training:
-      tf.logging.info("Running in %s mode. Not using scheduled sampling.",
+      tf.compat.v1.logging.info("Running in %s mode. Not using scheduled sampling.",
                       hparams.mode)
       return (logits, losses)
 
@@ -1974,9 +1974,9 @@ class T2TModel(base.Layer):
     # TODO(duckworthd): Move to scheduled_sampling.py.
     def sample(x):
       """Multinomial sampling from a n-dimensional tensor."""
-      samples = tf.multinomial(tf.reshape(x, [-1, vocab_size]), 1)
+      samples = tf.random.categorical(tf.reshape(x, [-1, vocab_size]), 1)
       reshaped_samples = tf.reshape(samples, common_layers.shape_list(x)[:-1])
-      return tf.to_int32(reshaped_samples)
+      return tf.cast(reshaped_samples, dtype=tf.int32)
 
     # TODO(duckworthd): Move to scheduled_sampling.py.
     def mix_gold_sampled(gold_targets,
@@ -1987,15 +1987,15 @@ class T2TModel(base.Layer):
       """Interleave sampled and gold tokens randomly."""
       # Resample each location iid.
       should_use_sampled_targets = tf.less(
-          tf.random_uniform(common_layers.shape_list(sampled_targets)),
+          tf.random.uniform(common_layers.shape_list(sampled_targets)),
           mixin_prob)
-      mixed_targets = tf.where(
+      mixed_targets = tf.compat.v1.where(
           should_use_sampled_targets,
           sampled_targets,
           gold_targets)
 
       # Reuse sample tokens for earlier timesteps.
-      new_targets = tf.where(
+      new_targets = tf.compat.v1.where(
           is_later_timestep(gold_targets, i),
           mixed_targets,
           prev_new_targets)
@@ -2027,14 +2027,14 @@ class T2TModel(base.Layer):
       new_targets = tf.stop_gradient(new_targets)  # Treat new_targets as given.
       new_features = copy.copy(features)
       new_features["targets"] = new_targets
-      with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+      with tf.compat.v1.variable_scope(tf.compat.v1.get_variable_scope(), reuse=True):
         # Compute bottom() for new_targets.
         #
         # TODO(duckworthd): Only apply bottom to 'new_targets'.
         new_transformed_features = self.bottom(new_features)
 
         # Compute body.
-        with tf.variable_scope("body"):
+        with tf.compat.v1.variable_scope("body"):
           new_body_outputs, new_losses = self._normalize_body_output(
               self.body(new_transformed_features))
         assert "training" not in new_losses
@@ -2051,21 +2051,21 @@ class T2TModel(base.Layer):
 
       return new_targets, new_logits, new_losses
 
-    tf.logging.info("Using scheduled sampling.")
-    tf.logging.info("Warming scheduled sampling up with schedule: %s",
+    tf.compat.v1.logging.info("Using scheduled sampling.")
+    tf.compat.v1.logging.info("Warming scheduled sampling up with schedule: %s",
                     hparams.scheduled_sampling_warmup_schedule)
     assert hparams.scheduled_sampling_prob == 1.0, (
         "hparams.scheduled_sampling_prob must be 0 or 1.")
 
     if hparams.scheduled_sampling_method == "sequential":
-      tf.logging.info("Using SEQUENTIAL scheduled sampling.")
+      tf.compat.v1.logging.info("Using SEQUENTIAL scheduled sampling.")
       assert hparams.scheduled_sampling_num_passes == 1, (
           "hparams.scheduled_sampling_num_passes must equal 1 if "
           "doing sequential scheduled sampling.")
       return scheduled_sampling.sequential_scheduled_sampling_for_t2tmodel(
           self, features)
     elif hparams.scheduled_sampling_method == "parallel":
-      tf.logging.info("Using PARALLEL scheduled sampling.")
+      tf.compat.v1.logging.info("Using PARALLEL scheduled sampling.")
       # TODO(duckworthd): Move this block to scheduled_sampling.py.
 
       # Gradually increase over a warmup period. Lower numbers mean more gold
@@ -2107,16 +2107,16 @@ def _with_timing(fn, msg, silent=False):
 
 def create_dummy_vars():
   """Dummy vars for restore to work when not using TPU codepath."""
-  var_names = set([v.name for v in tf.global_variables()])
+  var_names = set([v.name for v in tf.compat.v1.global_variables()])
   if "losses_avg/problem_0/total_loss:0" in var_names:
     return
-  with tf.variable_scope("losses_avg"):
-    with tf.variable_scope("problem_0"):
+  with tf.compat.v1.variable_scope("losses_avg"):
+    with tf.compat.v1.variable_scope("problem_0"):
       for var_name in ["total", "extra", "training"]:
-        tf.get_variable(
+        tf.compat.v1.get_variable(
             "%s_loss" % var_name, initializer=100.0, trainable=False)
-  with tf.variable_scope("train_stats"):
-    tf.get_variable("problem_0_steps", initializer=0, trainable=False)
+  with tf.compat.v1.variable_scope("train_stats"):
+    tf.compat.v1.get_variable("problem_0_steps", initializer=0, trainable=False)
 
 
 # These metrics are implemented with py_funcs and therefore do no work with TPU
@@ -2161,7 +2161,7 @@ def create_tpu_eval_metrics_fn(problem, model_hparams):
 
           logits, labels = reduce_dimensions(logits, labels)
           num, den = metric_fn(logits, labels, weights_fn=weights_fn, **kwargs)
-          return tf.metrics.mean(num, den)
+          return tf.compat.v1.metrics.mean(num, den)
 
         return wrapped_metric_fn
 
@@ -2184,7 +2184,7 @@ def create_tpu_eval_metrics_fn(problem, model_hparams):
 
         logits, labels = reduce_dimensions(logits, labels)
         num, den = metric_fn(logits, labels, weights_fn=weights_fn, **kwargs)
-        return tf.metrics.mean(num, den)
+        return tf.compat.v1.metrics.mean(num, den)
 
       return wrapped_metric_fn
 
@@ -2213,7 +2213,7 @@ def create_tpu_eval_metrics_fn(problem, model_hparams):
         for k, v in six.iteritems(logits):
           metrics_dict["%s/%s" % (k, name)] = fn(v, labels[k], features)
       elif isinstance(logits, dict):
-        tf.logging.warning("Logits is a dict, but labels is not; only "
+        tf.compat.v1.logging.warning("Logits is a dict, but labels is not; only "
                            "evaluating logits['targets'] against labels.")
         metrics_dict["%s/%s" % ("targets", name)] = fn(logits["targets"],
                                                        labels, features)
@@ -2227,8 +2227,8 @@ def create_tpu_eval_metrics_fn(problem, model_hparams):
 
 def remove_summaries():
   """Remove summaries from the default graph."""
-  g = tf.get_default_graph()
-  key = tf.GraphKeys.SUMMARIES
+  g = tf.compat.v1.get_default_graph()
+  key = tf.compat.v1.GraphKeys.SUMMARIES
   log_debug("Remove summaries %s" % str(g.get_collection(key)))
   del g.get_collection_ref(key)[:]
   assert not g.get_collection(key)
@@ -2243,15 +2243,15 @@ def create_host_call(model_dir):
   Returns:
     (fn, args) Pair to be called by TPUEstimator as the host_call.
   """
-  graph = tf.get_default_graph()
-  summaries = graph.get_collection(tf.GraphKeys.SUMMARIES)
-  gs_t = tf.reshape(tf.to_int32(tf.train.get_global_step()), [1])
+  graph = tf.compat.v1.get_default_graph()
+  summaries = graph.get_collection(tf.compat.v1.GraphKeys.SUMMARIES)
+  gs_t = tf.reshape(tf.cast(tf.compat.v1.train.get_global_step(), dtype=tf.int32), [1])
   summary_kwargs = collections.OrderedDict()
   for t in summaries:
     # TODO(aidangomez): enable ImageSummary support when we have a faster method
     # see @shibow's comment in cl/202344570
     if t.op.type not in ["ScalarSummary"]:
-      tf.logging.warn("Ignoring unsupported tf.Summary type %s" % t.op.type)
+      tf.compat.v1.logging.warn("Ignoring unsupported tf.Summary type %s" % t.op.type)
       continue
 
     name = t.op.name
@@ -2259,13 +2259,13 @@ def create_host_call(model_dir):
     if t.op.type == "ScalarSummary":
       assert tensor.shape.is_compatible_with([])
       if tensor.dtype == tf.int64:
-        tensor = tf.to_int32(tensor)
+        tensor = tf.cast(tensor, dtype=tf.int32)
       summary_kwargs["ScalarSummary" + name] = tf.reshape(tensor, [1])
     elif t.op.type == "ImageSummary":
       # TODO(aidangomez): as we move to support more types, update
       # common_layers.tpu_safe_image_summary
       if tensor.dtype != tf.float32:
-        tf.logging.warn(
+        tf.compat.v1.logging.warn(
             "Currently T2T on TPU only supports ImageSummary of "
             "tf.float32-type Tensors. Skipping Tensor "
             "%s with dtype %s..." % (tensor.name, tensor.dtype))
@@ -2290,7 +2290,7 @@ def create_host_call(model_dir):
     Returns:
       List of summary ops to run on the CPU host.
     """
-    gs = tf.to_int64(kwargs.pop("global_step")[0])
+    gs = tf.cast(kwargs.pop("global_step")[0], dtype=tf.int64)
     with contrib.summary().create_file_writer(model_dir).as_default():
       with contrib.summary().always_record_summaries():
         # We need to use tf.contrib.summary in order to feed the `step`.
@@ -2298,7 +2298,7 @@ def create_host_call(model_dir):
           if name.startswith("ScalarSummary"):
             name = name[len("ScalarSummary"):]
             contrib.summary().scalar(
-                name, tf.reduce_mean(tf.to_float(value)), step=gs)
+                name, tf.reduce_mean(tf.cast(value, dtype=tf.float32)), step=gs)
           elif name.startswith("ImageSummary"):
             name = name[len("ImageSummary"):]
             contrib.summary().image(name, value, step=gs)
@@ -2358,7 +2358,7 @@ def summarize_features(features, num_shards=1):
   if not common_layers.should_generate_summaries():
     return
 
-  with tf.name_scope("input_stats"):
+  with tf.compat.v1.name_scope("input_stats"):
     for (k, v) in sorted(six.iteritems(features)):
       # Fathom
       # skipping example_id or nonpadding assignment will not work
@@ -2366,12 +2366,12 @@ def summarize_features(features, num_shards=1):
         continue
       if (isinstance(v, tf.Tensor) and (v.get_shape().ndims > 1) and
           (v.dtype != tf.string)):
-        tf.summary.scalar("%s_batch" % k, tf.shape(v)[0] // num_shards)
-        tf.summary.scalar("%s_length" % k, tf.shape(v)[1])
-        nonpadding = tf.to_float(tf.not_equal(v, 0))
+        tf.compat.v1.summary.scalar("%s_batch" % k, tf.shape(v)[0] // num_shards)
+        tf.compat.v1.summary.scalar("%s_length" % k, tf.shape(v)[1])
+        nonpadding = tf.cast(tf.not_equal(v, 0), dtype=tf.float32)
         nonpadding_tokens = tf.reduce_sum(nonpadding)
-        tf.summary.scalar("%s_nonpadding_tokens" % k, nonpadding_tokens)
-        tf.summary.scalar("%s_nonpadding_fraction" % k,
+        tf.compat.v1.summary.scalar("%s_nonpadding_tokens" % k, nonpadding_tokens)
+        tf.compat.v1.summary.scalar("%s_nonpadding_fraction" % k,
                           tf.reduce_mean(nonpadding))
 
 
@@ -2433,8 +2433,8 @@ def set_custom_getter_compose(custom_getter):
   Args:
     custom_getter: a custom getter.
   """
-  tf.get_variable_scope().set_custom_getter(
-      _compose_custom_getters(tf.get_variable_scope().custom_getter,
+  tf.compat.v1.get_variable_scope().set_custom_getter(
+      _compose_custom_getters(tf.compat.v1.get_variable_scope().custom_getter,
                               custom_getter))
 
 
@@ -2455,15 +2455,15 @@ def initialize_from_ckpt(ckpt_dir, hparams):
   if already_has_ckpt:
     return
 
-  tf.logging.info("Checkpoint dir: %s", ckpt_dir)
+  tf.compat.v1.logging.info("Checkpoint dir: %s", ckpt_dir)
   reader = contrib.framework().load_checkpoint(ckpt_dir)
   variable_map = {}
   for var in contrib.framework().get_trainable_variables():
     var_name = var.name.split(":")[0]
     if reader.has_tensor(var_name):
-      tf.logging.info("Loading variable from checkpoint: %s", var_name)
+      tf.compat.v1.logging.info("Loading variable from checkpoint: %s", var_name)
       variable_map[var_name] = var
     else:
-      tf.logging.info("Cannot find variable in checkpoint, skipping: %s",
+      tf.compat.v1.logging.info("Cannot find variable in checkpoint, skipping: %s",
                       var_name)
-  tf.train.init_from_checkpoint(ckpt_dir, variable_map)
+  tf.compat.v1.train.init_from_checkpoint(ckpt_dir, variable_map)

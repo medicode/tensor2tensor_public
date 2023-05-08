@@ -24,7 +24,7 @@ import numpy as np
 
 from tensor2tensor.layers import transformer_glow_layers_ops as gops
 from tensor2tensor.models import transformer
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 BATCH_SIZE = 10
 INPUT_LENGTH = 3
@@ -37,7 +37,7 @@ N_1X1_HEADS = 4
 class TransformerFlowOpsTest(parameterized.TestCase, tf.test.TestCase):
 
   def get_data(self):
-    x = tf.random_normal((BATCH_SIZE, TARGET_LENGTH, N_CHANNELS),
+    x = tf.random.normal((BATCH_SIZE, TARGET_LENGTH, N_CHANNELS),
                          mean=0.0, stddev=1.0)
     x_lengths = np.random.randint(low=1, high=TARGET_LENGTH+1, size=BATCH_SIZE)
     x_mask = tf.sequence_mask(x_lengths, maxlen=TARGET_LENGTH, dtype=tf.float32)
@@ -85,14 +85,14 @@ class TransformerFlowOpsTest(parameterized.TestCase, tf.test.TestCase):
 
   def test_dense_weightnorm(self):
     x, x_mask = self.get_data()
-    x = tf.random_normal((BATCH_SIZE, TARGET_LENGTH, HIDDEN_SIZE),
+    x = tf.random.normal((BATCH_SIZE, TARGET_LENGTH, HIDDEN_SIZE),
                          mean=0.0, stddev=1.0)
     y = gops.dense_weightnorm("wn", x, N_CHANNELS, x_mask,
                               init_scale=1.0, init=True)
 
     y_nopad = tf.boolean_mask(y, x_mask)
     mean, var = tf.nn.moments(y_nopad, axes=[0])
-    self.evaluate(tf.global_variables_initializer())
+    self.evaluate(tf.compat.v1.global_variables_initializer())
     x, x_mask, y, y_nopad, mean, var = (
         self.evaluate([x, x_mask, y, y_nopad, mean, var]))
     self.assertEqual(y.shape, (BATCH_SIZE, TARGET_LENGTH, N_CHANNELS))

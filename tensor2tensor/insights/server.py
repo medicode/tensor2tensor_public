@@ -25,7 +25,7 @@ from gunicorn.app.base import BaseApplication
 from gunicorn.six import iteritems
 import numpy as np
 from tensor2tensor.insights import transformer_model
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 flags = tf.flags
 FLAGS = flags.FLAGS
@@ -197,7 +197,7 @@ def main(_):
     return send_from_directory(FLAGS.static_path, "index.html")
 
   # Run the server.
-  tf.logging.info("############# READY ##################")
+  tf.compat.v1.logging.info("############# READY ##################")
   options = {
       "bind": ":8010",
       "timeout": 600,
@@ -210,4 +210,4 @@ def main(_):
 
 
 if __name__ == "__main__":
-  tf.app.run()
+  tf.compat.v1.app.run()

@@ -31,7 +31,7 @@ from tensor2tensor.rl.policy_learner import PolicyLearner
 from tensor2tensor.rl.restarter import Restarter
 from tensor2tensor.utils import trainer_lib
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 import tensorflow_probability as tfp
 
 
@@ -77,8 +77,8 @@ class PPOLearner(PolicyLearner):
                              str(epoch) + simulated_str)
 
     with tf.Graph().as_default():
-      with tf.name_scope(name_scope):
-        with tf.variable_scope(tf.get_variable_scope(), reuse=tf.AUTO_REUSE):
+      with tf.compat.v1.name_scope(name_scope):
+        with tf.compat.v1.variable_scope(tf.compat.v1.get_variable_scope(), reuse=tf.compat.v1.AUTO_REUSE):
           env = env_fn(in_graph=True)
           (train_summary_op, eval_summary_op, initializers) = (
               _define_train(
@@ -134,7 +134,7 @@ class PPOLearner(PolicyLearner):
 
   def evaluate(self, env_fn, hparams, sampling_temp):
     with tf.Graph().as_default():
-      with tf.name_scope("rl_eval"):
+      with tf.compat.v1.name_scope("rl_eval"):
         eval_env = env_fn(in_graph=True)
         (collect_memory, _, collect_init) = _define_collect(
             eval_env,
@@ -146,13 +146,13 @@ class PPOLearner(PolicyLearner):
             sampling_temp=sampling_temp,
             distributional_size=self._distributional_size,
         )
-        model_saver = tf.train.Saver(
-            tf.global_variables(hparams.policy_network + "/.*")
+        model_saver = tf.compat.v1.train.Saver(
+            tf.compat.v1.global_variables(hparams.policy_network + "/.*")
             # tf.global_variables("clean_scope.*")  # Needed for sharing params.
         )
 
-        with tf.Session() as sess:
-          sess.run(tf.global_variables_initializer())
+        with tf.compat.v1.Session() as sess:
+          sess.run(tf.compat.v1.global_variables_initializer())
           collect_init(sess)
           trainer_lib.restore_checkpoint(self.agent_model_dir, model_saver,
                                          sess)
@@ -186,7 +186,7 @@ def _define_train(
       distributional_subscale=distributional_subscale,
       distributional_threshold=distributional_threshold,
       epoch=epoch)
-  train_summary = tf.summary.merge([collect_summary, ppo_summary])
+  train_summary = tf.compat.v1.summary.merge([collect_summary, ppo_summary])
 
   if ppo_hparams.eval_every_epochs:
     # TODO(koz4k): Do we need this at all?
@@ -218,24 +218,24 @@ def _run_train(ppo_hparams,
                report_fn=None,
                model_save_fn=None):
   """Train."""
-  summary_writer = tf.summary.FileWriter(
-      event_dir, graph=tf.get_default_graph(), flush_secs=60)
+  summary_writer = tf.compat.v1.summary.FileWriter(
+      event_dir, graph=tf.compat.v1.get_default_graph(), flush_secs=60)
 
-  model_saver = tf.train.Saver(
-      tf.global_variables(ppo_hparams.policy_network + "/.*") +
-      tf.global_variables("training/" + ppo_hparams.policy_network + "/.*") +
+  model_saver = tf.compat.v1.train.Saver(
+      tf.compat.v1.global_variables(ppo_hparams.policy_network + "/.*") +
+      tf.compat.v1.global_variables("training/" + ppo_hparams.policy_network + "/.*") +
       # tf.global_variables("clean_scope.*") +  # Needed for sharing params.
-      tf.global_variables("global_step") +
-      tf.global_variables("losses_avg.*") +
-      tf.global_variables("train_stats.*")
+      tf.compat.v1.global_variables("global_step") +
+      tf.compat.v1.global_variables("losses_avg.*") +
+      tf.compat.v1.global_variables("train_stats.*")
   )
 
-  global_step = tf.train.get_or_create_global_step()
-  with tf.control_dependencies([tf.assign_add(global_step, 1)]):
+  global_step = tf.compat.v1.train.get_or_create_global_step()
+  with tf.control_dependencies([tf.compat.v1.assign_add(global_step, 1)]):
     train_summary_op = tf.identity(train_summary_op)
 
-  with tf.Session() as sess:
-    sess.run(tf.global_variables_initializer())
+  with tf.compat.v1.Session() as sess:
+    sess.run(tf.compat.v1.global_variables_initializer())
     for initializer in initializers:
       initializer(sess)
     trainer_lib.restore_checkpoint(model_dir, model_saver, sess)
@@ -254,7 +254,7 @@ def _run_train(ppo_hparams,
           if summary_writer:
             summary_writer.add_summary(eval_summary, epoch_index)
           if report_fn:
-            summary_proto = tf.Summary()
+            summary_proto = tf.compat.v1.Summary()
             summary_proto.ParseFromString(eval_summary)
             for elem in summary_proto.value:
               if "mean_score" in elem.tag:
@@ -265,11 +265,11 @@ def _run_train(ppo_hparams,
             (epoch_index % ppo_hparams.save_models_every_epochs == 0 or
              (epoch_index + 1) == num_target_iterations)):
           ckpt_name = "model.ckpt-{}".format(
-              tf.train.global_step(sess, global_step)
+              tf.compat.v1.train.global_step(sess, global_step)
           )
           # Keep the last checkpoint from each epoch in a separate directory.
           epoch_dir = os.path.join(model_dir, "epoch_{}".format(epoch))
-          tf.gfile.MakeDirs(epoch_dir)
+          tf.io.gfile.makedirs(epoch_dir)
           for ckpt_dir in (model_dir, epoch_dir):
             model_saver.save(sess, os.path.join(ckpt_dir, ckpt_name))
           if model_save_fn:
@@ -307,7 +307,7 @@ class _MemoryWrapper(WrapperBase):
     # thus we only need the first 4 entries of meta_data
     shapes = meta_data[0][:4]
     dtypes = meta_data[1][:4]
-    self.speculum = tf.FIFOQueue(infinity, shapes=shapes, dtypes=dtypes)
+    self.speculum = tf.queue.FIFOQueue(infinity, shapes=shapes, dtypes=dtypes)
     observs_shape = batch_env.observ.shape
     # TODO(piotrmilos): possibly retrieve the observation type for batch_env
     self._observ = tf.Variable(
@@ -358,7 +358,7 @@ def _define_collect(batch_env, ppo_hparams, scope, frame_stack_size, eval_phase,
   epoch_length = ppo_hparams.epoch_length
 
   to_initialize = []
-  with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(scope, reuse=tf.compat.v1.AUTO_REUSE):
     num_agents = batch_env.batch_size
 
     to_initialize.append(batch_env)
@@ -368,7 +368,7 @@ def _define_collect(batch_env, ppo_hparams, scope, frame_stack_size, eval_phase,
     rollout_metadata = None
     speculum = None
     for w in wrappers:
-      tf.logging.info("Applying wrapper %s(%s) to env %s." % (str(
+      tf.compat.v1.logging.info("Applying wrapper %s(%s) to env %s." % (str(
           w[0]), str(w[1]), str(batch_env)))
       batch_env = w[0](batch_env, **w[1])
       to_initialize.append(batch_env)
@@ -381,15 +381,15 @@ def _define_collect(batch_env, ppo_hparams, scope, frame_stack_size, eval_phase,
         batch_env.initialize(sess)
 
     memory = [
-        tf.get_variable(  # pylint: disable=g-complex-comprehension
+        tf.compat.v1.get_variable(  # pylint: disable=g-complex-comprehension
             "collect_memory_%d_%s" % (epoch_length, name),
             shape=[epoch_length] + shape,
             dtype=dtype,
-            initializer=tf.zeros_initializer(),
+            initializer=tf.compat.v1.zeros_initializer(),
             trainable=False) for (shape, dtype, name) in rollout_metadata
     ]
 
-    cumulative_rewards = tf.get_variable(
+    cumulative_rewards = tf.compat.v1.get_variable(
         "cumulative_rewards", len(batch_env), trainable=False)
 
     eval_phase_t = tf.convert_to_tensor(eval_phase)
@@ -401,14 +401,14 @@ def _define_collect(batch_env, ppo_hparams, scope, frame_stack_size, eval_phase,
   def reset_ops_group():
     return tf.group(
         batch_env.reset(tf.range(len(batch_env))),
-        tf.assign(cumulative_rewards, zeros_tensor))
+        tf.compat.v1.assign(cumulative_rewards, zeros_tensor))
 
   reset_op = tf.cond(
       tf.logical_or(should_reset_var.read_value(), force_beginning_resets),
       reset_ops_group, tf.no_op)
 
   with tf.control_dependencies([reset_op]):
-    reset_once_op = tf.assign(should_reset_var, False)
+    reset_once_op = tf.compat.v1.assign(should_reset_var, False)
 
   with tf.control_dependencies([reset_once_op]):
 
@@ -447,9 +447,9 @@ def _define_collect(batch_env, ppo_hparams, scope, frame_stack_size, eval_phase,
       # TODO(piotrmilos): while_body is executed at most once,
       # thus should be replaced with tf.cond
       pdf, value_function, top_level_done = tf.while_loop(
-          lambda _1, _2, _3: tf.equal(speculum.size(), 0),
-          env_step,
-          [
+          cond=lambda _1, _2, _3: tf.equal(speculum.size(), 0),
+          body=env_step,
+          loop_vars=[
               tf.constant(0.0, shape=(num_agents,)),
               tf.constant(0.0, shape=value_fun_shape),
               tf.constant(False, shape=(num_agents,))
@@ -462,21 +462,21 @@ def _define_collect(batch_env, ppo_hparams, scope, frame_stack_size, eval_phase,
         obs, reward, done, action = speculum.dequeue()
         to_save = [obs, reward, done, action, pdf, value_function]
         save_ops = [
-            tf.scatter_update(memory_slot, index, value)
+            tf.compat.v1.scatter_update(memory_slot, index, value)
             for memory_slot, value in zip(memory, to_save)
         ]
         cumulate_rewards_op = cumulative_rewards.assign_add(reward)
 
-        agent_indices_to_reset = tf.where(top_level_done)[:, 0]
+        agent_indices_to_reset = tf.compat.v1.where(top_level_done)[:, 0]
       with tf.control_dependencies([cumulate_rewards_op]):
         # TODO(piotrmilos): possibly we need cumulative_rewards.read_value()
         scores_sum_delta = tf.reduce_sum(
             tf.gather(cumulative_rewards.read_value(), agent_indices_to_reset))
-        scores_num_delta = tf.count_nonzero(done, dtype=tf.int32)
+        scores_num_delta = tf.math.count_nonzero(done, dtype=tf.int32)
       with tf.control_dependencies(save_ops +
                                    [scores_sum_delta, scores_num_delta]):
         reset_env_op = batch_env.reset(agent_indices_to_reset)
-        reset_cumulative_rewards_op = tf.scatter_update(
+        reset_cumulative_rewards_op = tf.compat.v1.scatter_update(
             cumulative_rewards, agent_indices_to_reset,
             tf.gather(zeros_tensor, agent_indices_to_reset))
       with tf.control_dependencies([reset_env_op, reset_cumulative_rewards_op]):
@@ -491,7 +491,7 @@ def _define_collect(batch_env, ppo_hparams, scope, frame_stack_size, eval_phase,
 
     init = [tf.constant(0), tf.constant(0.0), tf.constant(0)]
     index, scores_sum, scores_num = tf.while_loop(
-        stop_condition, step, init, parallel_iterations=1, back_prop=False)
+        cond=stop_condition, body=step, loop_vars=init, parallel_iterations=1, back_prop=False)
 
   # We handle force_beginning_resets differently. We assume that all envs are
   # reseted at the end of episod (though it happens at the beginning of the
@@ -508,7 +508,7 @@ def _define_collect(batch_env, ppo_hparams, scope, frame_stack_size, eval_phase,
   mean_score = tf.cond(
       tf.greater(scores_num, 0),
       lambda: scores_sum / tf.cast(scores_num, tf.float32), lambda: 0.)
-  printing = tf.Print(0, [mean_score, scores_sum, scores_num], "mean_score: ")
+  printing = tf.compat.v1.Print(0, [mean_score, scores_sum, scores_num], "mean_score: ")
   with tf.control_dependencies([index, printing]):
     memory = [mem.read_value() for mem in memory]
     # When generating real data together with PPO training we must use single
@@ -536,12 +536,12 @@ def _define_collect(batch_env, ppo_hparams, scope, frame_stack_size, eval_phase,
         new_memory.append(mem)
       memory = new_memory
 
-    with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
+    with tf.compat.v1.variable_scope(scope, reuse=tf.compat.v1.AUTO_REUSE):
       mean_score_summary = tf.cond(
           tf.greater(scores_num, 0),
-          lambda: tf.summary.scalar("mean_score_this_iter", mean_score), str)
-      summaries = tf.summary.merge([
+          lambda: tf.compat.v1.summary.scalar("mean_score_this_iter", mean_score), str)
+      summaries = tf.compat.v1.summary.merge([
           mean_score_summary,
-          tf.summary.scalar("episodes_finished_this_iter", scores_num)
+          tf.compat.v1.summary.scalar("episodes_finished_this_iter", scores_num)
       ])
       return memory, summaries, initialization_lambda

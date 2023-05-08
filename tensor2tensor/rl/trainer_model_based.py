@@ -43,7 +43,7 @@ from tensor2tensor.rl.dopamine_connector import DQNLearner  # pylint: disable=un
 from tensor2tensor.rl.restarter import Restarter
 from tensor2tensor.utils import trainer_lib
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 flags = tf.flags
@@ -68,7 +68,7 @@ def world_model_step_increment(hparams, epoch):
 def setup_directories(base_dir, subdirs):
   """Setup directories."""
   base_dir = os.path.expanduser(base_dir)
-  tf.gfile.MakeDirs(base_dir)
+  tf.io.gfile.makedirs(base_dir)
 
   all_dirs = {}
   for subdir in subdirs:
@@ -77,7 +77,7 @@ def setup_directories(base_dir, subdirs):
     else:
       subdir_tuple = subdir
     dir_name = os.path.join(base_dir, *subdir_tuple)
-    tf.gfile.MakeDirs(dir_name)
+    tf.io.gfile.makedirs(dir_name)
     all_dirs[subdir] = dir_name
   return all_dirs
 
@@ -91,7 +91,7 @@ def make_relative_timing_fn():
     return str(datetime.timedelta(seconds=time_delta))
 
   def log_relative_time():
-    tf.logging.info("Timing: %s", format_relative_time())
+    tf.compat.v1.logging.info("Timing: %s", format_relative_time())
 
   return log_relative_time
 
@@ -100,7 +100,7 @@ def make_log_fn(epoch, log_relative_time_fn):
 
   def log(msg, *args):
     msg %= args
-    tf.logging.info("%s Epoch %d: %s", ">>>>>>>", epoch, msg)
+    tf.compat.v1.logging.info("%s Epoch %d: %s", ">>>>>>>", epoch, msg)
     log_relative_time_fn()
 
   return log
@@ -240,9 +240,9 @@ def load_metrics(event_dir, epoch):
     metrics.
   """
   metrics = {}
-  for filename in tf.gfile.ListDirectory(event_dir):
+  for filename in tf.io.gfile.listdir(event_dir):
     path = os.path.join(event_dir, filename)
-    for event in tf.train.summary_iterator(path):
+    for event in tf.compat.v1.train.summary_iterator(path):
       if event.step == epoch and event.HasField("summary"):
         value = event.summary.value[0]
         metrics[value.tag] = value.simple_value
@@ -288,17 +288,17 @@ def training_loop(hparams, output_dir, report_fn=None, report_metric=None):
 
   # Collect data from the real environment.
   policy_model_dir = directories["policy"]
-  tf.logging.info("Initial training of the policy in real environment.")
+  tf.compat.v1.logging.info("Initial training of the policy in real environment.")
   train_agent_real_env(env, learner, hparams, epoch)
   metrics["mean_reward/train/clipped"] = rl_utils.compute_mean_reward(
       env.current_epoch_rollouts(), clipped=True
   )
-  tf.logging.info("Mean training reward (initial): {}".format(
+  tf.compat.v1.logging.info("Mean training reward (initial): {}".format(
       metrics["mean_reward/train/clipped"]
   ))
   env.generate_data(data_dir)
 
-  eval_metrics_writer = tf.summary.FileWriter(
+  eval_metrics_writer = tf.compat.v1.summary.FileWriter(
       directories["eval_metrics"]
   )
 
@@ -384,5 +384,5 @@ def main(_):
 
 
 if __name__ == "__main__":
-  tf.logging.set_verbosity(tf.logging.INFO)
-  tf.app.run()
+  tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
+  tf.compat.v1.app.run()

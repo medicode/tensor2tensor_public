@@ -26,7 +26,7 @@ from tensor2tensor.data_generators import generator_utils
 from tensor2tensor.data_generators import problem
 from tensor2tensor.data_generators import text_problems
 from tensor2tensor.utils import registry
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 @registry.register_problem
@@ -50,10 +50,10 @@ class Conll2002Ner(text_problems.Text2textTmpdir):
     filenames = self.source_data_files(dataset_split)
     for filename in filenames:
       filepath = os.path.join(compressed_dir, filename)
-      if not tf.gfile.Exists(filepath):
+      if not tf.io.gfile.exists(filepath):
         with zipfile.ZipFile(compressed_filepath, "r") as corpus_zip:
           corpus_zip.extractall(tmp_dir)
-      with tf.gfile.GFile(filepath, mode="r") as cur_file:
+      with tf.io.gfile.GFile(filepath, mode="r") as cur_file:
         words, tags = [], []
         for line in cur_file:
           line_split = line.strip().split()

@@ -21,7 +21,7 @@ from __future__ import print_function
 from tensor2tensor.bin import t2t_trainer
 from tensor2tensor.utils import trainer_lib_test
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 FLAGS = tf.flags.FLAGS
 
@@ -38,8 +38,8 @@ class TrainerTest(tf.test.TestCase):
     FLAGS.hparams_set = "transformer_tiny"
     FLAGS.train_steps = 1
     FLAGS.eval_steps = 1
-    FLAGS.output_dir = tf.test.get_temp_dir()
-    FLAGS.data_dir = tf.test.get_temp_dir()
+    FLAGS.output_dir = tf.compat.v1.test.get_temp_dir()
+    FLAGS.data_dir = tf.compat.v1.test.get_temp_dir()
     t2t_trainer.main(None)
 
 

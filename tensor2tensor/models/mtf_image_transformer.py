@@ -32,7 +32,7 @@ from tensor2tensor.layers import common_hparams
 from tensor2tensor.layers import common_layers
 from tensor2tensor.utils import mtf_model
 from tensor2tensor.utils import registry
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -126,12 +126,12 @@ class MtfImageTransformer(mtf_model.MtfModel):
     positional_emb_rows_var = mtf.get_variable(
         mesh, "positional_emb_rows",
         mtf.Shape([self.pos_dim, self.model_dim]),
-        initializer=tf.random_normal_initializer(),
+        initializer=tf.compat.v1.random_normal_initializer(),
         activation_dtype=self.activation_type)
     positional_emb_cols_var = mtf.get_variable(
         mesh, "positional_emb_cols",
         mtf.Shape([self.pos_dim, self.model_dim]),
-        initializer=tf.random_normal_initializer(),
+        initializer=tf.compat.v1.random_normal_initializer(),
         activation_dtype=self.activation_type)
 
     targets_position_x = mtf.range(mesh, self.rows_dim, dtype=tf.int32)
@@ -149,12 +149,12 @@ class MtfImageTransformer(mtf_model.MtfModel):
 
   def mtf_model_fn(self, features, mesh):
     features = copy.copy(features)
-    tf.logging.info("features = %s" % features)
+    tf.compat.v1.logging.info("features = %s" % features)
     hparams = self._hparams
     activation_dtype = self.activation_type
 
     # We assume fixed vocab size for targets
-    targets = tf.to_int32(features["targets"])
+    targets = tf.cast(features["targets"], dtype=tf.int32)
 
     # Image preprocessing, reshape into a 1D sequence and shift right.
     length = hparams.img_len*hparams.img_len*hparams.num_channels
@@ -179,7 +179,7 @@ class MtfImageTransformer(mtf_model.MtfModel):
     targets_embedding_var = mtf.get_variable(
         mesh, "targets_embedding",
         mtf.Shape([self.targets_vocab_dim, self.model_dim]),
-        initializer=tf.random_normal_initializer(),
+        initializer=tf.compat.v1.random_normal_initializer(),
         activation_dtype=activation_dtype)
 
     x = mtf.gather(targets_embedding_var,
@@ -192,7 +192,7 @@ class MtfImageTransformer(mtf_model.MtfModel):
     # If conditional and input is given, add the input embedding to the target.
     # TODO(nikip): Verify conditional.
     if self.has_input and not hparams.unconditional:
-      inputs = tf.squeeze(tf.to_int32(features["inputs"]), [2, 3])
+      inputs = tf.squeeze(tf.cast(features["inputs"], dtype=tf.int32), [2, 3])
       inputs = import_to_batch_by_length(inputs, "inputs")
 
       # Input embeddings
@@ -266,7 +266,7 @@ def local_attention1d_spatial_decoder(x, kv_dim, heads_dim,
   is_training = mode == tf_estimator.ModeKeys.TRAIN
   for layer in range(hparams.num_decoder_layers):
     layer_name = "decoder_layer_%d" % layer
-    with tf.variable_scope(layer_name):
+    with tf.compat.v1.variable_scope(layer_name):
       # Self attention layer
       x += layer_prepostprocess_dropout(
           mtf.layers.local_self_attention_spatial_blocks(
@@ -318,7 +318,7 @@ def local_attention2d_spatial_decoder(x, kv_dim, heads_dim,
   # [ self attention - ffn - residual + dropout] x n
   for layer in range(hparams.num_decoder_layers):
     layer_name = "decoder_layer_%d" % layer
-    with tf.variable_scope(layer_name):
+    with tf.compat.v1.variable_scope(layer_name):
       # Self attention layer
       x += layer_prepostprocess_dropout(
           mtf.layers.local_2d_self_attention_spatial_blocks(
@@ -350,7 +350,7 @@ def local_attention1d_masked_decoder(x, kv_dim, heads_dim,
   is_training = mode == tf_estimator.ModeKeys.TRAIN
   for layer in range(hparams.num_decoder_layers):
     layer_name = "decoder_layer_%d" % layer
-    with tf.variable_scope(layer_name):
+    with tf.compat.v1.variable_scope(layer_name):
       # Self attention layer
       length_per_split = mtf.tensor_dim_to_size_per_split(
           hparams.layout, hparams.mesh_shape, length_dim)

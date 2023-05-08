@@ -34,7 +34,7 @@ from tensor2tensor.layers import modalities
 from tensor2tensor.utils import metrics
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 # URLs and filenames for CIFAR data.
@@ -96,7 +96,7 @@ def cifar_generator(cifar_version, tmp_dir, training, how_many, start_from=0):
   all_images, all_labels = [], []
   for filename in data_files:
     path = os.path.join(tmp_dir, prefix, filename)
-    with tf.gfile.Open(path, "rb") as f:
+    with tf.io.gfile.GFile(path, "rb") as f:
       if six.PY2:
         data = cPickle.load(f)
       else:
@@ -177,7 +177,7 @@ class ImageCifar10PlainGen(ImageCifar10Plain):
 
   def preprocess_example(self, example, mode, unused_hparams):
     example["inputs"].set_shape([_CIFAR10_IMAGE_SIZE, _CIFAR10_IMAGE_SIZE, 3])
-    example["inputs"] = tf.to_int64(example["inputs"])
+    example["inputs"] = tf.cast(example["inputs"], dtype=tf.int64)
     return example
 
 
@@ -187,7 +187,7 @@ class ImageCifar10PlainGenFlat(ImageCifar10PlainGen):
 
   def preprocess_example(self, example, mode, unused_hparams):
     example["inputs"].set_shape([_CIFAR10_IMAGE_SIZE, _CIFAR10_IMAGE_SIZE, 3])
-    example["inputs"] = tf.to_int64(example["inputs"])
+    example["inputs"] = tf.cast(example["inputs"], dtype=tf.int64)
     example["inputs"] = tf.reshape(example["inputs"], (-1,))
 
     del example["targets"]  # Ensure unconditional generation
@@ -211,7 +211,7 @@ class ImageCifar10PlainRandomShift(ImageCifar10Plain):
 
   def preprocess_example(self, example, mode, unused_hparams):
     example["inputs"].set_shape([_CIFAR10_IMAGE_SIZE, _CIFAR10_IMAGE_SIZE, 3])
-    example["inputs"] = tf.to_int64(example["inputs"])
+    example["inputs"] = tf.cast(example["inputs"], dtype=tf.int64)
     if mode == tf_estimator.ModeKeys.TRAIN:
       example["inputs"] = image_utils.random_shift(
           example["inputs"], wsr=0.1, hsr=0.1)
@@ -437,7 +437,7 @@ class ImageCifar100PlainGen(ImageCifar100Plain):
 
   def preprocess_example(self, example, mode, unused_hparams):
     example["inputs"].set_shape([_CIFAR100_IMAGE_SIZE, _CIFAR100_IMAGE_SIZE, 3])
-    example["inputs"] = tf.to_int64(example["inputs"])
+    example["inputs"] = tf.cast(example["inputs"], dtype=tf.int64)
     return example
 
 
@@ -568,7 +568,7 @@ class ImageCifar20PlainGen(ImageCifar20Plain):
 
   def preprocess_example(self, example, mode, unused_hparams):
     example["inputs"].set_shape([_CIFAR100_IMAGE_SIZE, _CIFAR100_IMAGE_SIZE, 3])
-    example["inputs"] = tf.to_int64(example["inputs"])
+    example["inputs"] = tf.cast(example["inputs"], dtype=tf.int64)
     return example
 
 

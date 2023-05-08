@@ -29,7 +29,7 @@ from tensor2tensor.data_generators import text_encoder
 from tensor2tensor.data_generators import text_problems
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 EOS = text_encoder.EOS
@@ -38,7 +38,7 @@ PTB_URL = "http://www.fit.vutbr.cz/~imikolov/rnnlm/simple-examples.tgz"
 
 def _read_words(filename):
   """Reads words from a file."""
-  with tf.gfile.GFile(filename, "r") as f:
+  with tf.io.gfile.GFile(filename, "r") as f:
     if sys.version_info[0] >= 3:
       return f.read().replace("\n", " %s " % EOS).split()
     else:
@@ -67,7 +67,7 @@ def _build_vocab(filename, vocab_path, vocab_size):
 def _get_token_encoder(vocab_dir, vocab_name, filename):
   """Reads from file and returns a `TokenTextEncoder` for the vocabulary."""
   vocab_path = os.path.join(vocab_dir, vocab_name)
-  if not tf.gfile.Exists(vocab_path):
+  if not tf.io.gfile.exists(vocab_path):
     _build_vocab(filename, vocab_path, 10000)
   return text_encoder.TokenTextEncoder(vocab_path)
 
@@ -152,7 +152,7 @@ class LanguagemodelPtb10k(text_problems.Text2SelfProblem):
     filepath = train_file if train else valid_file
 
     def _generate_samples():
-      with tf.gfile.GFile(filepath, "r") as f:
+      with tf.io.gfile.GFile(filepath, "r") as f:
         for line in f:
           line = " ".join(line.replace("\n", " %s " % EOS).split())
           yield {"targets": line}

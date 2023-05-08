@@ -26,16 +26,16 @@ from gym.spaces import Box
 from gym.spaces import Discrete
 
 import numpy as np
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 def box_space_spec(box_space, tf_dtype):
-  return tf.FixedLenFeature(box_space.shape, tf_dtype)
+  return tf.io.FixedLenFeature(box_space.shape, tf_dtype)
 
 
 def discrete_space_spec(discrete_space, tf_dtype):
   del discrete_space  # this is not needed.
-  return tf.FixedLenFeature((1,), tf_dtype)
+  return tf.io.FixedLenFeature((1,), tf_dtype)
 
 
 def gym_space_spec(gym_space):
@@ -56,7 +56,7 @@ def gym_space_spec(gym_space):
   try:
     tf_dtype = tf.as_dtype(gym_space.dtype)
   except TypeError as e:
-    tf.logging.error("Cannot convert space's type [%s] to tf.dtype",
+    tf.compat.v1.logging.error("Cannot convert space's type [%s] to tf.dtype",
                      gym_space.dtype)
     raise e
 
@@ -99,7 +99,7 @@ def cardinality(gym_space):
   """
 
   if (gym_space.dtype == np.float32) or (gym_space.dtype == np.float64):
-    tf.logging.warn("Returning None for a float gym space's cardinality: %s",
+    tf.compat.v1.logging.warn("Returning None for a float gym space's cardinality: %s",
                     gym_space)
     return None
 

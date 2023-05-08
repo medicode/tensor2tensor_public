@@ -29,7 +29,7 @@ from tensor2tensor.layers import modalities
 from tensor2tensor.utils import mtf_model
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 @registry.register_model
@@ -94,7 +94,7 @@ class MtfUnitransformer(mtf_model.MtfModel):
     """
     if key not in features:
       return None
-    x = tf.to_int32(features[key])
+    x = tf.cast(features[key], dtype=tf.int32)
     x = common_layers.expand_squeeze_to_nd(x, 2)
     batch_size = mtf.Shape(self.batch_dims).size
     x = x[:, :self.length_dim.size]

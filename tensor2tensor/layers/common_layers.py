@@ -28,7 +28,7 @@ import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
 
 from tensor2tensor.utils import contrib
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 import tensorflow_probability as tfp
 
 from tensorflow.python.framework import function
@@ -90,7 +90,7 @@ def is_xla_compiled():
   Returns:
     bool, whether the current graph will be compiled for XLA.
   """
-  ctxt = tf.get_default_graph()._get_control_flow_context()  # pylint: disable=protected-access
+  ctxt = tf.compat.v1.get_default_graph()._get_control_flow_context()  # pylint: disable=protected-access
   return control_flow_util.GetContainingXLAContext(ctxt) is not None
 
 
@@ -126,7 +126,7 @@ def dropout_with_broadcast_dims(x, keep_prob, broadcast_dims=None, **kwargs):
     kwargs["noise_shape"] = [
         1 if i in broadcast_dims else shape[i] for i in range(ndims)
     ]
-  return tf.nn.dropout(x, keep_prob, **kwargs)
+  return tf.nn.dropout(x, rate=1 - (keep_prob), **kwargs)
 
 
 def comma_separated_string_to_integer_list(s):
@@ -135,7 +135,7 @@ def comma_separated_string_to_integer_list(s):
 
 def saturating_sigmoid(x):
   """Saturating sigmoid: 1.2 * sigmoid(x) - 0.1 cut to [0, 1]."""
-  with tf.name_scope("saturating_sigmoid", values=[x]):
+  with tf.compat.v1.name_scope("saturating_sigmoid", values=[x]):
     y = tf.sigmoid(x)
     return tf.minimum(1.0, tf.maximum(0.0, 1.2 * y - 0.1))
 
@@ -153,9 +153,9 @@ def hard_tanh(x, saturation_limit=0.9):
 
 def inverse_exp_decay(max_step, min_value=0.01, step=None):
   """Inverse-decay exponentially from min_value to 1.0 reached at max_step."""
-  inv_base = tf.exp(tf.log(min_value) / float(max_step))
+  inv_base = tf.exp(tf.math.log(min_value) / float(max_step))
   if step is None:
-    step = tf.train.get_global_step()
+    step = tf.compat.v1.train.get_global_step()
   if step is None:
     return 1.0
   step = to_float(step)
@@ -165,7 +165,7 @@ def inverse_exp_decay(max_step, min_value=0.01, step=None):
 def inverse_lin_decay(max_step, min_value=0.01, step=None):
   """Inverse-decay linearly from min_value to 1.0 reached at max_step."""
   if step is None:
-    step = tf.train.get_global_step()
+    step = tf.compat.v1.train.get_global_step()
   if step is None:
     return 1.0
   step = to_float(step)
@@ -176,7 +176,7 @@ def inverse_lin_decay(max_step, min_value=0.01, step=None):
 def inverse_sigmoid_decay(max_step, min_value=0.01, step=None):
   """Inverse-decay linearly from min_value to 1.0 reached at max_step."""
   if step is None:
-    step = tf.train.get_global_step()
+    step = tf.compat.v1.train.get_global_step()
   if step is None:
     return 1.0
   step = to_float(step)
@@ -185,7 +185,7 @@ def inverse_sigmoid_decay(max_step, min_value=0.01, step=None):
     return 1 / (1 + tf.exp(-x))
 
   def inv_sigmoid(y):
-    return tf.log(y / (1 - y))
+    return tf.math.log(y / (1 - y))
 
   assert min_value > 0, (
       "sigmoid's output is always >0 and <1. min_value must respect "
@@ -216,9 +216,9 @@ def shakeshake2_py(x, y, equal=False, individual=False):
   if equal:
     alpha = 0.5
   elif individual:
-    alpha = tf.random_uniform(tf.get_shape(x)[:1])
+    alpha = tf.random.uniform(tf.get_shape(x)[:1])
   else:
-    alpha = tf.random_uniform([])
+    alpha = tf.random.uniform([])
 
   return alpha * x + (1.0 - alpha) * y
 
@@ -278,7 +278,7 @@ def shakeshake(xs, equal_grad=False):
 
 def convert_rgb_to_real(x):
   """Conversion of pixel values to real numbers."""
-  with tf.name_scope("rgb_to_real", values=[x]):
+  with tf.compat.v1.name_scope("rgb_to_real", values=[x]):
     x = to_float(x)
     x /= 255.0
     return x
@@ -286,7 +286,7 @@ def convert_rgb_to_real(x):
 
 def convert_rgb_to_symmetric_real(x):
   """Conversion of pixel values to real numbers."""
-  with tf.name_scope("rgb_to_real", values=[x]):
+  with tf.compat.v1.name_scope("rgb_to_real", values=[x]):
     x = to_float(x)
     # Convert each pixel intensity in [0, 1, 2, ..., 255] into a real number in
     # the range [-1, 1].
@@ -296,7 +296,7 @@ def convert_rgb_to_symmetric_real(x):
 
 def convert_real_to_rgb(x):
   """Conversion of real numbers to pixel values."""
-  with tf.name_scope("real_to_rgb", values=[x]):
+  with tf.compat.v1.name_scope("real_to_rgb", values=[x]):
     x *= 255.0
     return x
 
@@ -314,14 +314,14 @@ def expand_squeeze_to_nd(x, n, squeeze_dim=2, expand_dim=-1):
 
 def standardize_images(x):
   """Image standardization on batches and videos."""
-  with tf.name_scope("standardize_images", values=[x]):
+  with tf.compat.v1.name_scope("standardize_images", values=[x]):
     x_shape = shape_list(x)
     x = to_float(tf.reshape(x, [-1] + x_shape[-3:]))
     x_mean = tf.reduce_mean(x, axis=[1, 2], keepdims=True)
     x_variance = tf.reduce_mean(
-        tf.squared_difference(x, x_mean), axis=[1, 2], keepdims=True)
+        tf.math.squared_difference(x, x_mean), axis=[1, 2], keepdims=True)
     num_pixels = to_float(x_shape[-2] * x_shape[-3])
-    x = (x - x_mean) / tf.maximum(tf.sqrt(x_variance), tf.rsqrt(num_pixels))
+    x = (x - x_mean) / tf.maximum(tf.sqrt(x_variance), tf.math.rsqrt(num_pixels))
     return tf.reshape(x, x_shape)
 
 
@@ -389,7 +389,7 @@ def dropout_no_scaling(x, keep_prob):
   """
   if keep_prob == 1.0:
     return x
-  mask = tf.less(tf.random_uniform(tf.shape(x)), keep_prob)
+  mask = tf.less(tf.random.uniform(tf.shape(x)), keep_prob)
   return x * cast_like(mask, x)
 
 
@@ -403,10 +403,10 @@ def embedding(x,
               embedding_var=None,
               dtype=tf.float32):
   """Embed x of type int64 into dense vectors, reducing to max 4 dimensions."""
-  with tf.variable_scope(
+  with tf.compat.v1.variable_scope(
       name, default_name="embedding", values=[x], reuse=reuse, dtype=dtype):
     if embedding_var is None:
-      embedding_var = tf.get_variable("kernel", [vocab_size, dense_size])
+      embedding_var = tf.compat.v1.get_variable("kernel", [vocab_size, dense_size])
     # On the backwards pass, we want to convert the gradient from
     # an indexed-slices to a regular tensor before sending it back to the
     # parameter server. This avoids excess computation on the parameter server.
@@ -470,7 +470,7 @@ def conv_stride2_multistep(x, nbr_steps, output_filters, name=None, reuse=None):
      `[batch, spatial_1 / (2**nbr_steps), spatial_2 / (2**nbr_steps),
        output_filters]`
   """
-  with tf.variable_scope(
+  with tf.compat.v1.variable_scope(
       name, default_name="conv_stride2_multistep", values=[x], reuse=reuse):
     if nbr_steps == 0:
       out = conv(x, output_filters, (1, 1))
@@ -508,7 +508,7 @@ def deconv_stride2_multistep(x,
      `[batch, spatial_1 * (2**nbr_steps), spatial_2 * (2**nbr_steps),
        output_filters]`
   """
-  with tf.variable_scope(
+  with tf.compat.v1.variable_scope(
       name, default_name="deconv_stride2_multistep", values=[x], reuse=reuse):
 
     def deconv1d(cur, i):
@@ -529,7 +529,7 @@ def deconv_stride2_multistep(x,
           padding="SAME",
           activation=tf.nn.relu,
           name="deconv2d" + str(i))
-      return tf.depth_to_space(thicker, 2)
+      return tf.nn.depth_to_space(thicker, 2)
 
     cur = x
     for i in range(nbr_steps):
@@ -625,7 +625,7 @@ def subseparable_conv(inputs, filters, kernel_size, **kwargs):
       parts = []
       abs_sep = separability if separability > 0 else -1 * separability
       for split_idx, split in enumerate(tf.split(inputs, abs_sep, axis=3)):
-        with tf.variable_scope("part_%d" % split_idx):
+        with tf.compat.v1.variable_scope("part_%d" % split_idx):
           if separability > 0:
             parts.append(
                 layers().Conv2D(filters // separability, kernel_size,
@@ -687,10 +687,10 @@ def tpu_conv1d(inputs, filters, kernel_size, padding="SAME", name="tpu_conv1d"):
 
 def layer_norm_vars(filters):
   """Create Variables for layer norm."""
-  scale = tf.get_variable(
-      "layer_norm_scale", [filters], initializer=tf.ones_initializer())
-  bias = tf.get_variable(
-      "layer_norm_bias", [filters], initializer=tf.zeros_initializer())
+  scale = tf.compat.v1.get_variable(
+      "layer_norm_scale", [filters], initializer=tf.compat.v1.ones_initializer())
+  bias = tf.compat.v1.get_variable(
+      "layer_norm_bias", [filters], initializer=tf.compat.v1.zeros_initializer())
   return scale, bias
 
 
@@ -703,8 +703,8 @@ def layer_norm_compute(x, epsilon, scale, bias, layer_collection=None):
   epsilon, scale, bias = [cast_like(t, x) for t in [epsilon, scale, bias]]
   mean = tf.reduce_mean(x, axis=[-1], keepdims=True)
   variance = tf.reduce_mean(
-      tf.squared_difference(x, mean), axis=[-1], keepdims=True)
-  norm_x = (x - mean) * tf.rsqrt(variance + epsilon)
+      tf.math.squared_difference(x, mean), axis=[-1], keepdims=True)
+  norm_x = (x - mean) * tf.math.rsqrt(variance + epsilon)
 
   output = norm_x * scale + bias
 
@@ -721,7 +721,7 @@ def layer_norm(x,
   """Layer normalize the tensor x, averaging over the last dimension."""
   if filters is None:
     filters = shape_list(x)[-1]
-  with tf.variable_scope(
+  with tf.compat.v1.variable_scope(
       name, default_name="layer_norm", values=[x], reuse=reuse):
     scale, bias = layer_norm_vars(filters)
     return layer_norm_compute(x, epsilon, scale, bias,
@@ -736,22 +736,22 @@ def group_norm(x, filters=None, num_groups=8, epsilon=1e-5):
   assert len(x_shape) == 4
   assert filters % num_groups == 0
   # Prepare variables.
-  scale = tf.get_variable(
-      "group_norm_scale", [filters], initializer=tf.ones_initializer())
-  bias = tf.get_variable(
-      "group_norm_bias", [filters], initializer=tf.zeros_initializer())
+  scale = tf.compat.v1.get_variable(
+      "group_norm_scale", [filters], initializer=tf.compat.v1.ones_initializer())
+  bias = tf.compat.v1.get_variable(
+      "group_norm_bias", [filters], initializer=tf.compat.v1.zeros_initializer())
   epsilon, scale, bias = [cast_like(t, x) for t in [epsilon, scale, bias]]
   # Reshape and compute group norm.
   x = tf.reshape(x, x_shape[:-1] + [num_groups, filters // num_groups])
   # Calculate mean and variance on heights, width, channels (not groups).
-  mean, variance = tf.nn.moments(x, [1, 2, 4], keep_dims=True)
-  norm_x = (x - mean) * tf.rsqrt(variance + epsilon)
+  mean, variance = tf.nn.moments(x, [1, 2, 4], keepdims=True)
+  norm_x = (x - mean) * tf.math.rsqrt(variance + epsilon)
   return tf.reshape(norm_x, x_shape) * scale + bias
 
 
 def noam_norm(x, epsilon=1.0, name=None):
   """One version of layer normalization."""
-  with tf.name_scope(name, default_name="noam_norm", values=[x]):
+  with tf.compat.v1.name_scope(name, default_name="noam_norm", values=[x]):
     shape = x.get_shape()
     ndims = len(shape)
     return (tf.nn.l2_normalize(x, ndims - 1, epsilon=epsilon) * tf.sqrt(
@@ -762,16 +762,16 @@ def l2_norm(x, filters=None, epsilon=1e-6, name=None, reuse=None):
   """Layer normalization with l2 norm."""
   if filters is None:
     filters = shape_list(x)[-1]
-  with tf.variable_scope(name, default_name="l2_norm", values=[x], reuse=reuse):
-    scale = tf.get_variable(
-        "l2_norm_scale", [filters], initializer=tf.ones_initializer())
-    bias = tf.get_variable(
-        "l2_norm_bias", [filters], initializer=tf.zeros_initializer())
+  with tf.compat.v1.variable_scope(name, default_name="l2_norm", values=[x], reuse=reuse):
+    scale = tf.compat.v1.get_variable(
+        "l2_norm_scale", [filters], initializer=tf.compat.v1.ones_initializer())
+    bias = tf.compat.v1.get_variable(
+        "l2_norm_bias", [filters], initializer=tf.compat.v1.zeros_initializer())
     epsilon, scale, bias = [cast_like(t, x) for t in [epsilon, scale, bias]]
     mean = tf.reduce_mean(x, axis=[-1], keepdims=True)
     l2norm = tf.reduce_sum(
-        tf.squared_difference(x, mean), axis=[-1], keepdims=True)
-    norm_x = (x - mean) * tf.rsqrt(l2norm + epsilon)
+        tf.math.squared_difference(x, mean), axis=[-1], keepdims=True)
+    norm_x = (x - mean) * tf.math.rsqrt(l2norm + epsilon)
     return norm_x * scale + bias
 
 
@@ -796,10 +796,10 @@ def apply_spectral_norm(x):
   weights_2d = tf.reshape(x, (other, num_filters))
 
   # v = Wu / ||W u||
-  with tf.variable_scope("u", reuse=tf.AUTO_REUSE):
-    u = tf.get_variable(
+  with tf.compat.v1.variable_scope("u", reuse=tf.compat.v1.AUTO_REUSE):
+    u = tf.compat.v1.get_variable(
         "u", [num_filters, 1],
-        initializer=tf.truncated_normal_initializer(),
+        initializer=tf.compat.v1.truncated_normal_initializer(),
         trainable=False)
   v = tf.nn.l2_normalize(tf.matmul(weights_2d, u))
 
@@ -811,7 +811,7 @@ def apply_spectral_norm(x):
       tf.matmul(tf.transpose(v), tf.matmul(weights_2d, tf.transpose(u_new))))
 
   # set u equal to u_new in the next iteration.
-  assign_op = tf.assign(u, tf.transpose(u_new))
+  assign_op = tf.compat.v1.assign(u, tf.transpose(u_new))
   return tf.divide(x, spectral_norm), assign_op
 
 
@@ -853,8 +853,8 @@ def zero_add(previous_value, x, name=None, reuse=None):
   Returns:
     previous_value + gamma * x.
   """
-  with tf.variable_scope(name, default_name="zero_add", reuse=reuse):
-    gamma = tf.get_variable("gamma", (), initializer=tf.zeros_initializer())
+  with tf.compat.v1.variable_scope(name, default_name="zero_add", reuse=reuse):
+    gamma = tf.compat.v1.get_variable("gamma", (), initializer=tf.compat.v1.zeros_initializer())
     return previous_value + gamma * x
 
 
@@ -900,7 +900,7 @@ def layer_prepostprocess(previous_value,
   Returns:
     a Tensor
   """
-  with tf.variable_scope(name, default_name=default_name):
+  with tf.compat.v1.variable_scope(name, default_name=default_name):
     if sequence == "none":
       return x
     for c in sequence:
@@ -1033,7 +1033,7 @@ def conv_block_internal(conv_fn,
   if use_layer_norm:
     norm = lambda x, name: layer_norm(x, filters, name=name)
 
-  with tf.variable_scope(name, "conv_block", [inputs]):
+  with tf.compat.v1.variable_scope(name, "conv_block", [inputs]):
     cur, counter = inputs, -1
     for dilation_rate, kernel_size in dilation_rates_and_kernel_sizes:
       counter += 1
@@ -1093,7 +1093,7 @@ def subseparable_conv_block(inputs, filters, dilation_rates_and_kernel_sizes,
 
 def pool(inputs, window_size, pooling_type, padding, strides=(1, 1)):
   """Pooling (supports "LEFT")."""
-  with tf.name_scope("pool", values=[inputs]):
+  with tf.compat.v1.name_scope("pool", values=[inputs]):
     static_shape = inputs.get_shape()
     if not static_shape or len(static_shape) != 4:
       raise ValueError("Inputs to conv must have statically known rank 4.")
@@ -1114,7 +1114,7 @@ def pool(inputs, window_size, pooling_type, padding, strides=(1, 1)):
       inputs.set_shape([static_shape[0], None, None, static_shape[3]])
       padding = "VALID"
 
-  return tf.nn.pool(inputs, window_size, pooling_type, padding, strides=strides)
+  return tf.nn.pool(inputs, window_size, pooling_type, padding=padding, strides=strides)
 
 
 def conv_block_downsample(x,
@@ -1125,7 +1125,7 @@ def conv_block_downsample(x,
                           name=None,
                           reuse=None):
   """Implements a downwards-striding conv block, like Xception exit flow."""
-  with tf.variable_scope(
+  with tf.compat.v1.variable_scope(
       name, default_name="conv_block_downsample", values=[x], reuse=reuse):
     hidden_size = int(x.get_shape()[-1])
     res = conv_block(
@@ -1310,7 +1310,7 @@ def relu_density_logit(x, reduce_dims):
     a Tensor
   """
   frac = tf.reduce_mean(to_float(x > 0.0), reduce_dims)
-  scaled = tf.log(frac + math.exp(-10)) - tf.log((1.0 - frac) + math.exp(-10))
+  scaled = tf.math.log(frac + math.exp(-10)) - tf.math.log((1.0 - frac) + math.exp(-10))
   return scaled
 
 
@@ -1375,7 +1375,7 @@ def dense_dropconnect(inputs,
   """Dense layer with dropconnect."""
 
   if dropconnect_dropout != 0.0:
-    tf.logging.info("Applying dropconnect as the kernel regularization.")
+    tf.compat.v1.logging.info("Applying dropconnect as the kernel regularization.")
     kwargs["kernel_regularizer"] = functools.partial(
         tf.nn.dropout, keep_prob=1.0 - dropconnect_dropout)
 
@@ -1415,7 +1415,7 @@ def conv_relu_conv(inputs,
   Returns:
     A Tensor.
   """
-  with tf.variable_scope(name, "conv_relu_conv", [inputs]):
+  with tf.compat.v1.variable_scope(name, "conv_relu_conv", [inputs]):
     inputs = maybe_zero_out_padding(inputs, first_kernel_size, nonpadding_mask)
 
     if cache:
@@ -1443,7 +1443,7 @@ def conv_relu_conv(inputs,
 
     h = tf.nn.relu(h)
     if dropout != 0.0:
-      h = tf.nn.dropout(h, 1.0 - dropout)
+      h = tf.nn.dropout(h, rate=1 - (1.0 - dropout))
     h = maybe_zero_out_padding(h, second_kernel_size, nonpadding_mask)
     return tpu_conv1d(
         h, output_size, second_kernel_size, padding=padding, name="conv2")
@@ -1459,7 +1459,7 @@ def sepconv_relu_sepconv(inputs,
                          dropout=0.0,
                          name=None):
   """Hidden layer with RELU activation followed by linear projection."""
-  with tf.variable_scope(name, "sepconv_relu_sepconv", [inputs]):
+  with tf.compat.v1.variable_scope(name, "sepconv_relu_sepconv", [inputs]):
     inputs = maybe_zero_out_padding(inputs, first_kernel_size, nonpadding_mask)
     if inputs.get_shape().ndims == 3:
       is_3d = True
@@ -1474,7 +1474,7 @@ def sepconv_relu_sepconv(inputs,
         padding=padding,
         name="conv1")
     if dropout != 0.0:
-      h = tf.nn.dropout(h, 1.0 - dropout)
+      h = tf.nn.dropout(h, rate=1 - (1.0 - dropout))
     h = maybe_zero_out_padding(h, second_kernel_size, nonpadding_mask)
     ret = separable_conv(
         h, output_size, second_kernel_size, padding=padding, name="conv2")
@@ -1493,7 +1493,7 @@ def conv_hidden_relu(inputs,
                      **kwargs):
   """Hidden layer with RELU activation followed by linear projection."""
   name = kwargs.pop("name") if "name" in kwargs else None
-  with tf.variable_scope(name, "conv_hidden_relu", [inputs]):
+  with tf.compat.v1.variable_scope(name, "conv_hidden_relu", [inputs]):
     if inputs.get_shape().ndims == 3:
       is_3d = True
       inputs = tf.expand_dims(inputs, 2)
@@ -1508,7 +1508,7 @@ def conv_hidden_relu(inputs,
         name="conv1",
         **kwargs)
     if dropout != 0.0:
-      h = tf.nn.dropout(h, 1.0 - dropout)
+      h = tf.nn.dropout(h, rate=1 - (1.0 - dropout))
     conv_f2 = conv if second_kernel_size == (1, 1) else separable_conv
     ret = conv_f2(h, output_size, second_kernel_size, name="conv2", **kwargs)
     if is_3d:
@@ -1533,11 +1533,11 @@ def conv_gru(x,
         kernel_size,
         padding=padding,
         dilation_rate=dilation_rate,
-        bias_initializer=tf.constant_initializer(bias_start),
+        bias_initializer=tf.compat.v1.constant_initializer(bias_start),
         name=name)
 
   # Here comes the GRU gate.
-  with tf.variable_scope(
+  with tf.compat.v1.variable_scope(
       name, default_name="conv_gru", values=[x], reuse=reuse):
     reset = saturating_sigmoid(do_conv(x, "reset", 1.0, padding))
     gate = saturating_sigmoid(do_conv(x, "gate", 1.0, padding))
@@ -1557,7 +1557,7 @@ def gru_feedfwd(a_t, h_prev, filters, name=None):
     h_t: [batch, length, filters] hidden state
   """
 
-  with tf.variable_scope(name, default_name="GRU", values=[a_t, h_prev]):
+  with tf.compat.v1.variable_scope(name, default_name="GRU", values=[a_t, h_prev]):
     # we use right matrix multiplication to handle batches
     # W_z and W_r have shape 2d, d. U_z U_r have shape d,d
     z_t = (
@@ -1585,7 +1585,7 @@ def conv_lstm(x,
               name=None,
               reuse=None):
   """Convolutional LSTM in 1 dimension."""
-  with tf.variable_scope(
+  with tf.compat.v1.variable_scope(
       name, default_name="conv_lstm", values=[x], reuse=reuse):
     gates = conv(
         x,
@@ -1613,18 +1613,18 @@ def diagonal_conv_gru(x,
         filters,
         kernel_size,
         padding="SAME",
-        bias_initializer=tf.constant_initializer(bias_start),
+        bias_initializer=tf.compat.v1.constant_initializer(bias_start),
         name=name)
 
   # Here comes the GRU gate.
-  with tf.variable_scope(
+  with tf.compat.v1.variable_scope(
       name, default_name="diagonal_conv_gru", values=[x], reuse=reuse):
     reset, reset_cost = hard_sigmoid(do_conv(x, "reset", 0.5))
     gate, gate_cost = hard_sigmoid(do_conv(x, "gate", 0.7))
     candidate = tf.tanh(do_conv(reset * x, "candidate", 0.0))
 
     if dropout > 0.0:
-      candidate = tf.nn.dropout(candidate, 1.0 - dropout)
+      candidate = tf.nn.dropout(candidate, rate=1 - (1.0 - dropout))
 
     # Diagonal shift.
     shift_filters = filters // 3
@@ -1644,7 +1644,7 @@ def pad_to_same_length(x, y, final_length_divisible_by=1, axis=1):
   """Pad tensors x and y on axis 1 so that they have the same length."""
   if axis not in [1, 2]:
     raise ValueError("Only axis=1 and axis=2 supported for now.")
-  with tf.name_scope("pad_to_same_length", values=[x, y]):
+  with tf.compat.v1.name_scope("pad_to_same_length", values=[x, y]):
     x_length = shape_list(x)[axis]
     y_length = shape_list(y)[axis]
     if (isinstance(x_length, int) and isinstance(y_length, int) and
@@ -1682,7 +1682,7 @@ def pad_to_same_length(x, y, final_length_divisible_by=1, axis=1):
 
 def pad_with_zeros(logits, labels):
   """Pad labels on the length dimension to match logits length."""
-  with tf.name_scope("pad_with_zeros", values=[logits, labels]):
+  with tf.compat.v1.name_scope("pad_with_zeros", values=[logits, labels]):
     logits, labels = pad_to_same_length(logits, labels)
     if len(labels.shape) == 3:  # 2-d labels.
       logits, labels = pad_to_same_length(logits, labels, axis=2)
@@ -1714,7 +1714,7 @@ def weights_prepend_inputs_to_targets(labels):
 def check_nonnegative(value):
   """Check that the value is nonnegative."""
   if isinstance(value, tf.Tensor):
-    with tf.control_dependencies([tf.assert_greater_equal(value, 0)]):
+    with tf.control_dependencies([tf.compat.v1.assert_greater_equal(value, 0)]):
       value = tf.identity(value)
   elif value < 0:
     raise ValueError("Value must be non-negative.")
@@ -1790,9 +1790,9 @@ def weights_concatenated(labels):
   Returns:
     a Tensor
   """
-  eos_mask = tf.to_int32(tf.equal(labels, 1))
+  eos_mask = tf.cast(tf.equal(labels, 1), dtype=tf.int32)
   sentence_num = tf.cumsum(eos_mask, axis=1, exclusive=True)
-  in_target = tf.equal(tf.mod(sentence_num, 2), 1)
+  in_target = tf.equal(tf.math.floormod(sentence_num, 2), 1)
   # first two tokens of each sentence are boilerplate.
   sentence_num_plus_one = sentence_num + 1
   shifted = tf.pad(sentence_num_plus_one,
@@ -1844,7 +1844,7 @@ def padded_cross_entropy(logits,
   confidence = 1.0 - label_smoothing
   logits_shape = shape_list(logits)
   vocab_size = logits_shape[-1]
-  with tf.name_scope("padded_cross_entropy", values=[logits, labels]):
+  with tf.compat.v1.name_scope("padded_cross_entropy", values=[logits, labels]):
     if len(logits_shape) == 2:
       # Deal with the case where we did not insert extra dimensions due to
       # TPU issues.  No pad-to-same-length happens in this case.
@@ -2001,7 +2001,7 @@ def discretized_mix_logistic_loss(pred, labels):
   log_prob_0 = plus_in - tf.nn.softplus(plus_in)
   log_prob_255 = -tf.nn.softplus(min_in)
   prob_event = tf.maximum(cdf_plus - cdf_min, 1e-12)
-  log_prob_event = tf.log(prob_event)
+  log_prob_event = tf.math.log(prob_event)
 
   # Robustly select log-prob based on numerical edge-cases: (a) [-1, -1+eps);
   # (b) (1-eps, 1]; (c) NaNs during `tf.gradients` of `tf.select`, which may
@@ -2009,11 +2009,11 @@ def discretized_mix_logistic_loss(pred, labels):
   mid_in = inv_stdv * centered_labels
   log_prob_event_approx = (
       mid_in - log_scales - 2. * tf.nn.softplus(mid_in) - np.log(127.5))
-  log_probs = tf.where(
+  log_probs = tf.compat.v1.where(
       labels < -0.999, log_prob_0,
-      tf.where(
+      tf.compat.v1.where(
           labels > 0.999, log_prob_255,
-          tf.where(prob_event > 1e-5, log_prob_event, log_prob_event_approx)))
+          tf.compat.v1.where(prob_event > 1e-5, log_prob_event, log_prob_event_approx)))
 
   # Sum over channels and compute log-probability of each mixture.
   log_probs = tf.reduce_sum(log_probs, -1) + tf.nn.log_softmax(logits, axis=-1)
@@ -2042,8 +2042,8 @@ def sample_from_discretized_mix_logistic(pred, seed=None):
 
   # Sample mixture indicator given logits using the gumbel max trick.
   num_mixtures = shape_list(logits)[-1]
-  gumbel_noise = -tf.log(-tf.log(
-      tf.random_uniform(
+  gumbel_noise = -tf.math.log(-tf.math.log(
+      tf.random.uniform(
           tf.shape(logits), minval=1e-5, maxval=1. - 1e-5, seed=seed)))
   sel = tf.one_hot(
       tf.argmax(logits + gumbel_noise, -1),
@@ -2058,9 +2058,9 @@ def sample_from_discretized_mix_logistic(pred, seed=None):
 
   # Sample from 3-D logistic & clip to interval. Note we don't round to the
   # nearest 8-bit value when sampling.
-  uniform_noise = tf.random_uniform(
+  uniform_noise = tf.random.uniform(
       tf.shape(locs), minval=1e-5, maxval=1. - 1e-5, seed=seed)
-  logistic_noise = tf.log(uniform_noise) - tf.log1p(-uniform_noise)
+  logistic_noise = tf.math.log(uniform_noise) - tf.math.log1p(-uniform_noise)
   x = locs + tf.exp(log_scales) * logistic_noise
   x0 = x[..., 0]
   x1 = x[..., 1] + coeffs[..., 0] * x0
@@ -2089,14 +2089,14 @@ def smoothing_cross_entropy(logits,
   Returns:
     Tensor of shape [batch_size, ?, ?, ?].
   """
-  with tf.name_scope("smoothing_cross_entropy", values=[logits, labels]):
+  with tf.compat.v1.name_scope("smoothing_cross_entropy", values=[logits, labels]):
     # Low confidence is given to all non-true labels, uniformly.
     low_confidence = (1.0 - confidence) / to_float(vocab_size - 1)
     # Normalizing constant is the best cross-entropy value with soft targets.
     # We subtract it just for readability, makes no difference on learning.
     normalizing = -(
-        confidence * tf.log(confidence) + to_float(vocab_size - 1) *
-        low_confidence * tf.log(low_confidence + 1e-20))
+        confidence * tf.math.log(confidence) + to_float(vocab_size - 1) *
+        low_confidence * tf.math.log(low_confidence + 1e-20))
 
     if gaussian and confidence > 0.0:
       labels = tf.cast(labels, tf.float32)
@@ -2114,7 +2114,7 @@ def smoothing_cross_entropy(logits,
           depth=vocab_size,
           on_value=confidence,
           off_value=low_confidence)
-    xentropy = tf.nn.softmax_cross_entropy_with_logits_v2(
+    xentropy = tf.nn.softmax_cross_entropy_with_logits(
         logits=logits, labels=soft_targets)
     return xentropy - normalizing
 
@@ -2136,7 +2136,7 @@ def global_pool_1d(inputs, pooling_type="MAX", mask=None):
     A tensor of shape [batch_size, input_dims] containing the sequences of
     transformed vectors.
   """
-  with tf.name_scope("global_pool", values=[inputs]):
+  with tf.compat.v1.name_scope("global_pool", values=[inputs]):
     if mask is not None:
       mask = tf.expand_dims(mask, axis=2)
       inputs = tf.multiply(inputs, mask)
@@ -2149,7 +2149,7 @@ def global_pool_1d(inputs, pooling_type="MAX", mask=None):
         # Some elems are dummy elems so we can't just reduce the average.
         output = tf.reduce_sum(inputs, axis=1)
         num_elems = tf.reduce_sum(mask, axis=1, keepdims=True)
-        output = tf.div(output, tf.maximum(num_elems, 1))
+        output = tf.compat.v1.div(output, tf.maximum(num_elems, 1))
       else:
         output = tf.reduce_mean(inputs, axis=1)
 
@@ -2173,7 +2173,7 @@ def running_global_pool_1d(inputs, pooling_type="MAX"):
     running 'totals'.
   """
   del pooling_type
-  with tf.name_scope("running_global_pool", values=[inputs]):
+  with tf.compat.v1.name_scope("running_global_pool", values=[inputs]):
     scan_fct = tf.maximum
     # Permute inputs so seq_length is first.
     elems = tf.transpose(inputs, [1, 0, 2])
@@ -2198,7 +2198,7 @@ def gated_linear_unit_layer(x, name=None):
   Returns:
     A tensor of the same shape as x.
   """
-  with tf.variable_scope(name, default_name="glu_layer", values=[x]):
+  with tf.compat.v1.variable_scope(name, default_name="glu_layer", values=[x]):
     depth = shape_list(x)[-1]
     x = layers().Dense(depth * 2, activation=None)(x)
     x, gating_x = tf.split(x, 2, axis=-1)
@@ -2232,7 +2232,7 @@ def sru(x,
   """
   if num_layers < 1:
     raise ValueError("Number of layers must be positive: %d" % num_layers)
-  with tf.variable_scope(name, default_name="sru", values=[x], reuse=reuse):
+  with tf.compat.v1.variable_scope(name, default_name="sru", values=[x], reuse=reuse):
     # We assume x is [batch, ..., channels] and treat all ... as time.
     x_shape = shape_list(x)
     x = tf.reshape(x, [x_shape[0], -1, x_shape[-1]])
@@ -2297,7 +2297,7 @@ def linear_set_layer(layer_size,
     Tensor of shape [batch_size, sequence_length, output_dims] containing the
     sequences of transformed vectors.
   """
-  with tf.variable_scope(
+  with tf.compat.v1.variable_scope(
       name, default_name="linear_set_layer", values=[inputs]):
     # Apply 1D convolution to apply linear filter to each element
     # along the 2nd dimension.
@@ -2317,7 +2317,7 @@ def linear_set_layer(layer_size,
       outputs = activation_fn(outputs)
 
     if dropout != 0.0:
-      outputs = tf.nn.dropout(outputs, 1.0 - dropout)
+      outputs = tf.nn.dropout(outputs, rate=1 - (1.0 - dropout))
 
     return outputs
 
@@ -2351,7 +2351,7 @@ def ravanbakhsh_set_layer(layer_size,
     sequences of transformed vectors.
   """
   del dropout
-  with tf.variable_scope(name, "ravanbakhsh_set_layer", [inputs]):
+  with tf.compat.v1.variable_scope(name, "ravanbakhsh_set_layer", [inputs]):
     if sequential:
       return linear_set_layer(
           layer_size,
@@ -2367,7 +2367,7 @@ def ravanbakhsh_set_layer(layer_size,
 
 def fn_device_dependency_dict():
   """State container for fn_device_dependency."""
-  default_graph = tf.get_default_graph()
+  default_graph = tf.compat.v1.get_default_graph()
   if not hasattr(default_graph, "dependency_dict"):
     default_graph.dependency_dict = collections.defaultdict(list)
   return default_graph.dependency_dict
@@ -2431,10 +2431,10 @@ def underlying_variable(t):
   t = underlying_variable_ref(t)
   assert t is not None
   # make sure that the graph has a variable index and that it is up-to-date
-  if not hasattr(tf.get_default_graph(), "var_index"):
-    tf.get_default_graph().var_index = {}
-  var_index = tf.get_default_graph().var_index
-  for v in tf.global_variables()[len(var_index):]:
+  if not hasattr(tf.compat.v1.get_default_graph(), "var_index"):
+    tf.compat.v1.get_default_graph().var_index = {}
+  var_index = tf.compat.v1.get_default_graph().var_index
+  for v in tf.compat.v1.global_variables()[len(var_index):]:
     var_index[v.name] = v
   return var_index[t.name]
 
@@ -2451,7 +2451,7 @@ def approximate_split(x, num_splits, axis=0):
     a list of num_splits Tensors.
   """
   size = shape_list(x)[axis]
-  size_splits = [tf.div(size + i, num_splits) for i in range(num_splits)]
+  size_splits = [tf.compat.v1.div(size + i, num_splits) for i in range(num_splits)]
   return tf.split(x, size_splits, axis=axis)
 
 
@@ -2591,7 +2591,7 @@ def padded_cross_entropy_factored(factored_logits,
   a = factored_logits.a
   b = factored_logits.b
   confidence = 1.0 - label_smoothing
-  with tf.name_scope("padded_cross_entropy_factored", values=[a, b, labels]):
+  with tf.compat.v1.name_scope("padded_cross_entropy_factored", values=[a, b, labels]):
     labels_flat = tf.reshape(labels, [-1])
     a_flat = tf.reshape(a, [-1, shape_list(b)[1]])
     xent = smoothing_cross_entropy_factored(a_flat, b, labels_flat,
@@ -2648,7 +2648,7 @@ def _fn_with_custom_grad(fn, inputs, grad_fn, use_global_vars=False):
   Returns:
     fn(*inputs)
   """
-  vs = tf.get_variable_scope()
+  vs = tf.compat.v1.get_variable_scope()
   get_vars_fn = (
       vs.global_variables if use_global_vars else vs.trainable_variables)
   len_before_vars = len(get_vars_fn())
@@ -2738,9 +2738,9 @@ def conv_hidden_relu_memory_efficient(x,
     for i in range(num_splits):
       with tf.control_dependencies(ys[-1:]):
         n = layer_norm_compute(xs[i], epsilon, scale, bias)
-        y = tf.nn.conv1d(n, f1, 1, "SAME")
+        y = tf.nn.conv1d(input=n, filters=f1, stride=1, padding="SAME")
         y = tf.nn.relu(y)
-        y = tf.nn.conv1d(y, f2, 1, "SAME")
+        y = tf.nn.conv1d(input=y, filters=f2, stride=1, padding="SAME")
         ys.append(y)
     y = tf.concat(ys, 0)
     y = tf.reshape(y, shape_list(x))
@@ -2773,9 +2773,9 @@ def conv_hidden_relu_memory_efficient(x,
         for i in range(num_splits):
           with tf.control_dependencies(deps):
             n = layer_norm_compute(xs[i], epsilon, scale, bias)
-            y = tf.nn.conv1d(n, f1, 1, "SAME")
+            y = tf.nn.conv1d(input=n, filters=f1, stride=1, padding="SAME")
             y = tf.nn.relu(y)
-            y = tf.nn.conv1d(y, f2, 1, "SAME")
+            y = tf.nn.conv1d(input=y, filters=f2, stride=1, padding="SAME")
             dxi, pdf1, pdf2, pdscale, pdbias = tf.gradients(
                 ys=[y], xs=[xs[i], f1, f2, scale, bias], grad_ys=[dys[i]])
             df1 += pdf1
@@ -2794,15 +2794,15 @@ def conv_hidden_relu_memory_efficient(x,
     def forward_fn(x, f1, f2, scale, bias):
       return forward_internal(x, f1, f2, scale, bias)
 
-  with tf.variable_scope(name, default_name="ffn2", values=[x]):
+  with tf.compat.v1.variable_scope(name, default_name="ffn2", values=[x]):
     # TODO(noam): it would be nice to save memory by casting x to float16
     # here, but this causes problems with the gradients.  Figure out if there
     # is a way to leave the gradients as float32.
     if test_vars is not None:
       f1, f2, scale, bias = list(test_vars)
     else:
-      f1 = tf.get_variable("f1", [1, io_size, filter_size])
-      f2 = tf.get_variable("f2", [1, filter_size, io_size])
+      f1 = tf.compat.v1.get_variable("f1", [1, io_size, filter_size])
+      f2 = tf.compat.v1.get_variable("f2", [1, filter_size, io_size])
       scale, bias = layer_norm_vars(io_size)
     if forget:
       y = forward_fn(x, f1, f2, scale, bias)
@@ -2854,7 +2854,7 @@ def sample_with_temperature(logits, temperature, sampling_keep_top_k=-1):
     argmax = tf.argmax(tf.reshape(logits, [-1, logits_shape[-1]]), axis=1)
     return tf.reshape(argmax, logits_shape[:-1])
   else:
-    tf.debugging.assert_greater(temperature, 0.0)
+    tf.compat.v1.debugging.assert_greater(temperature, 0.0)
 
     if sampling_keep_top_k != -1:
       if sampling_keep_top_k <= 0:
@@ -2868,12 +2868,12 @@ def sample_with_temperature(logits, temperature, sampling_keep_top_k=-1):
 
       # Force every position that is not in the top k to have probability near
       # 0 by setting the logit to be very negative.
-      logits = tf.where(tf.less_equal(logits, k_largest),
+      logits = tf.compat.v1.where(tf.less_equal(logits, k_largest),
                         tf.ones_like(logits)*-1e6, logits)
 
     reshaped_logits = (
         tf.reshape(logits, [-1, shape_list(logits)[-1]]) / temperature)
-    choices = tf.multinomial(reshaped_logits, 1)
+    choices = tf.random.categorical(reshaped_logits, 1)
     choices = tf.reshape(choices,
                          shape_list(logits)[:logits.get_shape().ndims - 1])
     return choices
@@ -2893,11 +2893,11 @@ def _select_top_k(logits, top_k):
   """
   vocab_size = logits.shape[-1]
 
-  top_k = tf.where(
+  top_k = tf.compat.v1.where(
       tf.not_equal(top_k, -1), top_k,
       tf.ones_like(top_k) * vocab_size)
 
-  return tf.where(
+  return tf.compat.v1.where(
       tf.argsort(logits) < tf.reshape(top_k, [-1] + [1] *
                                       (len(logits.shape) - 1)), logits,
       tf.ones_like(logits) * -1e6)
@@ -2916,7 +2916,7 @@ def sample_temperature_per_example(logits, temperature, sampling_keep_top_k=-1):
   logits = _select_top_k(logits, sampling_keep_top_k)
   logits /= tf.reshape(temperature, [-1] + [1] * (len(logits.shape) - 1))
   reshaped_logits = tf.reshape(logits, [-1, shape_list(logits)[-1]])
-  choices = tf.multinomial(reshaped_logits, 1)
+  choices = tf.random.categorical(reshaped_logits, 1)
   choices = tf.reshape(choices,
                        shape_list(logits)[:logits.get_shape().ndims - 1])
   return choices
@@ -3000,7 +3000,7 @@ def _recompute_grad(fn, args):
     # Recompute outputs
     with tf.control_dependencies(output_grads):
       with contrib.framework().arg_scope(cached_arg_scope[0]):
-        with tf.variable_scope(cached_vs[0], reuse=True):
+        with tf.compat.v1.variable_scope(cached_vs[0], reuse=True):
           outputs = fn(*inputs)
 
     if not isinstance(outputs, (list, tuple)):
@@ -3018,7 +3018,7 @@ def _recompute_grad(fn, args):
 
   @fn_with_custom_grad(grad_fn)
   def fn_with_recompute(*args):
-    cached_vs.append(tf.get_variable_scope())
+    cached_vs.append(tf.compat.v1.get_variable_scope())
     cached_arg_scope.append(contrib.framework().current_arg_scope())
     return fn(*args)
 
@@ -3033,7 +3033,7 @@ def dense(x, units, **kwargs):
     # We need to find the layer parameters using scope name for the layer, so
     # check that the layer is named. Otherwise parameters for different layers
     # may get mixed up.
-    layer_name = tf.get_variable_scope().name
+    layer_name = tf.compat.v1.get_variable_scope().name
     if (not layer_name) or ("name" not in kwargs):
       raise ValueError(
           "Variable scope and layer name cannot be empty. Actual: "
@@ -3041,13 +3041,13 @@ def dense(x, units, **kwargs):
               layer_name, kwargs.get("name", None)))
 
     layer_name += "/" + kwargs["name"]
-    layer_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
+    layer_params = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.GLOBAL_VARIABLES,
                                      scope=layer_name)
     assert layer_params
     if len(layer_params) == 1:
       layer_params = layer_params[0]
 
-    tf.logging.info(
+    tf.compat.v1.logging.info(
         "Registering dense layer to collection for tensor: {}".format(
             layer_params))
 
@@ -3101,16 +3101,16 @@ def batch_dense(inputs,
   input_units = inputs_shape[2]
   if not isinstance(batch, int) or not isinstance(input_units, int):
     raise ValueError("inputs must have static dimensions 0 and 2")
-  with tf.variable_scope(
+  with tf.compat.v1.variable_scope(
       name,
       default_name="batch_dense",
       values=[inputs],
       reuse=reuse,
       dtype=inputs.dtype):
     if kernel_initializer is None:
-      kernel_initializer = tf.random_normal_initializer(
+      kernel_initializer = tf.compat.v1.random_normal_initializer(
           stddev=input_units**-0.5)
-    w = tf.get_variable(
+    w = tf.compat.v1.get_variable(
         "w", [batch, input_units, units],
         initializer=kernel_initializer,
         dtype=inputs.dtype)
@@ -3130,14 +3130,14 @@ def mix(x1,
         simple=False,
         broadcast_last=False):
   """Mix starting with x2, mixing mixing, going towards x1."""
-  with tf.name_scope("mix"):
+  with tf.compat.v1.name_scope("mix"):
     if not is_training:
       if max_prob >= 1.0:
         return x1
       alpha_shape = shape_list(x1)
       if broadcast_last:
         alpha_shape = alpha_shape[:-1] + [1]
-      alpha = tf.random_uniform(alpha_shape)
+      alpha = tf.random.uniform(alpha_shape)
       alpha = to_float(tf.less(alpha, max_prob))
       return alpha * x1 + (1.0 - alpha) * x2
 
@@ -3159,7 +3159,7 @@ def mix(x1,
       alpha_shape = shape_list(x1)
       if broadcast_last:
         alpha_shape = alpha_shape[:-1] + [1]
-      alpha = tf.random_uniform(alpha_shape)
+      alpha = tf.random.uniform(alpha_shape)
       alpha = to_float(tf.less(alpha, alpha_p))
       return alpha * x1 + (1.0 - alpha) * x2
 
@@ -3170,7 +3170,7 @@ def mix(x1,
     if is_xla_compiled():
       return get_res()
     else:
-      cur_step = tf.train.get_global_step()
+      cur_step = tf.compat.v1.train.get_global_step()
       if cur_step is None:
         return x1  # Step not available, probably eval mode, don't mix.
       return tf.cond(tf.less(cur_step, steps), get_res, lambda: x1)
@@ -3213,10 +3213,10 @@ def gelu(x):
 
 def nac(x, depth, name=None, reuse=None):
   """NAC as in https://arxiv.org/abs/1808.00508."""
-  with tf.variable_scope(name, default_name="nac", values=[x], reuse=reuse):
+  with tf.compat.v1.variable_scope(name, default_name="nac", values=[x], reuse=reuse):
     x_shape = shape_list(x)
-    w = tf.get_variable("w", [x_shape[-1], depth])
-    m = tf.get_variable("m", [x_shape[-1], depth])
+    w = tf.compat.v1.get_variable("w", [x_shape[-1], depth])
+    m = tf.compat.v1.get_variable("m", [x_shape[-1], depth])
     w = tf.tanh(w) * tf.nn.sigmoid(m)
     x_flat = tf.reshape(x, [-1, x_shape[-1]])
     res_flat = tf.matmul(x_flat, w)
@@ -3225,14 +3225,14 @@ def nac(x, depth, name=None, reuse=None):
 
 def nalu(x, depth, epsilon=1e-30, name=None, reuse=None):
   """NALU as in https://arxiv.org/abs/1808.00508."""
-  with tf.variable_scope(name, default_name="nalu", values=[x], reuse=reuse):
+  with tf.compat.v1.variable_scope(name, default_name="nalu", values=[x], reuse=reuse):
     x_shape = shape_list(x)
     x_flat = tf.reshape(x, [-1, x_shape[-1]])
-    gw = tf.get_variable("w", [x_shape[-1], depth])
+    gw = tf.compat.v1.get_variable("w", [x_shape[-1], depth])
     g = tf.nn.sigmoid(tf.matmul(x_flat, gw))
     g = tf.reshape(g, x_shape[:-1] + [depth])
     a = nac(x, depth, name="nac_lin")
-    log_x = tf.log(tf.abs(x) + epsilon)
+    log_x = tf.math.log(tf.abs(x) + epsilon)
     m = nac(log_x, depth, name="nac_log")
     return g * a + (1 - g) * tf.exp(m)
 
@@ -3252,8 +3252,8 @@ def argmax_with_score(logits, axis=None):
   flat_logits = tf.reshape(logits, [prefix_size, vocab_size])
   flat_predictions = tf.reshape(predictions, [prefix_size])
   flat_indices = tf.stack(
-      [tf.range(tf.to_int64(prefix_size)),
-       tf.to_int64(flat_predictions)],
+      [tf.range(tf.cast(prefix_size, dtype=tf.int64)),
+       tf.cast(flat_predictions, dtype=tf.int64)],
       axis=1)
   flat_scores = tf.gather_nd(flat_logits, flat_indices)
 
@@ -3292,12 +3292,12 @@ def top_kth_iterative(x, k):
   # We encode this computation in a TF graph using tf.foldl, so the inner
   # part of the above loop is called "next_x" and tf.foldl does the loop.
   def next_x(cur_x, _):
-    top_x = tf.reduce_max(cur_x, axis=-1, keep_dims=True)
+    top_x = tf.reduce_max(cur_x, axis=-1, keepdims=True)
     return cur_x * to_float(cur_x < top_x)
   # We only do k-1 steps of the loop and compute the final max separately.
   fin_x = tf.foldl(next_x, tf.range(k - 1), initializer=tf.stop_gradient(x),
                    parallel_iterations=2, back_prop=False)
-  return tf.stop_gradient(tf.reduce_max(fin_x, axis=-1, keep_dims=True))
+  return tf.stop_gradient(tf.reduce_max(fin_x, axis=-1, keepdims=True))
 
 
 def top_1_tpu(inputs):
@@ -3313,7 +3313,7 @@ def top_1_tpu(inputs):
     indices: a Tensor with shape [...]
   """
   inputs_max = tf.reduce_max(inputs, axis=-1, keepdims=True)
-  mask = tf.to_int32(tf.equal(inputs_max, inputs))
+  mask = tf.cast(tf.equal(inputs_max, inputs), dtype=tf.int32)
   index = tf.range(tf.shape(inputs)[-1]) * mask
   return tf.squeeze(inputs_max, -1), tf.reduce_max(index, axis=-1)
 
@@ -3343,8 +3343,8 @@ def index_last_dim_with_indices(x, indices):
 
   idx = tf.stack(
       [
-          tf.range(tf.to_int64(shape_list(flat_indices)[0])),
-          tf.to_int64(flat_indices)
+          tf.range(tf.cast(shape_list(flat_indices)[0], dtype=tf.int64)),
+          tf.cast(flat_indices, dtype=tf.int64)
       ],
       axis=1)
   flat_x_idx = tf.gather_nd(flat_x, idx)
@@ -3364,7 +3364,7 @@ def should_generate_summaries():
   if name_scope and "while/" in name_scope:
     # Summaries don't work well within tf.while_loop()
     return False
-  if tf.get_variable_scope().reuse:
+  if tf.compat.v1.get_variable_scope().reuse:
     # Avoid generating separate summaries for different data shards
     return False
   return True
@@ -3388,13 +3388,13 @@ def summarize_video(video, prefix, max_outputs=1):
   if tf.executing_eagerly():
     return
   if video.get_shape().as_list()[1] is None:
-    tf.summary.image(
+    tf.compat.v1.summary.image(
         "%s_last_frame" % prefix,
         tf.cast(video[:, -1, :, :, :], tf.uint8),
         max_outputs=max_outputs)
   else:
     for k in range(video_shape[1]):
-      tf.summary.image(
+      tf.compat.v1.summary.image(
           "%s_frame_%d" % (prefix, k),
           tf.cast(video[:, k, :, :, :], tf.uint8),
           max_outputs=max_outputs)
@@ -3415,7 +3415,7 @@ def cast_like(x, y):
       x_name = x.name
     except AttributeError:
       pass
-    tf.logging.warning("Cast for %s may induce copy from '%s' to '%s'", x_name,
+    tf.compat.v1.logging.warning("Cast for %s may induce copy from '%s' to '%s'", x_name,
                        x.device, cast_x.device)
   return cast_x
 
@@ -3471,15 +3471,15 @@ def sliced_gan_loss(input1,
     The generator loss, i.e., the sliced approximation of the distance between
     the projected distributions (warning: discriminator should maximize it).
   """
-  with tf.variable_scope("sliced_gan"):
-    with tf.variable_scope("discriminator"):
+  with tf.compat.v1.variable_scope("sliced_gan"):
+    with tf.compat.v1.variable_scope("discriminator"):
       logits1 = discriminator(input1)
-    with tf.variable_scope("discriminator", reuse=True):
+    with tf.compat.v1.variable_scope("discriminator", reuse=True):
       logits2 = discriminator(input2)
 
     if do_random_vecs:
       random_vecs = tf.nn.l2_normalize(
-          tf.random_uniform([shape_list(logits1)[-1], num_vecs]), axis=0)
+          tf.random.uniform([shape_list(logits1)[-1], num_vecs]), axis=0)
 
     def get_sorted_projections(x):
       """Make projections of x and sort them on the batch dimension."""
@@ -3526,8 +3526,8 @@ def deep_discriminator(x,
                        stride=2,
                        output_size=1024):
   """Discriminator architecture based on InfoGAN."""
-  with tf.variable_scope(
-      "discriminator", initializer=tf.random_normal_initializer(stddev=0.02)):
+  with tf.compat.v1.variable_scope(
+      "discriminator", initializer=tf.compat.v1.random_normal_initializer(stddev=0.02)):
     batch_size, height, width = shape_list(x)[:3]  # pylint: disable=unbalanced-tuple-unpacking
     net = layers().Conv2D(
         filters, filter_size, strides=stride, padding="SAME", name="conv1")(x)
@@ -3559,15 +3559,15 @@ def deep_discriminator(x,
 
 def instance_norm(x):
   """Instance normalization layer."""
-  with tf.variable_scope("instance_norm"):
+  with tf.compat.v1.variable_scope("instance_norm"):
     epsilon = 1e-5
-    mean, var = tf.nn.moments(x, [1, 2], keep_dims=True)
-    scale = tf.get_variable(
+    mean, var = tf.nn.moments(x, [1, 2], keepdims=True)
+    scale = tf.compat.v1.get_variable(
         "scale", [x.get_shape()[-1]],
-        initializer=tf.truncated_normal_initializer(mean=1.0, stddev=0.02))
-    offset = tf.get_variable(
-        "offset", [x.get_shape()[-1]], initializer=tf.constant_initializer(0.0))
-    out = scale * tf.div(x - mean, tf.sqrt(var + epsilon)) + offset
+        initializer=tf.compat.v1.truncated_normal_initializer(mean=1.0, stddev=0.02))
+    offset = tf.compat.v1.get_variable(
+        "offset", [x.get_shape()[-1]], initializer=tf.compat.v1.constant_initializer(0.0))
+    out = scale * tf.compat.v1.div(x - mean, tf.sqrt(var + epsilon)) + offset
 
     return out
 
@@ -3583,15 +3583,15 @@ def general_conv(x,
                  do_relu=True,
                  relufactor=0):
   """Generalized convolution layer."""
-  with tf.variable_scope(name):
+  with tf.compat.v1.variable_scope(name):
     x = layers().Conv2D(
         num_filters,
         filter_size,
         stride,
         padding,
         activation=None,
-        kernel_initializer=tf.truncated_normal_initializer(stddev=stddev),
-        bias_initializer=tf.constant_initializer(0.0))(x)
+        kernel_initializer=tf.compat.v1.truncated_normal_initializer(stddev=stddev),
+        bias_initializer=tf.compat.v1.constant_initializer(0.0))(x)
     if do_norm == "layer":
       x = layer_norm(x)
     elif do_norm == "instance":
@@ -3609,10 +3609,10 @@ def general_conv(x,
 def patch_discriminator(x, filters=64, filter_size=5, n=4,
                         name="patch_discrim"):
   """Patch descriminator."""
-  with tf.variable_scope(name):
+  with tf.compat.v1.variable_scope(name):
     x_shape = shape_list(x)
     spatial_dims = [x_shape[1] // 4, x_shape[2] // 4]
-    x = tf.random_crop(x, [x_shape[0]] + spatial_dims + [x_shape[3]])
+    x = tf.image.random_crop(x, [x_shape[0]] + spatial_dims + [x_shape[3]])
     for i in range(n):
       x = general_conv(
           x=x,
@@ -3631,7 +3631,7 @@ def patch_discriminator(x, filters=64, filter_size=5, n=4,
 
 def mean_with_attention(x, name, num_heads=4):
   """Mean and attention to reduce spatial dimensions."""
-  with tf.variable_scope(name):
+  with tf.compat.v1.variable_scope(name):
     shape = shape_list(x)
     m = tf.reduce_mean(x, [1, 2])
     a = layers().Dense(num_heads, name="mean_attn")(x)
@@ -3647,7 +3647,7 @@ def mean_with_attention(x, name, num_heads=4):
 def single_discriminator(x, filters=128, kernel_size=8,
                          strides=4, pure_mean=False):
   """A simple single-layer convolutional discriminator."""
-  with tf.variable_scope("discriminator"):
+  with tf.compat.v1.variable_scope("discriminator"):
     net = layers().Conv2D(
         filters, kernel_size, strides=strides, padding="SAME", name="conv1")(x)
     if pure_mean:
@@ -3662,7 +3662,7 @@ def double_discriminator(x, filters1=128, filters2=None,
   """A convolutional discriminator with 2 layers and concatenated output."""
   if filters2 is None:
     filters2 = 4 * filters1
-  with tf.variable_scope("discriminator"):
+  with tf.compat.v1.variable_scope("discriminator"):
     batch_size = shape_list(x)[0]
     net = layers().Conv2D(
         filters1, kernel_size, strides=strides, padding="SAME", name="conv1")(x)
@@ -3685,7 +3685,7 @@ def double_discriminator(x, filters1=128, filters2=None,
 def upscale(inputs, f, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR):
   """Upscaling the image by a factor of f."""
   height, width = shape_list(inputs)[1:3]  # pylint: disable=unbalanced-tuple-unpacking
-  return tf.image.resize_images(inputs, (height * f, width * f), method)
+  return tf.image.resize(inputs, (height * f, width * f), method)
 
 
 def tpu_safe_image_summary(image):
@@ -3726,7 +3726,7 @@ def cyclegan_upsample(net, num_outputs, stride, method="conv2d_transpose"):
     ValueError: if `method` is not recognized.
   """
 
-  with tf.variable_scope("upconv"):
+  with tf.compat.v1.variable_scope("upconv"):
     net_shape = tf.shape(net)
     height = net_shape[1]
     width = net_shape[2]
@@ -3737,14 +3737,14 @@ def cyclegan_upsample(net, num_outputs, stride, method="conv2d_transpose"):
     spatial_pad_1 = np.array([[0, 0], [1, 1], [1, 1], [0, 0]])
 
     if method == "nn_upsample_conv":
-      net = tf.image.resize_nearest_neighbor(
-          net, [stride[0] * height, stride[1] * width])
+      net = tf.image.resize(
+          net, [stride[0] * height, stride[1] * width], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
       net = tf.pad(net, spatial_pad_1, "REFLECT")
       net = layers().Conv2D(
           num_outputs, (3, 3), activation=tf.nn.relu)(net)
     elif method == "bilinear_upsample_conv":
-      net = tf.image.resize_bilinear(net,
-                                     [stride[0] * height, stride[1] * width])
+      net = tf.image.resize(net,
+                                     [stride[0] * height, stride[1] * width], method=tf.image.ResizeMethod.BILINEAR)
       net = tf.pad(net, spatial_pad_1, "REFLECT")
       net = layers().Conv2D(
           num_outputs, (3, 3), activation=tf.nn.relu)(net)
@@ -3764,9 +3764,9 @@ def cyclegan_upsample(net, num_outputs, stride, method="conv2d_transpose"):
 
 def weight_targeting(w, k):
   """Weight-level magnitude pruning."""
-  k = tf.to_int32(k)
+  k = tf.cast(k, dtype=tf.int32)
   w_shape = shape_list(w)
-  size = tf.to_int32(tf.reduce_prod(w_shape[:-1]))
+  size = tf.cast(tf.reduce_prod(w_shape[:-1]), dtype=tf.int32)
   w = tf.reshape(w, [size, w_shape[-1]])
 
   transpose_w = tf.transpose(w)
@@ -3778,9 +3778,9 @@ def weight_targeting(w, k):
 
 def unit_targeting(w, k):
   """Unit-level magnitude pruning."""
-  k = tf.to_int32(k)
+  k = tf.cast(k, dtype=tf.int32)
   w_shape = shape_list(w)
-  size = tf.to_int32(tf.reduce_prod(w_shape[:-1]))
+  size = tf.cast(tf.reduce_prod(w_shape[:-1]), dtype=tf.int32)
   w = tf.reshape(w, [size, w_shape[-1]])
 
   norm = tf.norm(w, axis=0)
@@ -3806,19 +3806,19 @@ def td_conv(inputs,
             activation=None,
             use_bias=True,
             kernel_initializer=None,
-            bias_initializer=tf.zeros_initializer(),
+            bias_initializer=tf.compat.v1.zeros_initializer(),
             name=None,
             reuse=None):
   """Apply targeted dropout to the weights of a convolution."""
-  with tf.variable_scope(name, default_name="td_conv", reuse=reuse):
+  with tf.compat.v1.variable_scope(name, default_name="td_conv", reuse=reuse):
     nhwc = data_format == "channels_last"
     in_dim = shape_list(inputs)[-1] if nhwc else shape_list(inputs)[1]
 
     kernel_shape = [kernel_size, kernel_size, in_dim, filters]
-    w = tf.get_variable(
+    w = tf.compat.v1.get_variable(
         "DW", shape=kernel_shape, initializer=kernel_initializer)
     if use_bias:
-      b = tf.get_variable("b", shape=[filters], initializer=bias_initializer)
+      b = tf.compat.v1.get_variable("b", shape=[filters], initializer=bias_initializer)
 
     if keep_prob < 1.0:
       w = targeted_dropout(
@@ -3843,9 +3843,9 @@ def td_conv(inputs,
 
     y = tf.nn.conv2d(
         inputs,
-        w,
-        strides,
-        padding,
+        filters=w,
+        strides=strides,
+        padding=padding,
         data_format="NHWC" if nhwc else "NCHW",
         dilations=dilation_rate,
         name=None)
@@ -3896,7 +3896,7 @@ def targeted_dropout(inputs,
   mask = tf.cast(mask, inputs.dtype)
 
   if is_training:
-    return inputs * (1 - mask) + tf.nn.dropout(inputs, keep_prob) * mask
+    return inputs * (1 - mask) + tf.nn.dropout(inputs, rate=1 - (keep_prob)) * mask
   elif do_prune:
     return inputs * (1 - mask)
   else:
@@ -4009,20 +4009,20 @@ class WeightNorm(tf.keras.layers.Wrapper):
 
   def _compute_weights(self):
     """Generate weights with normalization."""
-    with tf.variable_scope("compute_weights"):
+    with tf.compat.v1.variable_scope("compute_weights"):
       self.layer.kernel = tf.nn.l2_normalize(
           self.layer.v, axis=self.norm_axes) * self.layer.g
 
   def _init_norm(self, weights):
     """Set the norm of the weight vector."""
-    with tf.variable_scope("init_norm"):
+    with tf.compat.v1.variable_scope("init_norm"):
       flat = tf.reshape(weights, [-1, self.layer_depth])
       return tf.reshape(tf.norm(flat, axis=0), (self.layer_depth,))
 
   def _data_dep_init(self, inputs):
     """Data dependent initialization for eager execution."""
 
-    with tf.variable_scope("data_dep_init"):
+    with tf.compat.v1.variable_scope("data_dep_init"):
       # Generate data dependent init values
       activation = self.layer.activation
       self.layer.activation = None
@@ -4054,7 +4054,7 @@ class WeightNorm(tf.keras.layers.Wrapper):
       self.layer.g = self.layer.add_variable(
           name="g",
           shape=(self.layer_depth,),
-          initializer=tf.ones_initializer,
+          initializer=tf.compat.v1.ones_initializer,
           dtype=self.layer.kernel.dtype,
           trainable=True)
 

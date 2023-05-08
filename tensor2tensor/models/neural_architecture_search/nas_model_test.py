@@ -25,7 +25,7 @@ from tensor2tensor.layers import common_attention
 from tensor2tensor.models import transformer
 from tensor2tensor.models.neural_architecture_search import nas_layers as layers
 from tensor2tensor.models.neural_architecture_search import nas_model as translation_nas_net
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 _BATCH_SIZE = 5
@@ -165,7 +165,7 @@ class NasSeq2SeqTest(parameterized.TestCase, tf.test.TestCase):
 
   def _test_model(self, model_cls, hparams):
     """Test a Translation Nas Net model."""
-    tf.reset_default_graph()
+    tf.compat.v1.reset_default_graph()
 
     hparams.filter_size = 32
     hparams.num_heads = 1
@@ -189,7 +189,7 @@ class NasSeq2SeqTest(parameterized.TestCase, tf.test.TestCase):
     model = model_cls(hparams, tf_estimator.ModeKeys.TRAIN, p_hparams)
     logits, _ = model(features)
     with self.test_session() as session:
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       res = session.run(logits)
     self.assertEqual(res.shape,
                      (_BATCH_SIZE, _TARGET_LENGTH, 1, 1, _VOCAB_SIZE))
@@ -212,7 +212,7 @@ class NasSeq2SeqTest(parameterized.TestCase, tf.test.TestCase):
     self._test_model(translation_nas_net.NasSeq2Seq, hparams)
 
   def _get_wrong_output_dim_decoder_hparams(self):
-    tf.reset_default_graph()
+    tf.compat.v1.reset_default_graph()
 
     hparams = transformer.transformer_base()
     _add_transformer_branching_hparams(hparams)
@@ -231,7 +231,7 @@ class NasSeq2SeqTest(parameterized.TestCase, tf.test.TestCase):
     input_tensor = tf.zeros([_BATCH_SIZE, _INPUT_LENGTH, _EMBEDDING_DEPTH])
     decoder_self_attention_bias = (
         common_attention.attention_bias_lower_triangle(_INPUT_LENGTH))
-    with tf.variable_scope("wrong"):
+    with tf.compat.v1.variable_scope("wrong"):
       wrong_size_decoder_output = translation_nas_net.nas_decoder(
           decoder_input=input_tensor,
           encoder_cell_outputs=[input_tensor] * hparams.encoder_num_cells,
@@ -241,7 +241,7 @@ class NasSeq2SeqTest(parameterized.TestCase, tf.test.TestCase):
 
     # Now add the correction.
     hparams.enforce_output_size = True
-    with tf.variable_scope("correct"):
+    with tf.compat.v1.variable_scope("correct"):
       correct_size_decoder_output = translation_nas_net.nas_decoder(
           decoder_input=input_tensor,
           encoder_cell_outputs=[input_tensor] * hparams.encoder_num_cells,
@@ -250,7 +250,7 @@ class NasSeq2SeqTest(parameterized.TestCase, tf.test.TestCase):
           hparams=hparams)
 
     with self.test_session() as session:
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       wrong_output, correct_output = session.run(
           [wrong_size_decoder_output, correct_size_decoder_output])
     self.assertEqual(wrong_output.shape,
@@ -264,7 +264,7 @@ class NasSeq2SeqTest(parameterized.TestCase, tf.test.TestCase):
                               [512, 512, 512, 2048, 512, 512])])
   def test_calculate_branching_model_parameters_transformer(
       self, get_config, expected_hidden_depths):
-    tf.reset_default_graph()
+    tf.compat.v1.reset_default_graph()
 
     (num_cells, left_inputs, left_layers, left_output_dims, right_inputs,
      right_layers, right_output_dims, combiner_functions,
@@ -329,7 +329,7 @@ class NasSeq2SeqTest(parameterized.TestCase, tf.test.TestCase):
         final_layer_norm=False)
 
     # Count graph variables.
-    trainable_variables_list = tf.trainable_variables()
+    trainable_variables_list = tf.compat.v1.trainable_variables()
     empirical_num_params = 0
     for variable_tensor in trainable_variables_list:
       empirical_num_params += _list_product(variable_tensor.shape.as_list())
@@ -342,7 +342,7 @@ class NasSeq2SeqTest(parameterized.TestCase, tf.test.TestCase):
   @parameterized.parameters([True, False])
   def test_calculate_branching_model_parameters_decoder_resize(
       self, enforce_output_size):
-    tf.reset_default_graph()
+    tf.compat.v1.reset_default_graph()
 
     hparams, _ = self._get_wrong_output_dim_decoder_hparams()
     hparams.enforce_output_size = enforce_output_size
@@ -377,7 +377,7 @@ class NasSeq2SeqTest(parameterized.TestCase, tf.test.TestCase):
         encoder_decoder_attention_bias=None,
         hparams=hparams,
         final_layer_norm=False)
-    trainable_variables_list = tf.trainable_variables()
+    trainable_variables_list = tf.compat.v1.trainable_variables()
     empirical_num_params = 0
     for variable_tensor in trainable_variables_list:
       empirical_num_params += _list_product(variable_tensor.shape.as_list())

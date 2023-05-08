@@ -30,7 +30,7 @@ from tensor2tensor.data_generators import problem
 from tensor2tensor.data_generators import text_problems
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 _MS_COCO_DOWNLOAD_URL = "http://msvocds.blob.core.windows.net/annotations-1-0-3"
 _MS_COCO_ZIPPED_FILE = "captions_train-val2014.zip"
@@ -119,15 +119,15 @@ class ParaphraseGenerationMsCocoProblem(ParaphraseGenerationProblem):
   def prepare_data(self, data_dir, tmp_dir, dataset_split):
     ms_coco_path = self._maybe_download(tmp_dir, dataset_split)
     captions = self._get_captions(ms_coco_path)
-    tf.logging.info("Retrieved %d captions\n" % (len(captions)))
+    tf.compat.v1.logging.info("Retrieved %d captions\n" % (len(captions)))
     paraphrase_pairs = []
 
-    tf.logging.info("Generating input combinations...")
+    tf.compat.v1.logging.info("Generating input combinations...")
     for captions_for_image in captions:
       combinations_of_captions = create_combination(captions_for_image)
       paraphrase_pairs += combinations_of_captions
 
-    tf.logging.info("Created %d combinations pairs." % (len(paraphrase_pairs)))
+    tf.compat.v1.logging.info("Created %d combinations pairs." % (len(paraphrase_pairs)))
     return paraphrase_pairs
 
   def _maybe_download(self, tmp_dir, dataset_split):
@@ -135,8 +135,8 @@ class ParaphraseGenerationMsCocoProblem(ParaphraseGenerationProblem):
     download_url = os.path.join(_MS_COCO_DOWNLOAD_URL, filename)
     path = generator_utils.maybe_download(tmp_dir, filename, download_url)
     unzip_dir = os.path.join(tmp_dir, filename.strip(".zip"))
-    if not tf.gfile.Exists(unzip_dir):
-      tf.logging.info("Unzipping data to {}".format(unzip_dir))
+    if not tf.io.gfile.exists(unzip_dir):
+      tf.compat.v1.logging.info("Unzipping data to {}".format(unzip_dir))
       zipfile.ZipFile(path, "r").extractall(unzip_dir)
 
     if dataset_split == problem.DatasetSplit.TRAIN:

@@ -27,7 +27,7 @@ from tensor2tensor.data_generators import problem
 from tensor2tensor.data_generators import text_encoder
 from tensor2tensor.data_generators import text_problems
 from tensor2tensor.utils import registry
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 EOS = text_encoder.EOS
 
@@ -70,7 +70,7 @@ class SciTail(text_problems.TextConcat2ClassProblem):
   def _maybe_download_corpora(self, tmp_dir):
     scitail_filename = "SciTailV1.1.zip"
     scitail_finalpath = os.path.join(tmp_dir, "SciTailV1.1")
-    if not tf.gfile.Exists(scitail_finalpath):
+    if not tf.io.gfile.exists(scitail_finalpath):
       zip_filepath = generator_utils.maybe_download(
           tmp_dir, scitail_filename, self._SCITAIL_URL)
       zip_ref = zipfile.ZipFile(zip_filepath, "r")
@@ -81,7 +81,7 @@ class SciTail(text_problems.TextConcat2ClassProblem):
 
   def example_generator(self, filename):
     label_list = self.class_labels(data_dir=None)
-    for line in tf.gfile.Open(filename, "rb"):
+    for line in tf.io.gfile.GFile(filename, "rb"):
       line = text_encoder.to_unicode_utf8(line.strip())
       split_line = line.split("\t")
       s1, s2 = split_line[:2]

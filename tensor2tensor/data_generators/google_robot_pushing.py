@@ -35,7 +35,7 @@ from tensor2tensor.data_generators import video_utils
 from tensor2tensor.layers import modalities
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 BASE_URL = "https://storage.googleapis.com/brain-robotics-data/push/"
 DATA_TRAIN = (264, "push_train/push_train.tfrecord-{:05d}-of-00264")
@@ -83,7 +83,7 @@ class VideoGoogleRobotPushing(video_utils.VideoProblem):
     action_key = "move/{}/commanded_pose/vec_pitch_yaw"
     state_key = "move/{}/endeffector/vec_pitch_yaw"
 
-    for serialized_example in tf.python_io.tf_record_iterator(filename):
+    for serialized_example in tf.compat.v1.python_io.tf_record_iterator(filename):
       x = tf.train.Example()
       x.ParseFromString(serialized_example)
       # there are 6 features per frame

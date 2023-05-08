@@ -36,7 +36,7 @@ from tensor2tensor.utils import metrics
 from tensor2tensor.utils import misc_utils
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 Frame = collections.namedtuple(
@@ -158,16 +158,16 @@ class T2TEnv(EnvSimulationProblem):
     with tf.Graph().as_default() as tf_graph:
       self._tf_graph = _Noncopyable(tf_graph)
       self._decoded_image_p = _Noncopyable(
-          tf.placeholder(dtype=tf.uint8, shape=(None, None, None))
+          tf.compat.v1.placeholder(dtype=tf.uint8, shape=(None, None, None))
       )
       self._encoded_image_t = _Noncopyable(
           tf.image.encode_png(self._decoded_image_p.obj)
       )
-      self._encoded_image_p = _Noncopyable(tf.placeholder(tf.string))
+      self._encoded_image_p = _Noncopyable(tf.compat.v1.placeholder(tf.string))
       self._decoded_image_t = _Noncopyable(
           tf.image.decode_png(self._encoded_image_p.obj)
       )
-      self._session = _Noncopyable(tf.Session())
+      self._session = _Noncopyable(tf.compat.v1.Session())
 
   def __str__(self):
     """Returns a string representation of the environment for debug purposes."""
@@ -375,7 +375,7 @@ class T2TEnv(EnvSimulationProblem):
     """Additional data fields to store on disk and their decoders."""
     field_names = ("frame_number", "action", "reward", "done")
     data_fields = {
-        name: tf.FixedLenFeature([1], tf.int64) for name in field_names
+        name: tf.io.FixedLenFeature([1], tf.int64) for name in field_names
     }
     decoders = {
         name: contrib.slim().tfexample_decoder.Tensor(tensor_key=name)
@@ -540,7 +540,7 @@ class T2TEnv(EnvSimulationProblem):
 
     for path in paths:
       this_shard_empty = True
-      for example in tf.python_io.tf_record_iterator(path):
+      for example in tf.compat.v1.python_io.tf_record_iterator(path):
         this_shard_empty = False
 
         result = tf.train.Example.FromString(example)
@@ -645,10 +645,10 @@ class T2TGymEnv(T2TEnv):
       with self._tf_graph.obj.as_default():
         self._resize = {}
         orig_height, orig_width = orig_observ_space.shape[:2]
-        self._img_batch_t = _Noncopyable(tf.placeholder(
+        self._img_batch_t = _Noncopyable(tf.compat.v1.placeholder(
             dtype=tf.uint8, shape=(None, orig_height, orig_width, 3)))
         height, width = self.observation_space.shape[:2]
-        resized = tf.image.resize_images(self._img_batch_t.obj,
+        resized = tf.image.resize(self._img_batch_t.obj,
                                          [height, width],
                                          tf.image.ResizeMethod.AREA)
         resized = tf.cast(resized, tf.as_dtype(self.observation_space.dtype))
@@ -659,11 +659,11 @@ class T2TGymEnv(T2TEnv):
   # TODO(afrozm): Find a place for this. Till then use self._envs[0]'s hparams.
   def hparams(self, defaults, unused_model_hparams):
     if hasattr(self._envs[0], "hparams"):
-      tf.logging.info("Retuning the env's hparams from T2TGymEnv.")
+      tf.compat.v1.logging.info("Retuning the env's hparams from T2TGymEnv.")
       return self._envs[0].hparams(defaults, unused_model_hparams)
 
     # Otherwise just call the super-class' hparams.
-    tf.logging.info("Retuning the T2TGymEnv's superclass' hparams.")
+    tf.compat.v1.logging.info("Retuning the T2TGymEnv's superclass' hparams.")
     super(T2TGymEnv, self).hparams(defaults, unused_model_hparams)
 
   def new_like(self, **kwargs):

@@ -25,7 +25,7 @@ from tensor2tensor.data_generators import video_generated  # pylint: disable=unu
 from tensor2tensor.layers import modalities
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -116,18 +116,18 @@ class BaseNextFrameTest(tf.test.TestCase):
   """Base helper class for next frame tests."""
 
   def RunModel(self, model, hparams, features):
-    with tf.Session() as session:
+    with tf.compat.v1.Session() as session:
       model = model(hparams, tf_estimator.ModeKeys.TRAIN)
       logits, _ = model(features)
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       res = session.run(logits)
     return res
 
   def InferModel(self, model, hparams, features):
-    with tf.Session() as session:
+    with tf.compat.v1.Session() as session:
       model = model(hparams, tf_estimator.ModeKeys.PREDICT)
       output = model.infer(features)
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       res = session.run(output)
     return res
 

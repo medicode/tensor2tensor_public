@@ -24,7 +24,7 @@ from tensor2tensor.models import transformer
 from tensor2tensor.utils import contrib
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -58,9 +58,9 @@ class TransformerRevnet(transformer.Transformer):
          targets, hparams)
 
     encoder_input = tf.nn.dropout(encoder_input,
-                                  1.0 - hparams.layer_prepostprocess_dropout)
+                                  rate=1 - (1.0 - hparams.layer_prepostprocess_dropout))
     decoder_input = tf.nn.dropout(decoder_input,
-                                  1.0 - hparams.layer_prepostprocess_dropout)
+                                  rate=1 - (1.0 - hparams.layer_prepostprocess_dropout))
     encoder_output = transformer_revnet_encoder(
         encoder_input, encoder_self_attention_bias, hparams)
 
@@ -96,7 +96,7 @@ def transformer_revnet_encoder(encoder_input,
     old_hid_size = hparams.hidden_size
     hparams.hidden_size = old_hid_size // 2
 
-    with tf.variable_scope("self_attention"):
+    with tf.compat.v1.variable_scope("self_attention"):
       y = common_attention.multihead_attention(
           common_layers.layer_preprocess(
               x, hparams), None, encoder_self_attention_bias,
@@ -112,7 +112,7 @@ def transformer_revnet_encoder(encoder_input,
     old_hid_size = hparams.hidden_size
     hparams.hidden_size = old_hid_size // 2
 
-    with tf.variable_scope("ffn"):
+    with tf.compat.v1.variable_scope("ffn"):
       y = transformer.transformer_ffn_layer(
           common_layers.layer_preprocess(x, hparams), hparams)
       y = common_layers.layer_postprocess(x, y, hparams)
@@ -121,7 +121,7 @@ def transformer_revnet_encoder(encoder_input,
 
   x1, x2 = tf.split(encoder_input, 2, axis=-1)
 
-  with tf.variable_scope(name):
+  with tf.compat.v1.variable_scope(name):
     y1, y2 = contrib.layers().rev_block(
         x1,
         x2,
@@ -166,7 +166,7 @@ def transformer_revnet_decoder(decoder_input,
     old_hid_size = hparams.hidden_size
     hparams.hidden_size = old_hid_size // 2
 
-    with tf.variable_scope("self_attention"):
+    with tf.compat.v1.variable_scope("self_attention"):
       y = common_attention.multihead_attention(
           common_layers.layer_preprocess(
               x, hparams), None, decoder_self_attention_bias,
@@ -175,7 +175,7 @@ def transformer_revnet_decoder(decoder_input,
           hparams.hidden_size, hparams.num_heads, hparams.attention_dropout)
       y = common_layers.layer_postprocess(x, y, hparams)
       if encoder_output is not None:
-        with tf.variable_scope("encdec_attention"):
+        with tf.compat.v1.variable_scope("encdec_attention"):
           y = common_attention.multihead_attention(
               common_layers.layer_preprocess(
                   x, hparams), encoder_output, encoder_decoder_attention_bias,
@@ -190,7 +190,7 @@ def transformer_revnet_decoder(decoder_input,
     """g(x) for reversible layer, feed-forward layer."""
     old_hid_size = hparams.hidden_size
     hparams.hidden_size = old_hid_size // 2
-    with tf.variable_scope("ffn"):
+    with tf.compat.v1.variable_scope("ffn"):
       y = transformer.transformer_ffn_layer(
           common_layers.layer_preprocess(x, hparams), hparams)
       y = common_layers.layer_postprocess(x, y, hparams)
@@ -199,7 +199,7 @@ def transformer_revnet_decoder(decoder_input,
 
   x1, x2 = tf.split(decoder_input, 2, axis=-1)
 
-  with tf.variable_scope(name):
+  with tf.compat.v1.variable_scope(name):
     y1, y2 = contrib.layers().rev_block(
         x1,
         x2,

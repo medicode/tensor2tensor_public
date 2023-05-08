@@ -25,7 +25,7 @@ import scipy
 from tensor2tensor.layers import common_layers
 from tensor2tensor.layers import common_video
 from tensor2tensor.utils import contrib
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow_probability as tfp
 
@@ -78,7 +78,7 @@ def linear_interpolate_rank(tensor1, tensor2, coeffs, rank=1):
 
   interp_tensors = []
   for coeff in coeffs:
-    curr_coeff = tf.where(channel_mask, coeff * ones_t, zeros_t)
+    curr_coeff = tf.compat.v1.where(channel_mask, coeff * ones_t, zeros_t)
     interp_tensor = tensor1 + curr_coeff * (tensor2 - tensor1)
     interp_tensors.append(interp_tensor)
   return tf.concat(interp_tensors, axis=0)
@@ -94,7 +94,7 @@ def postprocess(x, n_bits_x=8):
   Returns:
     x: 3-D or 4-D Tensor representing images or videos.
   """
-  x = tf.where(tf.is_finite(x), x, tf.ones_like(x))
+  x = tf.compat.v1.where(tf.math.is_finite(x), x, tf.ones_like(x))
   x = tf.clip_by_value(x, -0.5, 0.5)
   x += 0.5
   x = x * 2**n_bits_x
@@ -120,7 +120,7 @@ class TemperedNormal(tfp.distributions.Normal):
 
 
 def default_initializer(std=0.05):
-  return tf.random_normal_initializer(0., std)
+  return tf.compat.v1.random_normal_initializer(0., std)
 
 
 def get_eps(dist, x):
@@ -173,7 +173,7 @@ def get_variable_ddi(name, shape, initial_value, dtype=tf.float32, init=False,
   """Wrapper for data-dependent initialization."""
   # If init is a tf bool: w is assigned dynamically at runtime.
   # If init is a python bool: then w is determined during graph construction.
-  w = tf.get_variable(name, shape, dtype, None, trainable=trainable)
+  w = tf.compat.v1.get_variable(name, shape, dtype, None, trainable=trainable)
   if isinstance(init, bool):
     if init:
       return assign(w, initial_value)
@@ -197,7 +197,7 @@ def get_dropout(x, rate=0.0, init=True):
   """
   if init or rate == 0:
     return x
-  return tf.layers.dropout(x, rate=rate, training=True)
+  return tf.compat.v1.layers.dropout(x, rate=rate, training=True)
 
 
 @add_arg_scope
@@ -214,7 +214,7 @@ def actnorm_3d(name, x, logscale_factor=3.):
   Returns:
     x: 5-D Tensor, (NTHWC) with the per-timestep, per-channel normalization.
   """
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     x = tf.unstack(x, axis=1)
     x_normed = []
     for ind, x_step in enumerate(x):
@@ -247,7 +247,7 @@ def actnorm(name, x, logscale_factor=3., reverse=False, init=False,
     objective: log(sum(s))
   """
   var_arg_scope = arg_scope([get_variable_ddi], trainable=trainable)
-  var_scope = tf.variable_scope(name, reuse=tf.AUTO_REUSE)
+  var_scope = tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE)
 
   with var_scope, var_arg_scope:
     if not reverse:
@@ -280,7 +280,7 @@ def actnorm_center(name, x, reverse=False, init=False):
     x_center: (x + b), if reverse is True and (x - b) otherwise.
   """
   shape = common_layers.shape_list(x)
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     assert len(shape) == 2 or len(shape) == 4
     if len(shape) == 2:
       x_mean = tf.reduce_mean(x, [0], keepdims=True)
@@ -302,7 +302,7 @@ def actnorm_center(name, x, reverse=False, init=False):
 def actnorm_scale(name, x, logscale_factor=3., reverse=False, init=False):
   """Per-channel scaling of x."""
   x_shape = common_layers.shape_list(x)
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
 
     # Variance initialization logic.
     assert len(x_shape) == 2 or len(x_shape) == 4
@@ -315,7 +315,7 @@ def actnorm_scale(name, x, logscale_factor=3., reverse=False, init=False):
       logdet_factor = x_shape[1]*x_shape[2]
       var_shape = (1, 1, 1, x_shape[3])
 
-    init_value = tf.log(1.0 / (tf.sqrt(x_var) + 1e-6)) / logscale_factor
+    init_value = tf.math.log(1.0 / (tf.sqrt(x_var) + 1e-6)) / logscale_factor
     logs = get_variable_ddi("logs", var_shape, initial_value=init_value,
                             init=init)
     logs = logs * logscale_factor
@@ -369,18 +369,18 @@ def invertible_1x1_conv(name, x, reverse=False):
   np_log_s = np.log(np.abs(np_s))
   np_u = np.triu(np_u, k=1)
 
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
-    p = tf.get_variable("P", initializer=np_p, trainable=False)
-    l = tf.get_variable("L", initializer=np_l)
-    sign_s = tf.get_variable(
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
+    p = tf.compat.v1.get_variable("P", initializer=np_p, trainable=False)
+    l = tf.compat.v1.get_variable("L", initializer=np_l)
+    sign_s = tf.compat.v1.get_variable(
         "sign_S", initializer=np_sign_s, trainable=False)
-    log_s = tf.get_variable("log_S", initializer=np_log_s)
-    u = tf.get_variable("U", initializer=np_u)
+    log_s = tf.compat.v1.get_variable("log_S", initializer=np_log_s)
+    u = tf.compat.v1.get_variable("U", initializer=np_u)
 
     # W = P * L * (U + sign_s * exp(log_s))
     l_mask = np.tril(np.ones([channels, channels], dtype=np.float32), -1)
     l = l * l_mask + tf.eye(channels, channels)
-    u = u * np.transpose(l_mask) + tf.diag(sign_s * tf.exp(log_s))
+    u = u * np.transpose(l_mask) + tf.linalg.tensor_diag(sign_s * tf.exp(log_s))
     w = tf.matmul(p, tf.matmul(l, u))
 
     # If height or width cannot be statically determined then they end up as
@@ -389,11 +389,11 @@ def invertible_1x1_conv(name, x, reverse=False):
     objective = tf.reduce_sum(log_s) * tf.cast(height * width, log_s.dtype)
     if not reverse:
       w = tf.reshape(w, [1, 1] + w_shape)
-      x = tf.nn.conv2d(x, w, [1, 1, 1, 1], "SAME", data_format="NHWC")
+      x = tf.nn.conv2d(x, filters=w, strides=[1, 1, 1, 1], padding="SAME", data_format="NHWC")
     else:
       w_inv = tf.reshape(tf.linalg.inv(w), [1, 1]+w_shape)
       x = tf.nn.conv2d(
-          x, w_inv, [1, 1, 1, 1], "SAME", data_format="NHWC")
+          x, filters=w_inv, strides=[1, 1, 1, 1], padding="SAME", data_format="NHWC")
       objective *= -1
   return x, objective
 
@@ -521,22 +521,22 @@ def conv(name, x, output_channels, filter_size=None, stride=None,
   filter_shape = filter_size + [in_channels, output_channels]
   stride_shape = [1] + stride + [1]
 
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
 
     if conv_init == "default":
       initializer = default_initializer()
     elif conv_init == "zeros":
-      initializer = tf.zeros_initializer()
+      initializer = tf.compat.v1.zeros_initializer()
 
-    w = tf.get_variable("W", filter_shape, tf.float32, initializer=initializer)
+    w = tf.compat.v1.get_variable("W", filter_shape, tf.float32, initializer=initializer)
     x = conv_filter(x, w, stride_shape, padding="VALID", dilations=dilations)
     if apply_actnorm:
       x, _ = actnorm_func("actnorm", x, logscale_factor=logscale_factor)
     else:
-      x += tf.get_variable("b", [1, 1, 1, output_channels],
-                           initializer=tf.zeros_initializer())
-      logs = tf.get_variable("logs", [1, output_channels],
-                             initializer=tf.zeros_initializer())
+      x += tf.compat.v1.get_variable("b", [1, 1, 1, output_channels],
+                           initializer=tf.compat.v1.zeros_initializer())
+      logs = tf.compat.v1.get_variable("logs", [1, output_channels],
+                             initializer=tf.compat.v1.zeros_initializer())
       x *= tf.exp(logs * logscale_factor)
     return x
 
@@ -558,7 +558,7 @@ def conv_block(name, x, mid_channels, dilations=None, activation="relu",
   Returns:
     x: 4-D Tensor: Output activations.
   """
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
 
     x_shape = common_layers.shape_list(x)
     is_2d = len(x_shape) == 4
@@ -620,7 +620,7 @@ def dilated_conv_stack(name, x, mid_channels, output_channels,
   Returns:
     output: 5-D Tensor.
   """
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     output = 0.0
     for dil_ind, dil_rate in enumerate(dilation_rates):
       # TODO(mechcoder) try (concat across channels + 1x1) modulo memory issues.
@@ -650,7 +650,7 @@ def conv_stack(name, x, mid_channels, output_channels, dilations=None,
   Returns:
     output: output of 3 layer conv network.
   """
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
 
     x = conv_block("conv_block", x, mid_channels=mid_channels,
                    dilations=dilations, activation=activation,
@@ -678,7 +678,7 @@ def additive_coupling(name, x, mid_channels=512, reverse=False,
     output: 4-D Tensor, shape=(NHWC)
     objective: 0.0
   """
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     output_channels = common_layers.shape_list(x)[-1] // 2
     x1, x2 = tf.split(x, num_or_size_splits=2, axis=-1)
 
@@ -709,7 +709,7 @@ def affine_coupling(name, x, mid_channels=512, activation="relu",
     output: x shifted and scaled by an affine transformation.
     objective: log-determinant of the jacobian
   """
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     x_shape = common_layers.shape_list(x)
     x1, x2 = tf.split(x, num_or_size_splits=2, axis=-1)
 
@@ -729,7 +729,7 @@ def affine_coupling(name, x, mid_channels=512, activation="relu",
     else:
       z2 = x2 / scale - shift
 
-    objective = tf.reduce_sum(tf.log(scale), axis=[1, 2, 3])
+    objective = tf.reduce_sum(tf.math.log(scale), axis=[1, 2, 3])
     if reverse:
       objective *= -1
     return tf.concat([z1, z2], axis=3), objective
@@ -749,7 +749,7 @@ def squeeze(name, x, factor=2, reverse=True):
     x: 4-D Tensor of shape (batch_size X (H//factor) X (W//factor) X
        (cXfactor^2). If reverse is True, then it is factor = (1 / factor)
   """
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     shape = common_layers.shape_list(x)
     if factor == 1:
       return x
@@ -813,7 +813,7 @@ def temporal_latent_to_dist(name, x, hparams, output_channels=None):
   if output_channels is None:
     output_channels = res_channels
   dilation_rates = get_dilation_rates(hparams, width)
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     h = x
     for i in range(hparams.latent_encoder_depth):
       if hparams.latent_apply_dilations:
@@ -849,7 +849,7 @@ def single_conv_dist(name, x, output_channels=None):
     x: 4-D Tensor.
     output_channels: number of channels of the mean and std.
   """
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     x_shape = common_layers.shape_list(x)
     if output_channels is None:
       output_channels = x_shape[-1]
@@ -857,7 +857,7 @@ def single_conv_dist(name, x, output_channels=None):
                           conv_init="zeros", apply_actnorm=False)
     mean = mean_log_scale[:, :, :, 0::2]
     log_scale = mean_log_scale[:, :, :, 1::2]
-    return tf.distributions.Normal(mean, tf.exp(log_scale))
+    return tf.compat.v1.distributions.Normal(mean, tf.exp(log_scale))
 
 
 @add_arg_scope
@@ -887,7 +887,7 @@ def latent_to_dist(name, x, hparams, output_channels=None):
   pre_output_channels = hparams.get("latent_pre_output_channels", 512)
   width = hparams.get("latent_encoder_width", 512)
 
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     x_shape = common_layers.shape_list(x)
     if output_channels is None:
       output_channels = x_shape[-1]
@@ -935,7 +935,7 @@ def noise_op(latents, hparams):
   if hparams.latent_noise == 0 or hparams.mode != tf_estimator.ModeKeys.TRAIN:
     return latents
   latent_shape = common_layers.shape_list(latents)
-  return latents + tf.random_normal(latent_shape, stddev=hparams.latent_noise)
+  return latents + tf.random.normal(latent_shape, stddev=hparams.latent_noise)
 
 
 @add_arg_scope
@@ -958,9 +958,9 @@ def merge_level_and_latent_dist(level_dist, latent_dist,
   new_mean = level_mean + latent_mean
   if merge_std == "normal":
     z_shape = common_layers.shape_list(latent_mean)
-    log_scale = tf.get_variable(
+    log_scale = tf.compat.v1.get_variable(
         "merge_std", shape=z_shape, dtype=tf.float32,
-        initializer=tf.zeros_initializer(), trainable=False)
+        initializer=tf.compat.v1.zeros_initializer(), trainable=False)
     scale = tf.exp(log_scale * 3.0)
   elif merge_std == "prev_level":
     scale = level_std
@@ -1067,7 +1067,7 @@ def compute_prior(name, z, latent, hparams, condition=False, state=None,
     ValueError: If hparams.latent_dist_encoder is "pointwise" and if the shape
                 of latent is different from z.
   """
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     if isinstance(condition, bool):
       condition = tf.constant(condition, dtype=tf.bool)
     prior_dist = single_conv_dist("level_prior", z)
@@ -1126,7 +1126,7 @@ def split(name, x, reverse=False, eps=None, eps_std=None, cond_latents=None,
                 where (NHWC) is the size of x.
   """
   # TODO(mechcoder) Change the return type to be a dict.
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     if not reverse:
       x1, x2 = tf.split(x, num_or_size_splits=2, axis=-1)
 
@@ -1143,7 +1143,7 @@ def split(name, x, reverse=False, eps=None, eps_std=None, cond_latents=None,
       if eps is not None:
         x2 = set_eps(prior_dist, eps)
       elif eps_std is not None:
-        x2 = eps_std * tf.random_normal(common_layers.shape_list(x))
+        x2 = eps_std * tf.random.normal(common_layers.shape_list(x))
       else:
         x2 = prior_dist.sample()
       return tf.concat([x, x2], 3), x2, state
@@ -1164,7 +1164,7 @@ def revnet_step(name, x, hparams, reverse=True):
   Returns:
     z: Output of one step of reversible flow.
   """
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     if hparams.coupling == "additive":
       coupling_layer = functools.partial(
           additive_coupling, name="additive", reverse=reverse,
@@ -1202,7 +1202,7 @@ def revnet(name, x, hparams, reverse=True):
     x: 4-D Tensor, shape=(NHWC).
     objective: float.
   """
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     steps = np.arange(hparams.depth)
     if reverse:
       steps = steps[::-1]
@@ -1229,14 +1229,14 @@ def scale_gaussian_prior(name, z, logscale_factor=3.0, trainable=True):
                      of logscale_factor.
     trainable: Whether or not std^i is learnt.
   """
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     z_shape = common_layers.shape_list(z)
-    latent_multiplier = tf.get_variable(
+    latent_multiplier = tf.compat.v1.get_variable(
         "latent_multiplier", shape=z_shape, dtype=tf.float32,
-        initializer=tf.ones_initializer())
-    log_scale = tf.get_variable(
+        initializer=tf.compat.v1.ones_initializer())
+    log_scale = tf.compat.v1.get_variable(
         "log_scale_latent", shape=z_shape, dtype=tf.float32,
-        initializer=tf.zeros_initializer(), trainable=trainable)
+        initializer=tf.compat.v1.zeros_initializer(), trainable=trainable)
     log_scale = log_scale * logscale_factor
     return tfp.distributions.Normal(
         loc=latent_multiplier * z, scale=tf.exp(log_scale))
@@ -1261,7 +1261,7 @@ def top_prior(name, z_shape, learn_prior="normal", temperature=1.0):
   Raises:
     ValueError: If learn_prior not in "normal" or "single_conv"
   """
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     h = tf.zeros(z_shape, dtype=tf.float32)
     if learn_prior == "normal":
       prior_dist = tfp.distributions.Normal(h, tf.exp(h))
@@ -1287,7 +1287,7 @@ def uniform_binning_correction(x, n_bits=8):
   batch_size, height, width, n_channels = common_layers.shape_list(x)
   hwc = float(height * width * n_channels)
 
-  x = x + tf.random_uniform(
+  x = x + tf.random.uniform(
       shape=(batch_size, height, width, n_channels),
       minval=0.0, maxval=1.0/n_bins)
   objective = -np.log(n_bins) * hwc * tf.ones(batch_size)
@@ -1326,7 +1326,7 @@ def encoder_decoder(name, x, hparams, eps=None, reverse=False,
                 the current state of each level.
   """
   # TODO(mechcoder) Change return_type to a dict to be backward compatible.
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
 
     if states and len(states) != hparams.n_levels - 1:
       raise ValueError("Expected length of states to be %d, got %d" %

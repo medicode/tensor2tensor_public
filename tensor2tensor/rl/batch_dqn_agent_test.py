@@ -28,7 +28,7 @@ import numpy as np
 
 from tensor2tensor.rl import dopamine_connector
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 FLAGS = flags.FLAGS
 
@@ -70,8 +70,8 @@ class BatchDQNAgentTest(tf.test.TestCase):
             np.arange(num_actions, 0, -1), (stack_size, 1))
         self.layer = tf.keras.layers.Dense(
             num_actions,
-            kernel_initializer=tf.constant_initializer(weights_initializer),
-            bias_initializer=tf.ones_initializer())
+            kernel_initializer=tf.compat.v1.constant_initializer(weights_initializer),
+            bias_initializer=tf.compat.v1.ones_initializer())
 
       def call(self, state):
         inputs = tf.constant(
@@ -94,14 +94,14 @@ class BatchDQNAgentTest(tf.test.TestCase):
     # This ensures non-random action choices (since epsilon_eval = 0.0) and
     # skips the train_step.
     agent.eval_mode = True
-    sess.run(tf.global_variables_initializer())
+    sess.run(tf.compat.v1.global_variables_initializer())
     return agent
 
   def testCreateAgentWithDefaults(self):
     # Verifies that we can create and train an agent with the default values.
-    with tf.Session() as sess:
+    with tf.compat.v1.Session() as sess:
       agent = self._create_test_agent(sess)
-      sess.run(tf.global_variables_initializer())
+      sess.run(tf.compat.v1.global_variables_initializer())
       observation = np.ones([84, 84, 1])
       agent.begin_episode([observation])
       agent.step(reward=[1], observation=[observation])
@@ -112,7 +112,7 @@ class BatchDQNAgentTest(tf.test.TestCase):
 
     Specifically, the action returned and its effect on state.
     """
-    with tf.Session() as sess:
+    with tf.compat.v1.Session() as sess:
       agent = self._create_test_agent(sess)
       # We fill up the state with 9s. On calling agent.begin_episode the state
       # should be reset to all 0s.

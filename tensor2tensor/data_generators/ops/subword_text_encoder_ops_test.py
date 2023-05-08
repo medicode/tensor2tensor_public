@@ -20,7 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 from tensor2tensor.data_generators.ops import subword_text_encoder_ops
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 vocab_file = (
     "third_party/py/tensor2tensor/data_generators/ops/testdata/subwords")
@@ -36,5 +36,5 @@ class SubwordTextEncoderOpsTest(tf.test.TestCase):
 
 
 if __name__ == "__main__":
-  tf.enable_eager_execution()
+  tf.compat.v1.enable_eager_execution()
   tf.test.main()

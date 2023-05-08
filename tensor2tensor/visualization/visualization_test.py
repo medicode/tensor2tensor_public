@@ -33,7 +33,7 @@ import os
 
 from tensor2tensor.utils import trainer_lib
 from tensor2tensor.visualization import visualization
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 def get_data_dir():
@@ -75,7 +75,7 @@ class VisualizationTest(tf.test.TestCase):
 
     input_sentence = 'I have two dogs.'
     with self.test_session() as sess:
-      sess.run(tf.global_variables_initializer())
+      sess.run(tf.compat.v1.global_variables_initializer())
       _, inp_text, out_text, att_mats = (
           visualizer.get_vis_data_from_string(sess, input_sentence))
 

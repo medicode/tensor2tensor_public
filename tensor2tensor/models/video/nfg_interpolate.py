@@ -30,7 +30,7 @@ from tensor2tensor.models.research import glow_ops
 from tensor2tensor.utils import contrib
 from tensor2tensor.utils import decoding
 from tensor2tensor.utils import trainer_lib
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 # Flags placeholders.
@@ -226,29 +226,29 @@ def main(_):
       tf_estimator.ModeKeys.PREDICT, shuffle_files=False, hparams=hparams,
       data_dir=FLAGS.data_dir, dataset_split=dataset_split)
   dataset = dataset.batch(hparams.batch_size)
-  dataset = dataset.make_one_shot_iterator().get_next()
+  dataset = tf.compat.v1.data.make_one_shot_iterator(dataset).get_next()
 
   # Obtain frame interpolations.
   ops = [glow_ops.get_variable_ddi, glow_ops.actnorm, glow_ops.get_dropout]
-  var_scope = tf.variable_scope("next_frame_glow/body", reuse=tf.AUTO_REUSE)
+  var_scope = tf.compat.v1.variable_scope("next_frame_glow/body", reuse=tf.compat.v1.AUTO_REUSE)
   with arg_scope(ops, init=False), var_scope:
     interpolations, first_frame, last_frame = interpolate(
         dataset, hparams, decode_hp)
 
-  var_list = tf.global_variables()
-  saver = tf.train.Saver(var_list)
+  var_list = tf.compat.v1.global_variables()
+  saver = tf.compat.v1.train.Saver(var_list)
 
   # Get latest checkpoints from model_dir.
   ckpt_path = tf.train.latest_checkpoint(FLAGS.output_dir)
   final_dir = get_summaries_log_dir(decode_hp, FLAGS.output_dir, dataset_split)
-  summary_writer = tf.summary.FileWriter(final_dir)
+  summary_writer = tf.compat.v1.summary.FileWriter(final_dir)
   global_step = decoding.latest_checkpoint_step(FLAGS.output_dir)
 
   sample_ind = 0
   num_samples = decode_hp.num_samples
   all_summaries = []
 
-  with tf.train.MonitoredTrainingSession() as sess:
+  with tf.compat.v1.train.MonitoredTrainingSession() as sess:
     saver.restore(sess, ckpt_path)
 
     while not sess.should_stop() and sample_ind < num_samples:
@@ -261,10 +261,10 @@ def main(_):
                                               hparams, decode_hp)
       all_summaries.extend(interp_summ)
       sample_ind += 1
-    all_summaries = tf.Summary(value=list(all_summaries))
+    all_summaries = tf.compat.v1.Summary(value=list(all_summaries))
     summary_writer.add_summary(all_summaries, global_step)
 
 
 if __name__ == "__main__":
-  tf.logging.set_verbosity(tf.logging.INFO)
-  tf.app.run()
+  tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
+  tf.compat.v1.app.run()

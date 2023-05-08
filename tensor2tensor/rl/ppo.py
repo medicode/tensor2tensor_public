@@ -26,7 +26,7 @@ from tensor2tensor.models.research.rl import get_policy
 from tensor2tensor.utils import learning_rate
 from tensor2tensor.utils import optimize
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 import tensorflow_probability as tfp
 
 
@@ -72,7 +72,7 @@ def define_ppo_step(data_points, hparams, action_space, lr, epoch=-1,
     new_value = tf.reshape(new_value, value_shape[:-1] + [2 * value_shape[-1]])
     # Cast discounted reward to integers and gather the new log-probs for them.
     discounted_reward = tf.cast(discounted_reward, tf.int32)
-    value_loss = tf.batch_gather(new_value, discounted_reward)
+    value_loss = tf.compat.v1.batch_gather(new_value, discounted_reward)
     # Weight the gathered (new) log-probs by the old probabilities.
     discounted_reward_probs = tf.expand_dims(discounted_reward_probs, axis=1)
     value_loss = - tf.reduce_sum(value_loss * discounted_reward_probs, axis=-1)
@@ -88,7 +88,7 @@ def define_ppo_step(data_points, hparams, action_space, lr, epoch=-1,
 
   losses = [policy_loss, value_loss, entropy_loss]
   loss = sum(losses)
-  variables = tf.global_variables(hparams.policy_network + "/.*")
+  variables = tf.compat.v1.global_variables(hparams.policy_network + "/.*")
   train_op = optimize.optimize(loss, lr, hparams, variables=variables)
 
   with tf.control_dependencies([train_op]):
@@ -98,7 +98,7 @@ def define_ppo_step(data_points, hparams, action_space, lr, epoch=-1,
 def _distributional_to_value(value_d, size, subscale, threshold):
   """Get a scalar value out of a value distribution in distributional RL."""
   half = size // 2
-  value_range = (tf.to_float(tf.range(-half, half)) + 0.5) * subscale
+  value_range = (tf.cast(tf.range(-half, half), dtype=tf.float32) + 0.5) * subscale
   probs = tf.nn.softmax(value_d)
 
   if threshold == 0.0:
@@ -108,7 +108,7 @@ def _distributional_to_value(value_d, size, subscale, threshold):
   # so it is the probability that value <= i'th bucket value
   accumulated_probs = tf.cumsum(probs, axis=-1)
   # New probs are 0 on all lower buckets, until the threshold
-  probs = tf.where(accumulated_probs < threshold, tf.zeros_like(probs), probs)
+  probs = tf.compat.v1.where(accumulated_probs < threshold, tf.zeros_like(probs), probs)
   probs /= tf.reduce_sum(probs, axis=-1, keepdims=True)  # Re-normalize.
   return tf.reduce_sum(probs * value_range, axis=-1)
 
@@ -141,7 +141,7 @@ def define_ppo_epoch(memory, hparams, action_space, batch_size,
   if distributional_size > 1:
     # Create discounted reward values range.
     half = distributional_size // 2
-    value_range = tf.to_float(tf.range(-half, half)) + 0.5  # Mid-bucket value.
+    value_range = tf.cast(tf.range(-half, half), dtype=tf.float32) + 0.5  # Mid-bucket value.
     value_range *= distributional_subscale
     # Acquire new discounted rewards by using the above range as end-values.
     end_values = tf.expand_dims(value_range, 0)
@@ -162,7 +162,7 @@ def define_ppo_epoch(memory, hparams, action_space, batch_size,
     discounted_reward_prob = discounted_reward  # Unused in this case.
 
   advantage_mean, advantage_variance = tf.nn.moments(advantage, axes=[0, 1],
-                                                     keep_dims=True)
+                                                     keepdims=True)
   advantage_normalized = tf.stop_gradient(
       (advantage - advantage_mean)/(tf.sqrt(advantage_variance) + 1e-8))
 
@@ -209,12 +209,12 @@ def define_ppo_epoch(memory, hparams, action_space, batch_size,
       "policy_loss", "value_loss", "entropy_loss", "learning_rate"
   ]
 
-  summaries = [tf.summary.scalar(summary_name, summary)
+  summaries = [tf.compat.v1.summary.scalar(summary_name, summary)
                for summary_name, summary in zip(summaries_names, ppo_summaries)]
-  losses_summary = tf.summary.merge(summaries)
+  losses_summary = tf.compat.v1.summary.merge(summaries)
 
   for summary_name, summary in zip(summaries_names, ppo_summaries):
-    losses_summary = tf.Print(losses_summary, [summary], summary_name + ": ")
+    losses_summary = tf.compat.v1.Print(losses_summary, [summary], summary_name + ": ")
 
   return losses_summary
 
@@ -240,7 +240,7 @@ def calculate_generalized_advantage_estimator(
       [tf.reverse(delta, [0]), tf.reverse(next_not_done, [0])],
       tf.zeros_like(delta[0, :]),
       parallel_iterations=1), [0])
-  return tf.check_numerics(return_, "return")
+  return tf.debugging.check_numerics(return_, "return")
 
 
 def discounted_rewards(reward, done, gae_gamma, end_values):
@@ -254,4 +254,4 @@ def discounted_rewards(reward, done, gae_gamma, end_values):
       reverse=True,
       back_prop=False,
       parallel_iterations=2)
-  return tf.check_numerics(return_, "return")
+  return tf.debugging.check_numerics(return_, "return")

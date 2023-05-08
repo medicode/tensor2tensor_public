@@ -24,7 +24,7 @@ import numpy as np
 
 from tensor2tensor.data_generators import multi_problem_v2
 from tensor2tensor.data_generators import problem
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 class MultiProblemV2Test(parameterized.TestCase, tf.test.TestCase):
@@ -114,7 +114,7 @@ class MultiProblemV2Test(parameterized.TestCase, tf.test.TestCase):
   )
   def test_get_schedule_distribution(self, schedule, steps, pmfs):
     with self.test_session() as sess:
-      global_step = tf.train.get_or_create_global_step()
+      global_step = tf.compat.v1.train.get_or_create_global_step()
       output = multi_problem_v2.get_schedule_distribution(schedule, global_step)
       sess.run(global_step.initializer)
       for step, pmf in zip(steps, pmfs):
@@ -163,7 +163,7 @@ class MultiProblemV2Test(parameterized.TestCase, tf.test.TestCase):
       datasets = [tf.data.Dataset.from_tensors(i) for i in range(num_datasets)]
       multi_dataset = multi_problem_v2.get_multi_dataset(datasets, pmf)
       multi_dataset = multi_dataset.batch(sample_size)
-      iterator = multi_dataset.make_initializable_iterator()
+      iterator = tf.compat.v1.data.make_initializable_iterator(multi_dataset)
       sess.run(iterator.initializer)
       sample_pmf = tf.reduce_mean(
           tf.one_hot(iterator.get_next(), num_datasets), 0)
@@ -194,9 +194,9 @@ class MultiProblemV2Test(parameterized.TestCase, tf.test.TestCase):
       for mode in [problem.DatasetSplit.TRAIN, problem.DatasetSplit.EVAL]:
         p = multi_problem_v2.MultiProblemV2(
             [DummyProblem() for _ in range(num_datasets)], schedule)
-        global_step = tf.train.get_or_create_global_step()
+        global_step = tf.compat.v1.train.get_or_create_global_step()
         dataset = p.dataset(mode, global_step).batch(sample_size)
-        iterator = dataset.make_initializable_iterator()
+        iterator = tf.compat.v1.data.make_initializable_iterator(dataset)
         features = iterator.get_next()
         sess.run(global_step.initializer)
         sess.run(iterator.initializer)

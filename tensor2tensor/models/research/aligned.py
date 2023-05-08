@@ -33,7 +33,7 @@ from tensor2tensor.utils import expert_utils
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import t2t_model
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 ModeKeys = tf_estimator.ModeKeys  # pylint: disable=invalid-name
@@ -84,7 +84,7 @@ class Aligned(t2t_model.T2TModel):
 
     layers = hparams.layers.strip(",").split(",")
     for layer_num, layer_type in enumerate(layers):
-      with tf.variable_scope("%s_%d" % (layer_type, layer_num)):
+      with tf.compat.v1.variable_scope("%s_%d" % (layer_type, layer_num)):
         if _should_preprocess(layer_type):
           x = preprocess(x)
         if layer_type == "timing":

@@ -36,7 +36,7 @@ from __future__ import print_function
 import copy
 
 from tensor2tensor.layers import common_layers
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 from tensorflow.python.ops import inplace_ops  # pylint: disable=g-direct-tensorflow-import
@@ -138,7 +138,7 @@ def sequential_scheduled_sampling(infer_fn, mix_fn, loss_fn, targets):
   # tf.while_loop() over all timesteps. Generate scheduled sampling tokens.
   i = 0
   ss_tokens = tf.zeros([batch_size, seq_len], dtype=tf.int32)
-  i, ss_tokens = tf.while_loop(cond_fn, body_fn, [i, ss_tokens])
+  i, ss_tokens = tf.while_loop(cond=cond_fn, body=body_fn, loop_vars=[i, ss_tokens])
 
   ss_logits = infer_fn(ss_tokens)
   return ss_tokens, ss_logits, loss_fn(targets, ss_logits)
@@ -158,8 +158,8 @@ def _mix_tokens(p_sample, gold_targets, sampled_targets):
     'gold_targets' and 'sampled_targets'.
   """
   targets_shape = common_layers.shape_list(sampled_targets)
-  return tf.where(
-      tf.less(tf.random_uniform(targets_shape), p_sample),
+  return tf.compat.v1.where(
+      tf.less(tf.random.uniform(targets_shape), p_sample),
       sampled_targets, gold_targets)
 
 
@@ -227,10 +227,10 @@ class ScheduledSamplingAdapter(object):
     features = copy.copy(self._features)
     features["targets"] = partial_targets
 
-    with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+    with tf.compat.v1.variable_scope(tf.compat.v1.get_variable_scope(), reuse=True):
       transformed_features = self._t2tmodel.bottom(features)
 
-      with tf.variable_scope("body"):
+      with tf.compat.v1.variable_scope("body"):
         body_outputs, losses = self._t2tmodel._normalize_body_output(  # pylint: disable=protected-access
             self._t2tmodel.body(transformed_features))
         assert losses == {"extra": 0.0}, (
@@ -271,7 +271,7 @@ class ScheduledSamplingAdapter(object):
     features = copy.copy(self._features)
     features["targets"] = targets
 
-    with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+    with tf.compat.v1.variable_scope(tf.compat.v1.get_variable_scope(), reuse=True):
       losses = {
           "training": self._t2tmodel.loss(logits, features),
       }

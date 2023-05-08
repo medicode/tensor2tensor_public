@@ -19,7 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 from tensor2tensor.layers import common_layers
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 class RecurrentMemory(object):
@@ -88,24 +88,24 @@ class RecentTokensMemory(RecurrentMemory):
     memory_shape = [batch_size_in_sequences, self.tokens_to_cache, hidden_size]
     bias_shape = [batch_size_in_sequences, 1, 1, self.tokens_to_cache]
 
-    with tf.variable_scope(name):
-      self.previous_segment = tf.get_variable(
+    with tf.compat.v1.variable_scope(name):
+      self.previous_segment = tf.compat.v1.get_variable(
           "memsegment", (batch_size_in_sequences,),
           dtype=tf.int32, trainable=False,
-          collections=[tf.GraphKeys.LOCAL_VARIABLES],
-          initializer=tf.constant_initializer(0))
+          collections=[tf.compat.v1.GraphKeys.LOCAL_VARIABLES],
+          initializer=tf.compat.v1.constant_initializer(0))
 
-      self.previous_vals = tf.get_variable(
+      self.previous_vals = tf.compat.v1.get_variable(
           "memvals", memory_shape,
           dtype=tf.float32, trainable=False,
-          collections=[tf.GraphKeys.LOCAL_VARIABLES],
-          initializer=tf.constant_initializer(.0))
+          collections=[tf.compat.v1.GraphKeys.LOCAL_VARIABLES],
+          initializer=tf.compat.v1.constant_initializer(.0))
 
-      self.previous_bias = tf.get_variable(
+      self.previous_bias = tf.compat.v1.get_variable(
           "membias", bias_shape,
           dtype=tf.float32, trainable=False,
-          collections=[tf.GraphKeys.LOCAL_VARIABLES],
-          initializer=tf.constant_initializer(-1e9))
+          collections=[tf.compat.v1.GraphKeys.LOCAL_VARIABLES],
+          initializer=tf.compat.v1.constant_initializer(-1e9))
 
   def pre_attention(self, segment, query_antecedent, memory_antecedent, bias):
     """Called prior to self-attention, to incorporate memory items.
@@ -209,19 +209,19 @@ class TransformerMemory(object):
     self.val_depth = val_depth
     self.memory_size = memory_size
     self.sharpen_factor = sharpen_factor
-    with tf.variable_scope(name):
-      self.segment_number = tf.get_variable(
+    with tf.compat.v1.variable_scope(name):
+      self.segment_number = tf.compat.v1.get_variable(
           "segment_number", [self.batch_size],
           dtype=tf.int32, trainable=False,
-          initializer=tf.constant_initializer(100000))
-      self.mem_vals = tf.get_variable(
+          initializer=tf.compat.v1.constant_initializer(100000))
+      self.mem_vals = tf.compat.v1.get_variable(
           "memvals", [self.batch_size, self.memory_size, self.val_depth],
           dtype=tf.float32, trainable=False,
-          initializer=tf.constant_initializer(.0))
-      self.mean_logits = tf.get_variable(
+          initializer=tf.compat.v1.constant_initializer(.0))
+      self.mean_logits = tf.compat.v1.get_variable(
           "meanlogits", [self.batch_size, self.memory_size],
           dtype=tf.float32, trainable=False,
-          initializer=tf.constant_initializer(.0))
+          initializer=tf.compat.v1.constant_initializer(.0))
 
   def _norm(self, x):
     """Compute the safe norm."""
@@ -235,16 +235,16 @@ class TransformerMemory(object):
     Returns:
       the logits for each memory entry [batch_size, length, memory_size].
     """
-    mem_keys = tf.layers.dense(self.mem_vals, self.key_depth,
-                               bias_initializer=tf.constant_initializer(1.0),
+    mem_keys = tf.compat.v1.layers.dense(self.mem_vals, self.key_depth,
+                               bias_initializer=tf.compat.v1.constant_initializer(1.0),
                                name="mem_key")
-    mem_query = tf.layers.dense(x, self.key_depth,
-                                bias_initializer=tf.constant_initializer(1.0),
+    mem_query = tf.compat.v1.layers.dense(x, self.key_depth,
+                                bias_initializer=tf.compat.v1.constant_initializer(1.0),
                                 name="mem_query")
     norm = tf.matmul(self._norm(mem_query), self._norm(mem_keys),
                      transpose_b=True)
     dot_product = tf.matmul(mem_query, mem_keys, transpose_b=True)
-    cos_dist = tf.div(dot_product, norm + 1e-7, name="cos_dist")
+    cos_dist = tf.compat.v1.div(dot_product, norm + 1e-7, name="cos_dist")
     access_logits = self.sharpen_factor * cos_dist
     return access_logits
 
@@ -280,12 +280,12 @@ class TransformerMemory(object):
     Returns:
       the update op.
     """
-    gamma = tf.layers.dense(x, 1, activation=tf.sigmoid, name="gamma")
+    gamma = tf.compat.v1.layers.dense(x, 1, activation=tf.sigmoid, name="gamma")
     write_logits = access_logits - gamma * tf.expand_dims(self.mean_logits, 1)
-    candidate_value = tf.layers.dense(x, self.val_depth,
+    candidate_value = tf.compat.v1.layers.dense(x, self.val_depth,
                                       activation=tf.nn.relu,
                                       name="candidate_value")
-    erase_gates = tf.layers.dense(x, self.memory_size,
+    erase_gates = tf.compat.v1.layers.dense(x, self.memory_size,
                                   activation=tf.nn.sigmoid,
                                   name="erase")
     write_weights = tf.nn.softmax(write_logits)
@@ -323,12 +323,12 @@ class TransformerMemory(object):
       the reset op.
     """
     num_updates = tf.size(entries_to_reset)
-    update_vals = tf.scatter_update(
+    update_vals = tf.compat.v1.scatter_update(
         self.mem_vals, entries_to_reset,
         tf.tile(tf.expand_dims(
             tf.fill([self.memory_size, self.val_depth], .0), 0),
                 [num_updates, 1, 1]))
-    update_logits = tf.scatter_update(
+    update_logits = tf.compat.v1.scatter_update(
         self.mean_logits, entries_to_reset,
         tf.tile(tf.expand_dims(
             tf.fill([self.memory_size], .0), 0),
@@ -350,13 +350,13 @@ class TransformerMemory(object):
     Returns:
       (data, new_query_antecedent, new_memory_antecedent, new_bias)
     """
-    with tf.variable_scope(self.name + "/pre_attention", reuse=tf.AUTO_REUSE):
+    with tf.compat.v1.variable_scope(self.name + "/pre_attention", reuse=tf.compat.v1.AUTO_REUSE):
       assert memory_antecedent is None, "We only support language modeling"
       with tf.control_dependencies([
-          tf.assert_greater_equal(self.batch_size, tf.size(segment_number))]):
+          tf.compat.v1.assert_greater_equal(self.batch_size, tf.size(segment_number))]):
         difference = self.batch_size - tf.size(segment_number)
         segment_number = tf.pad(segment_number, [[0, difference]])
-        reset_op = self.reset(tf.reshape(tf.where(
+        reset_op = self.reset(tf.reshape(tf.compat.v1.where(
             tf.less(segment_number, self.segment_number)), [-1]))
       memory_results = {}
       with tf.control_dependencies([reset_op]):
@@ -380,13 +380,13 @@ class TransformerMemory(object):
     Returns:
       a (possibly modified) version of the input x
     """
-    with tf.variable_scope(self.name + "/post_attention", reuse=tf.AUTO_REUSE):
+    with tf.compat.v1.variable_scope(self.name + "/post_attention", reuse=tf.compat.v1.AUTO_REUSE):
       depth = common_layers.shape_list(x)[-1]
       actual_batch_size = common_layers.shape_list(x)[0]
       memory_output = tf.gather(token["retrieved_mem"],
                                 tf.range(actual_batch_size))
-      output = tf.add(tf.layers.dense(x, depth, use_bias=False),
-                      tf.layers.dense(memory_output, depth))
+      output = tf.add(tf.compat.v1.layers.dense(x, depth, use_bias=False),
+                      tf.compat.v1.layers.dense(memory_output, depth))
       with tf.control_dependencies([output]):
         with tf.control_dependencies([
             self.write(token["x"], token["access_logits"])]):

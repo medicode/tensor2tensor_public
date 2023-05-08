@@ -22,7 +22,7 @@ from __future__ import print_function
 from absl.testing import parameterized
 import numpy as np
 from tensor2tensor.layers import area_attention
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 class AreaAttentionTest(parameterized.TestCase, tf.test.TestCase):
@@ -36,7 +36,7 @@ class AreaAttentionTest(parameterized.TestCase, tf.test.TestCase):
         area_attention.compute_area_features(features, max_area_width=3,
                                              epsilon=0.))
     with self.test_session() as session:
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       res1, res2, res3, res4, res5 = session.run([area_mean, area_std, area_sum,
                                                   area_height, area_widths])
     self.assertAllClose(((((1, 2), (3, 4), (5, 6), (7, 8), (9, 10),
@@ -93,7 +93,7 @@ class AreaAttentionTest(parameterized.TestCase, tf.test.TestCase):
                                              max_area_height=2,
                                              height=2, epsilon=0.))
     with self.test_session() as session:
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       res1, _, res3, res4, res5 = session.run([area_mean, area_std, area_sum,
                                                area_height, area_widths])
     expected_means = [[[1, 2], [3, 4], [5, 6], [7, 8], [9, 10], [11, 12],
@@ -169,14 +169,14 @@ class AreaAttentionTest(parameterized.TestCase, tf.test.TestCase):
     depth = 128
     max_area_height = 3
     max_area_width = 3
-    queries = tf.random_uniform([batch_size, heads, key_len, depth],
+    queries = tf.random.uniform([batch_size, heads, key_len, depth],
                                 minval=-10.0, maxval=10.0)
-    features = tf.random_uniform([batch_size, heads, feature_len, depth],
+    features = tf.random.uniform([batch_size, heads, feature_len, depth],
                                  minval=-10.0, maxval=10.0)
-    target_values = tf.random_uniform([batch_size, heads, key_len, depth],
+    target_values = tf.random.uniform([batch_size, heads, key_len, depth],
                                       minval=-0.2, maxval=0.2)
-    keys = tf.layers.dense(features, units=depth)
-    values = tf.layers.dense(features, units=depth)
+    keys = tf.compat.v1.layers.dense(features, units=depth)
+    values = tf.compat.v1.layers.dense(features, units=depth)
     mean_attention = area_attention.dot_product_area_attention(
         queries, keys, values,
         bias=None,
@@ -189,7 +189,7 @@ class AreaAttentionTest(parameterized.TestCase, tf.test.TestCase):
         tf.reduce_mean(
             tf.pow(target_values - mean_attention, 2)), features)
     with self.test_session() as session:
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       result = session.run([mean_gradients])
     self.assertFalse(np.any(np.logical_not(np.isfinite(result))))
 
@@ -202,14 +202,14 @@ class AreaAttentionTest(parameterized.TestCase, tf.test.TestCase):
     depth = 128
     max_area_height = 3
     max_area_width = 3
-    queries = tf.random_uniform([batch_size, heads, key_len, depth],
+    queries = tf.random.uniform([batch_size, heads, key_len, depth],
                                 minval=-10.0, maxval=10.0)
-    features = tf.random_uniform([batch_size, heads, feature_len, depth],
+    features = tf.random.uniform([batch_size, heads, feature_len, depth],
                                  minval=-10.0, maxval=10.0)
-    target_values = tf.random_uniform([batch_size, heads, key_len, depth],
+    target_values = tf.random.uniform([batch_size, heads, key_len, depth],
                                       minval=-0.2, maxval=0.2)
-    keys = tf.layers.dense(features, units=depth)
-    values = tf.layers.dense(features, units=depth)
+    keys = tf.compat.v1.layers.dense(features, units=depth)
+    values = tf.compat.v1.layers.dense(features, units=depth)
     max_attention = area_attention.dot_product_area_attention(
         queries, keys, values,
         bias=None,
@@ -222,7 +222,7 @@ class AreaAttentionTest(parameterized.TestCase, tf.test.TestCase):
     max_gradients = tf.gradients(tf.reduce_mean(
         tf.pow(target_values - max_attention, 2)), features)
     with self.test_session() as session:
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       result1, result2 = session.run([max_gradients, max_attention])
     self.assertFalse(np.any(np.logical_not(np.isfinite(result1))))
     self.assertFalse(np.any(np.logical_not(np.isfinite(result2))))
@@ -234,9 +234,9 @@ class AreaAttentionTest(parameterized.TestCase, tf.test.TestCase):
     key_len = 15
     depth = 128
     max_area_width = 3
-    queries = tf.random_uniform([batch_size, heads, key_len, depth],
+    queries = tf.random.uniform([batch_size, heads, key_len, depth],
                                 minval=-10.0, maxval=10.0)
-    features = tf.random_uniform([batch_size, heads, feature_len, depth],
+    features = tf.random.uniform([batch_size, heads, feature_len, depth],
                                  minval=-10.0, maxval=10.0)
     feature_length = tf.constant(
         np.concatenate(
@@ -245,17 +245,17 @@ class AreaAttentionTest(parameterized.TestCase, tf.test.TestCase):
     base_mask = tf.expand_dims(tf.sequence_mask(feature_length), 1)
     mask = tf.expand_dims(base_mask, 3)
     mask = tf.tile(mask, [1, heads, 1, depth])
-    features = tf.where(mask, features, tf.zeros_like(features))
+    features = tf.compat.v1.where(mask, features, tf.zeros_like(features))
     # [batch, 1, 1, memory_length]
     bias_mask = tf.expand_dims(base_mask, 1)
-    bias = tf.where(
+    bias = tf.compat.v1.where(
         bias_mask,
         tf.zeros_like(bias_mask, tf.float32),
         tf.ones_like(bias_mask, tf.float32) * -1e9)
-    target_values = tf.random_uniform([batch_size, heads, key_len, depth],
+    target_values = tf.random.uniform([batch_size, heads, key_len, depth],
                                       minval=-0.2, maxval=0.2)
-    keys = tf.layers.dense(features, units=depth)
-    values = tf.layers.dense(features, units=depth)
+    keys = tf.compat.v1.layers.dense(features, units=depth)
+    values = tf.compat.v1.layers.dense(features, units=depth)
     max_attention = area_attention.dot_product_area_attention(
         queries, keys, values,
         bias=bias,
@@ -267,7 +267,7 @@ class AreaAttentionTest(parameterized.TestCase, tf.test.TestCase):
         tf.reduce_mean(
             tf.pow(target_values - max_attention, 2)), features)
     with self.test_session() as session:
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       result1, result2 = session.run([max_gradients, max_attention])
     self.assertFalse(np.any(np.logical_not(np.isfinite(result1))))
     self.assertFalse(np.any(np.logical_not(np.isfinite(result2))))

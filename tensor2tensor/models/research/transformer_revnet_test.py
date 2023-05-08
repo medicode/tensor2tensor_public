@@ -23,7 +23,7 @@ import numpy as np
 from tensor2tensor.data_generators import problem_hparams
 from tensor2tensor.models.research import transformer_revnet
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -61,11 +61,11 @@ class TransformerRevnetTest(tf.test.TestCase):
         hparams, tf_estimator.ModeKeys.TRAIN, p_hparams)
     logits, _ = model(features)
     grads = tf.gradients(
-        tf.reduce_mean(logits), [features["inputs"]] + tf.global_variables())
+        tf.reduce_mean(logits), [features["inputs"]] + tf.compat.v1.global_variables())
     grads = [g for g in grads if g is not None]
 
     with self.test_session() as session:
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       logits_val, _ = session.run([logits, grads])
     self.assertEqual(logits_val.shape, (batch_size, target_length, 1, 1,
                                         vocab_size))

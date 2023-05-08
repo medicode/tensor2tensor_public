@@ -69,7 +69,7 @@ from __future__ import print_function
 import collections
 
 from tensor2tensor.utils import misc_utils
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 from tensorflow.python.util import tf_inspect as inspect  # pylint: disable=g-direct-tensorflow-import
 
@@ -449,15 +449,15 @@ def optimizer(name):
               "(likely due to a `HParams.optimizer` value)")
   if name == "SGD":
     name = "sgd"
-    tf.logging.warning("'SGD' optimizer now keyed by 'sgd'. %s" % warn_msg)
+    tf.compat.v1.logging.warning("'SGD' optimizer now keyed by 'sgd'. %s" % warn_msg)
   elif name == "RMSProp":
     name = "rms_prop"
-    tf.logging.warning(
+    tf.compat.v1.logging.warning(
         "'RMSProp' optimizer now keyed by 'rms_prop'. %s" % warn_msg)
   else:
     snake_name = misc_utils.camelcase_to_snakecase(name)
     if name != snake_name:
-      tf.logging.warning(
+      tf.compat.v1.logging.warning(
           "optimizer names now keyed by snake_case names. %s" % warn_msg)
       name = snake_name
   return Registries.optimizers[name]

@@ -30,7 +30,7 @@ from tensor2tensor.layers import modalities
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import t2t_model
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 def flat_lists(list_of_lists):
@@ -45,7 +45,7 @@ def pixels_from_softmax(frame_logits, pure_sampling=False,
     return common_layers.sample_with_temperature(frame_logits, temperature)
 
   # Gumbel-sample from the pixel sofmax and average by pixel values.
-  pixel_range = tf.to_float(tf.range(256))
+  pixel_range = tf.cast(tf.range(256), dtype=tf.float32)
   for _ in range(len(frame_logits.get_shape().as_list()) - 1):
     pixel_range = tf.expand_dims(pixel_range, axis=0)
 
@@ -203,7 +203,7 @@ class NextFrameBase(t2t_model.T2TModel):
     return "targets" not in self.hparams.get("loss")
 
   def get_iteration_num(self):
-    step_num = tf.train.get_global_step()
+    step_num = tf.compat.v1.train.get_global_step()
     # TODO(lukaszkaiser): what should it be if it's undefined?
     if step_num is None:
       step_num = 10000000
@@ -213,11 +213,11 @@ class NextFrameBase(t2t_model.T2TModel):
     predics = tf.concat(predics, axis=1)
     targets = tf.concat(targets, axis=1)
     side_by_side_video = tf.concat([predics, targets], axis=2)
-    tf.summary.image("full_video", side_by_side_video)
+    tf.compat.v1.summary.image("full_video", side_by_side_video)
 
   def get_scheduled_sample_func(self, batch_size):
     """Creates a function for scheduled sampling based on given hparams."""
-    with tf.variable_scope("scheduled_sampling_func", reuse=tf.AUTO_REUSE):
+    with tf.compat.v1.variable_scope("scheduled_sampling_func", reuse=tf.compat.v1.AUTO_REUSE):
       iter_num = self.get_iteration_num()
 
       # Simple function to bypass scheduled sampling in gt or pred only modes.
@@ -237,7 +237,7 @@ class NextFrameBase(t2t_model.T2TModel):
         scheduled_sampling_func_var = False
       elif mode == "prob":
         decay_steps = self.hparams.scheduled_sampling_decay_steps
-        probability = tf.train.polynomial_decay(
+        probability = tf.compat.v1.train.polynomial_decay(
             1.0, iter_num, decay_steps, 0.0)
         scheduled_sampling_func = common_video.scheduled_sample_prob
         scheduled_sampling_func_var = probability
@@ -262,17 +262,17 @@ class NextFrameBase(t2t_model.T2TModel):
       elif mode == "count":
         # Calculate number of ground-truth frames to pass in.
         k = self.hparams.scheduled_sampling_k
-        num_ground_truth = tf.to_int32(
+        num_ground_truth = tf.cast(
             tf.round(
-                tf.to_float(batch_size) *
-                (k / (k + tf.exp(tf.to_float(iter_num) / tf.to_float(k))))))
+                tf.cast(batch_size, dtype=tf.float32) *
+                (k / (k + tf.exp(tf.cast(iter_num, dtype=tf.float32) / tf.cast(k, dtype=tf.float32))))), dtype=tf.int32)
         scheduled_sampling_func = common_video.scheduled_sample_count
         scheduled_sampling_func_var = num_ground_truth
       else:
         raise ValueError("unknown scheduled sampling method: %s" % mode)
 
       if isinstance(scheduled_sampling_func_var, tf.Tensor):
-        tf.summary.scalar("scheduled_sampling_var", scheduled_sampling_func_var)
+        tf.compat.v1.summary.scalar("scheduled_sampling_var", scheduled_sampling_func_var)
       partial_func = functools.partial(
           scheduled_sampling_func,
           batch_size=batch_size,
@@ -298,7 +298,7 @@ class NextFrameBase(t2t_model.T2TModel):
     """
     def sample():
       """Calculate the scheduled sampling params based on iteration number."""
-      with tf.variable_scope("scheduled_sampling", reuse=tf.AUTO_REUSE):
+      with tf.compat.v1.variable_scope("scheduled_sampling", reuse=tf.compat.v1.AUTO_REUSE):
         return [
             scheduled_sampling_func(item_gt, item_gen)
             for item_gt, item_gen in zip(groundtruth_items, generated_items)]
@@ -337,7 +337,7 @@ class NextFrameBase(t2t_model.T2TModel):
     """
     # TODO(trandustin): This logic should be moved elsewhere.
     if self.hparams.loss.get("targets") == modalities.video_l2_raw_loss:
-      recon_loss = tf.losses.mean_squared_error(extra_gts, extra_pds)
+      recon_loss = tf.compat.v1.losses.mean_squared_error(extra_gts, extra_pds)
     elif "targets" not in self.hparams.loss:
       shape = common_layers.shape_list(extra_pds)
       updated_shape = shape[:-1] + [3, 256]
@@ -359,7 +359,7 @@ class NextFrameBase(t2t_model.T2TModel):
       recon_loss = numerator / denominator
     else:
       raise ValueError("internal loss only supports specific hparams.loss.")
-    tf.summary.scalar("recon_extra", recon_loss)
+    tf.compat.v1.summary.scalar("recon_extra", recon_loss)
     return recon_loss
 
   def get_sampled_frame(self, pred_frame):
@@ -390,7 +390,7 @@ class NextFrameBase(t2t_model.T2TModel):
           sampled_frame, temperature=self.hparams.pixel_sampling_temperature)
       # TODO(lukaszkaiser): this should be consistent with modality.bottom()
       # sampled_frame = common_layers.standardize_images(sampled_frame)
-    return tf.to_float(sampled_frame)
+    return tf.cast(sampled_frame, dtype=tf.float32)
 
   def __get_next_inputs(self, index, all_frames, all_actions, all_rewards):
     """Get inputs for next prediction iteration.
@@ -440,7 +440,7 @@ class NextFrameBase(t2t_model.T2TModel):
       """Get samples from logits."""
       # If the last dimension is 1 then we're using L1/L2 loss.
       if common_layers.shape_list(logits)[-1] == 1:
-        return tf.to_int32(tf.squeeze(logits, axis=-1))
+        return tf.cast(tf.squeeze(logits, axis=-1), dtype=tf.int32)
       if key == "targets":
         return pixels_from_softmax(
             logits, gumbel_noise_factor=0.0,
@@ -460,7 +460,7 @@ class NextFrameBase(t2t_model.T2TModel):
       targets_shape = [inputs_shape[0], hparams.video_num_target_frames,
                        inputs_shape[2], inputs_shape[3], num_channels]
     else:
-      tf.logging.warn("Guessing targets shape as no inputs are given.")
+      tf.compat.v1.logging.warn("Guessing targets shape as no inputs are given.")
       targets_shape = [hparams.batch_size,
                        hparams.video_num_target_frames, 1, 1, num_channels]
 
@@ -535,10 +535,10 @@ class NextFrameBase(t2t_model.T2TModel):
         target_frame = all_frames[target_index]
         target_frames.append(tf.identity(target_frame))
 
-        with tf.variable_scope(tf.get_variable_scope(), reuse=tf.AUTO_REUSE):
-          float_frames = [tf.to_float(frame) for frame in frames]
+        with tf.compat.v1.variable_scope(tf.compat.v1.get_variable_scope(), reuse=tf.compat.v1.AUTO_REUSE):
+          float_frames = [tf.cast(frame, dtype=tf.float32) for frame in frames]
           func_out = self.next_frame(
-              float_frames, actions, rewards, tf.to_float(target_frame),
+              float_frames, actions, rewards, tf.cast(target_frame, dtype=tf.float32),
               internal_states, video_features)
           res_frame, res_reward, res_policy, res_value, res_extra_loss, \
               internal_states = func_out
@@ -576,7 +576,7 @@ class NextFrameBase(t2t_model.T2TModel):
 
         # Scheduled sampling during training.
         if self.is_training:
-          groundtruth_items = [tf.to_float(target_frame)]
+          groundtruth_items = [tf.cast(target_frame, dtype=tf.float32)]
           generated_items = [sampled_frame]
           ss_frame, = self.get_scheduled_sample_inputs(
               done_warm_start, groundtruth_items, generated_items, ss_func)
@@ -584,7 +584,7 @@ class NextFrameBase(t2t_model.T2TModel):
 
     video_extra_loss = self.video_extra_loss(
         sampled_frames, target_frames, internal_states, video_features)
-    tf.summary.scalar("video_extra_loss", video_extra_loss)
+    tf.compat.v1.summary.scalar("video_extra_loss", video_extra_loss)
     extra_loss += video_extra_loss
 
     if self.is_recurrent_model:
@@ -606,7 +606,7 @@ class NextFrameBase(t2t_model.T2TModel):
       target_frames = target_frames[hparams.video_num_input_frames-1:]
 
     self.visualize_predictions(
-        sampled_frames, [tf.to_float(f) for f in target_frames])
+        sampled_frames, [tf.cast(f, dtype=tf.float32) for f in target_frames])
 
     output_frames = tf.stack(res_frames, axis=1)
     targets = output_frames

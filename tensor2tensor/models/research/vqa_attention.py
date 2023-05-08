@@ -27,7 +27,7 @@ from tensor2tensor.utils import registry
 # from tensor2tensor.utils import restore_hook
 from tensor2tensor.utils import t2t_model
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 from tensorflow.contrib import rnn as contrib_rnn
 
@@ -75,7 +75,7 @@ class VqaAttentionBaseline(t2t_model.T2TModel):
     utils.collect_named_outputs("norms", "image_feat_after_l2",
                                 tf.norm(image_feat, axis=-1))
 
-    image_feat = tf.nn.dropout(image_feat, keep_prob=1.-hp.dropout)
+    image_feat = tf.nn.dropout(image_feat, rate=1 - (1.-hp.dropout))
 
     query = question_encoder(features["question"], hp)
     utils.collect_named_outputs("norms", "query",
@@ -89,7 +89,7 @@ class VqaAttentionBaseline(t2t_model.T2TModel):
     utils.collect_named_outputs("norms", "image_question",
                                 tf.norm(image_question, axis=-1))
 
-    image_question = tf.nn.dropout(image_question, 1. - hp.dropout)
+    image_question = tf.nn.dropout(image_question, rate=1 - (1. - hp.dropout))
 
     output = mlp(image_question, hp)
     utils.collect_named_outputs("norms", "output",
@@ -149,7 +149,7 @@ class VqaSimpleImageSelfAttention(VqaAttentionBaseline):
     # utils.collect_named_outputs("norms", "image_feat_after_l2",
     #                             tf.norm(image_feat, axis=-1))
 
-    image_feat = tf.nn.dropout(image_feat, keep_prob=1.-hp.dropout)
+    image_feat = tf.nn.dropout(image_feat, rate=1 - (1.-hp.dropout))
 
     image_feat = image_encoder(image_feat, hp)
     utils.collect_named_outputs("norms", "image_feat_encoded",
@@ -170,7 +170,7 @@ class VqaSimpleImageSelfAttention(VqaAttentionBaseline):
     utils.collect_named_outputs("norms", "image_question",
                                 tf.norm(image_question, axis=-1))
 
-    image_question = tf.nn.dropout(image_question, 1. - hp.dropout)
+    image_question = tf.nn.dropout(image_question, rate=1 - (1. - hp.dropout))
 
     output = mlp(image_question, hp)
     utils.collect_named_outputs("norms", "output",
@@ -191,10 +191,10 @@ def image_encoder(image_feat,
   """A stack of self attention layers."""
 
   x = image_feat
-  with tf.variable_scope(name):
+  with tf.compat.v1.variable_scope(name):
     for layer in range(hparams.num_encoder_layers or hparams.num_hidden_layers):
-      with tf.variable_scope("layer_%d" % layer):
-        with tf.variable_scope("self_attention"):
+      with tf.compat.v1.variable_scope("layer_%d" % layer):
+        with tf.compat.v1.variable_scope("self_attention"):
           y = vqa_layers.multihead_attention(
               common_layers.layer_preprocess(x, hparams),
               None,
@@ -218,7 +218,7 @@ def image_encoder(image_feat,
           utils.collect_named_outputs(
               "norms", "image_feat_self_attention_zero_add",
               tf.norm(x, axis=-1))
-        with tf.variable_scope("ffn"):
+        with tf.compat.v1.variable_scope("ffn"):
           y = common_layers.dense_relu_dense(
               common_layers.layer_preprocess(x, hparams),
               hparams.image_filter_size,
@@ -238,17 +238,17 @@ def image_encoder(image_feat,
 
 def _get_rnn_cell(hparams):
   if hparams.rnn_type == "lstm":
-    rnn_cell = tf.nn.rnn_cell.BasicLSTMCell
+    rnn_cell = tf.compat.v1.nn.rnn_cell.BasicLSTMCell
   elif hparams.rnn_type == "lstm_layernorm":
     rnn_cell = contrib_rnn.LayerNormBasicLSTMCell
-  return tf.nn.rnn_cell.DropoutWrapper(
+  return tf.compat.v1.nn.rnn_cell.DropoutWrapper(
       rnn_cell(hparams.hidden_size),
       output_keep_prob=1.0-hparams.dropout)
 
 
 def question_encoder(question, hparams, name="encoder"):
   """Question encoder, run LSTM encoder and get the last output as encoding."""
-  with tf.variable_scope(name, "encoder", values=[question]):
+  with tf.compat.v1.variable_scope(name, "encoder", values=[question]):
     question = common_layers.flatten4d3d(question)
     padding = common_attention.embedding_to_padding(question)
     length = common_attention.padding_to_length(padding)
@@ -267,7 +267,7 @@ def question_encoder(question, hparams, name="encoder"):
 
     # apply tanh dropout on question embedding
     question = tf.tanh(question)
-    question = tf.nn.dropout(question, keep_prob=1.-hparams.dropout)
+    question = tf.nn.dropout(question, rate=1 - (1.-hparams.dropout))
 
     question = [question[:, i, :] for i in range(max_question_length)]
 
@@ -277,7 +277,7 @@ def question_encoder(question, hparams, name="encoder"):
     rnn_cell = _get_rnn_cell(hparams)
     # outputs, _ = tf.nn.dynamic_rnn(
     #     rnn_cell, question, length, dtype=tf.float32)
-    _, state = tf.nn.static_rnn(rnn_cell, question, sequence_length=length,
+    _, state = tf.compat.v1.nn.static_rnn(rnn_cell, question, sequence_length=length,
                                 dtype=tf.float32)
     # outputs = [tf.expand_dims(output, axis=1) for output in outputs]
     # outputs = tf.concat(outputs, axis=1)
@@ -301,7 +301,7 @@ def question_encoder(question, hparams, name="encoder"):
 
 def attn(image_feat, query, hparams, name="attn"):
   """Attention on image feature with question as query."""
-  with tf.variable_scope(name, "attn", values=[image_feat, query]):
+  with tf.compat.v1.variable_scope(name, "attn", values=[image_feat, query]):
     attn_dim = hparams.attn_dim
     num_glimps = hparams.num_glimps
     num_channels = common_layers.shape_list(image_feat)[-1]
@@ -324,12 +324,12 @@ def attn(image_feat, query, hparams, name="attn"):
 
 def mlp(feature, hparams, name="mlp"):
   """Multi layer perceptron with dropout and relu activation."""
-  with tf.variable_scope(name, "mlp", values=[feature]):
+  with tf.compat.v1.variable_scope(name, "mlp", values=[feature]):
     num_mlp_layers = hparams.num_mlp_layers
     mlp_dim = hparams.mlp_dim
     for _ in range(num_mlp_layers):
       feature = common_layers.dense(feature, mlp_dim, activation=tf.nn.relu)
-      feature = tf.nn.dropout(feature, keep_prob=1.-hparams.dropout)
+      feature = tf.nn.dropout(feature, rate=1 - (1.-hparams.dropout))
     return feature
 
 

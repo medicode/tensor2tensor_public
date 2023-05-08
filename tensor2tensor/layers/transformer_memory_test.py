@@ -21,7 +21,7 @@ from __future__ import print_function
 
 from absl.testing import parameterized
 from tensor2tensor.layers import transformer_memory
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 class TransformerMemoryTest(parameterized.TestCase, tf.test.TestCase):
@@ -35,14 +35,14 @@ class TransformerMemoryTest(parameterized.TestCase, tf.test.TestCase):
     x_depth = 10
     memory = transformer_memory.TransformerMemory(
         batch_size, key_depth, val_depth, memory_size)
-    x = tf.random_uniform([batch_size, window_size, x_depth], minval=1.0)
-    vals = tf.random_uniform([batch_size, memory_size, val_depth], minval=1.0)
-    logits = tf.random_uniform([batch_size, memory_size], minval=1.0)
+    x = tf.random.uniform([batch_size, window_size, x_depth], minval=1.0)
+    vals = tf.random.uniform([batch_size, memory_size, val_depth], minval=1.0)
+    logits = tf.random.uniform([batch_size, memory_size], minval=1.0)
     update_op = memory.set(vals, logits)
     with tf.control_dependencies([update_op]):
       logits, retrieved_values = memory.read(x)
     with self.test_session() as session:
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       logits_values, values = session.run([logits, retrieved_values])
     self.assertAllEqual([batch_size, window_size, memory_size],
                         logits_values.shape)
@@ -57,16 +57,16 @@ class TransformerMemoryTest(parameterized.TestCase, tf.test.TestCase):
     x_depth = 10
     memory = transformer_memory.TransformerMemory(
         batch_size, key_depth, val_depth, memory_size)
-    x = tf.random_uniform([batch_size, window_size, x_depth], minval=1.0)
-    vals = tf.random_uniform([batch_size, memory_size, val_depth], minval=1.0)
-    logits = tf.random_uniform([batch_size, memory_size], minval=1.0)
+    x = tf.random.uniform([batch_size, window_size, x_depth], minval=1.0)
+    vals = tf.random.uniform([batch_size, memory_size, val_depth], minval=1.0)
+    logits = tf.random.uniform([batch_size, memory_size], minval=1.0)
     update_op = memory.set(vals, logits)
     with tf.control_dependencies([update_op]):
       logits, _ = memory.read(x)
       write_op = memory.write(x, logits)
     mem_vals, mem_logits = memory.get()
     with self.test_session() as session:
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       session.run(write_op)
       updated_vals, updated_logits = session.run([mem_vals, mem_logits])
     self.assertAllEqual([batch_size, memory_size, val_depth],
@@ -80,18 +80,18 @@ class TransformerMemoryTest(parameterized.TestCase, tf.test.TestCase):
     memory_size = 4
     memory = transformer_memory.TransformerMemory(
         batch_size, key_depth, val_depth, memory_size)
-    vals = tf.random_uniform([batch_size, memory_size, val_depth], minval=1.0)
-    logits = tf.random_uniform([batch_size, memory_size], minval=1.0)
+    vals = tf.random.uniform([batch_size, memory_size, val_depth], minval=1.0)
+    logits = tf.random.uniform([batch_size, memory_size], minval=1.0)
     update_op = memory.set(vals, logits)
     reset_op = memory.reset([1])
     mem_vals, mem_logits = memory.get()
-    assert_op1 = tf.assert_equal(mem_vals[0], vals[0])
-    assert_op2 = tf.assert_equal(mem_logits[0], logits[0])
+    assert_op1 = tf.compat.v1.assert_equal(mem_vals[0], vals[0])
+    assert_op2 = tf.compat.v1.assert_equal(mem_logits[0], logits[0])
     with tf.control_dependencies([assert_op1, assert_op2]):
       all_zero1 = tf.reduce_sum(tf.abs(mem_vals[1]))
       all_zero2 = tf.reduce_sum(tf.abs(mem_logits[1]))
     with self.test_session() as session:
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       session.run(update_op)
       session.run(reset_op)
       zero1, zero2 = session.run([all_zero1, all_zero2])
@@ -107,16 +107,16 @@ class TransformerMemoryTest(parameterized.TestCase, tf.test.TestCase):
     x_depth = 5
     memory = transformer_memory.TransformerMemory(
         batch_size, key_depth, val_depth, memory_size)
-    x = tf.random_uniform([batch_size, window_size, x_depth], minval=.0)
+    x = tf.random.uniform([batch_size, window_size, x_depth], minval=.0)
     memory_results, _, _, _ = (
         memory.pre_attention(
-            tf.random_uniform([batch_size], minval=0, maxval=1, dtype=tf.int32),
+            tf.random.uniform([batch_size], minval=0, maxval=1, dtype=tf.int32),
             x, None, None))
     x = memory.post_attention(memory_results, x)
     with tf.control_dependencies([tf.print("x", x)]):
       is_nan = tf.reduce_any(tf.math.is_nan(x))
     with self.test_session() as session:
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       for _ in range(100):
         is_nan_value, _ = session.run([is_nan, x])
     self.assertEqual(is_nan_value, False)

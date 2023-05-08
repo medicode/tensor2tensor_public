@@ -39,7 +39,7 @@ from tensor2tensor.data_generators import wiki_revision_utils
 from tensor2tensor.utils import metrics
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 FLAGS = flags.FLAGS
 
@@ -248,7 +248,7 @@ class WikiRevision(text_problems.Text2TextProblem):
         self.generate_data(data_dir, tmp_dir, i)
         return
 
-    tf.logging.info(
+    tf.compat.v1.logging.info(
         "Flags for job (task_id {}): "
         "Dev shards: {}, Train shards: {}, "
         "Revision skip factor: {}, Max page size: 2**{}, Introduce errors: {},"
@@ -279,7 +279,7 @@ class WikiRevision(text_problems.Text2TextProblem):
           data_dir, FLAGS.wiki_revision_num_dev_shards,
           shuffled=False)[task_id - FLAGS.wiki_revision_num_train_shards]
 
-    tf.logging.info("Generating files for path: %s", out_file)
+    tf.compat.v1.logging.info("Generating files for path: %s", out_file)
     self.corpus_files = wiki_revision_utils.corpus_files_for_shard(
         task_id, FLAGS.wiki_revision_num_train_shards,
         FLAGS.wiki_revision_num_dev_shards, FLAGS.wiki_revision_data_prefix)
@@ -289,7 +289,7 @@ class WikiRevision(text_problems.Text2TextProblem):
     generator_utils.generate_files(packed_example_generator, [out_file])
     generator_utils.shuffle_dataset([out_file])
 
-    tf.logging.info(
+    tf.compat.v1.logging.info(
         "Job stats: identity examples: {}, total examples {}, ratio: {}".format(
             self.num_identity_examples, self.num_total_examples,
             (1 + self.num_identity_examples) / (1 + self.num_total_examples)))
@@ -298,15 +298,15 @@ class WikiRevision(text_problems.Text2TextProblem):
     out_dir, filename = out_file.replace("-unshuffled", "").rsplit("/", 1)
     stats_prefix = "/stats_"
     stats_file_path = "".join([out_dir, stats_prefix, filename])
-    if tf.gfile.Exists(
-        stats_file_path) and tf.gfile.Open(stats_file_path).size() != 0:
-      tf.logging.info("Skipping writing stats because output file exists.")
+    if tf.io.gfile.exists(
+        stats_file_path) and tf.io.gfile.GFile(stats_file_path).size() != 0:
+      tf.compat.v1.logging.info("Skipping writing stats because output file exists.")
     else:
-      with tf.gfile.Open(stats_file_path, "w") as out:
-        tf.logging.info("Writing job stats to {}".format(stats_file_path))
+      with tf.io.gfile.GFile(stats_file_path, "w") as out:
+        tf.compat.v1.logging.info("Writing job stats to {}".format(stats_file_path))
         out.write(job_stats_string)
 
-    tf.logging.info(job_stats_string)
+    tf.compat.v1.logging.info(job_stats_string)
 
   def generator(self, encoder, corpus_files, tmp_dir):
     for page in wiki_revision_utils.corpus_page_generator(
@@ -316,17 +316,17 @@ class WikiRevision(text_problems.Text2TextProblem):
       for x in examples:
         yield x
       if self.num_total_examples % 100000 == 0:
-        tf.logging.info(
+        tf.compat.v1.logging.info(
             u"page count={} num_total_examples={} id={} title={}".format(
                 self.num_pages, self.num_total_examples, page["id"],
                 page["title"]))
       if (self.max_examples_per_shard and
           self.num_total_examples >= self.max_examples_per_shard):
-        tf.logging.info(
+        tf.compat.v1.logging.info(
             "Examples per shard {} >= max_examples_per_shard {}. Shutting down."
             .format(self.num_total_examples, self.max_examples_per_shard))
         break
-    tf.logging.info(
+    tf.compat.v1.logging.info(
         "Total pages: {}, total examples: {}, examples per page: {}".format(
             self.num_pages, self.num_total_examples, 0 if not self.num_pages
             else self.num_total_examples / self.num_pages))

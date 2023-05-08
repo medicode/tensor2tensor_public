@@ -28,7 +28,7 @@ from tensor2tensor.data_generators import text_encoder
 from tensor2tensor.data_generators import text_problems
 from tensor2tensor.data_generators import wiki_lm
 from tensor2tensor.utils import registry
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 EOS = text_encoder.EOS
 
@@ -49,7 +49,7 @@ def _maybe_download_corpora(tmp_dir):
   """
   mnli_filename = "MNLI.zip"
   mnli_finalpath = os.path.join(tmp_dir, "MNLI")
-  if not tf.gfile.Exists(mnli_finalpath):
+  if not tf.io.gfile.exists(mnli_finalpath):
     zip_filepath = generator_utils.maybe_download(
         tmp_dir, mnli_filename, _MNLI_URL)
     zip_ref = zipfile.ZipFile(zip_filepath, "r")
@@ -67,7 +67,7 @@ def _example_generator(filename):
   Yields:
     dictionaries containing "premise", "hypothesis" and "label" strings
   """
-  for idx, line in enumerate(tf.gfile.Open(filename, "rb")):
+  for idx, line in enumerate(tf.io.gfile.GFile(filename, "rb")):
     if idx == 0: continue  # skip header
     line = text_encoder.to_unicode_utf8(line.strip())
     split_line = line.split("\t")

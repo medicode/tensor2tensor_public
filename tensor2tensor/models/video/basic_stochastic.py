@@ -30,7 +30,7 @@ from tensor2tensor.models.video import basic_deterministic_params
 
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 tfl = tf.layers
 _MAX_BATCH = 128
@@ -78,9 +78,9 @@ class NextFrameBasicStochasticDiscrete(
     max_batch_size = max(_MAX_BATCH, self.hparams.batch_size)
     shape = [max_batch_size] + self.hparams.problem.frame_shape[:-1] + [
         self.hparams.recurrent_state_size]
-    with tf.variable_scope("clean_scope_for_internal_state"):
-      v = tf.get_variable("state", shape, trainable=False,
-                          initializer=tf.zeros_initializer())
+    with tf.compat.v1.variable_scope("clean_scope_for_internal_state"):
+      v = tf.compat.v1.get_variable("state", shape, trainable=False,
+                          initializer=tf.compat.v1.zeros_initializer())
     return [[v]]
 
   def reset_internal_states_ops(self):
@@ -98,7 +98,7 @@ class NextFrameBasicStochasticDiscrete(
   def save_internal_states_ops(self, internal_states):
     if not self.hparams.concat_internal_states:
       return [[tf.no_op()]]
-    ops = [[tf.assign(x, y)]
+    ops = [[tf.compat.v1.assign(x, y)]
            for x, y in zip(self.internal_states[0], internal_states[0])]
     return ops
 
@@ -107,7 +107,7 @@ class NextFrameBasicStochasticDiscrete(
     batch_size = common_layers.shape_list(frames[0])[0]
     internal_state = internal_states[0][0][:batch_size, :, :, :]
     state_activation = tf.concat([internal_state, frames[0]], axis=-1)
-    state_gate_candidate = tf.layers.conv2d(
+    state_gate_candidate = tf.compat.v1.layers.conv2d(
         state_activation, 2 * self.hparams.recurrent_state_size,
         (3, 3), padding="SAME", name="state_conv")
     state_gate, state_candidate = tf.split(state_gate_candidate, 2, axis=-1)
@@ -143,8 +143,8 @@ class NextFrameBasicStochasticDiscrete(
 
     if not self.is_training:
       if hparams.full_latent_tower:
-        rand = tf.random_uniform(layer_shape[:-1] + [hparams.bottleneck_bits])
-        bits = 2.0 * tf.to_float(tf.less(0.5, rand)) - 1.0
+        rand = tf.random.uniform(layer_shape[:-1] + [hparams.bottleneck_bits])
+        bits = 2.0 * tf.cast(tf.less(0.5, rand), dtype=tf.float32) - 1.0
       else:
         bits, _ = discretization.predict_bits_with_lstm(
             layer, hparams.latent_predictor_state_size, hparams.bottleneck_bits,
@@ -156,7 +156,7 @@ class NextFrameBasicStochasticDiscrete(
     frames = tf.concat(inputs + [target], axis=-1)
     x = tfl.dense(
         frames, filters, name="latent_embed",
-        bias_initializer=tf.random_normal_initializer(stddev=0.01))
+        bias_initializer=tf.compat.v1.random_normal_initializer(stddev=0.01))
     x = common_attention.add_timing_signal_nd(x)
 
     # Add embedded action if present.
@@ -166,7 +166,7 @@ class NextFrameBasicStochasticDiscrete(
 
     if hparams.full_latent_tower:
       for i in range(hparams.num_compress_steps):
-        with tf.variable_scope("latent_downstride%d" % i):
+        with tf.compat.v1.variable_scope("latent_downstride%d" % i):
           x = common_layers.make_even_size(x)
           if i < hparams.filter_double_steps:
             filters *= 2
@@ -188,7 +188,7 @@ class NextFrameBasicStochasticDiscrete(
           target_bits=bits_clean)
       # Mix bits from latent with predicted bits on forward pass as a noise.
       if hparams.latent_rnn_max_sampling > 0.0:
-        with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+        with tf.compat.v1.variable_scope(tf.compat.v1.get_variable_scope(), reuse=True):
           bits_pred, _ = discretization.predict_bits_with_lstm(
               layer, hparams.latent_predictor_state_size,
               hparams.bottleneck_bits,
@@ -197,17 +197,17 @@ class NextFrameBasicStochasticDiscrete(
         # Be bits_pred on the forward pass but bits on the backward one.
         bits_pred = bits_clean + tf.stop_gradient(bits_pred - bits_clean)
         # Select which bits to take from pred sampling with bit_p probability.
-        which_bit = tf.random_uniform(common_layers.shape_list(bits))
+        which_bit = tf.random.uniform(common_layers.shape_list(bits))
         bit_p = common_layers.inverse_lin_decay(hparams.latent_rnn_warmup_steps)
         bit_p *= hparams.latent_rnn_max_sampling
-        bits = tf.where(which_bit < bit_p, bits_pred, bits)
+        bits = tf.compat.v1.where(which_bit < bit_p, bits_pred, bits)
 
     res = add_bits(layer, bits)
     # During training, sometimes skip the latent to help action-conditioning.
     res_p = common_layers.inverse_lin_decay(hparams.latent_rnn_warmup_steps / 2)
     res_p *= hparams.latent_use_max_probability
-    res_rand = tf.random_uniform([layer_shape[0]])
-    res = tf.where(res_rand < res_p, res, layer)
+    res_rand = tf.random.uniform([layer_shape[0]])
+    res = tf.compat.v1.where(res_rand < res_p, res, layer)
     return res, pred_loss
 
 

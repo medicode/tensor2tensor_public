@@ -25,7 +25,7 @@ from __future__ import print_function
 import numpy as np
 
 from tensor2tensor.rl.envs.in_graph_batch_env import InGraphBatchEnv
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 class PyFuncBatchEnv(InGraphBatchEnv):
@@ -45,7 +45,7 @@ class PyFuncBatchEnv(InGraphBatchEnv):
     super(PyFuncBatchEnv, self).__init__(batch_env.observation_space,
                                          batch_env.action_space)
     self._batch_env = batch_env
-    with tf.variable_scope("env_temporary"):
+    with tf.compat.v1.variable_scope("env_temporary"):
       self._observ = tf.Variable(
           tf.zeros((self._batch_env.batch_size,) + self.observ_shape,
                    self.observ_dtype),
@@ -87,9 +87,9 @@ class PyFuncBatchEnv(InGraphBatchEnv):
     Returns:
       Operation.
     """
-    with tf.name_scope("environment/simulate"):
+    with tf.compat.v1.name_scope("environment/simulate"):
       if action.dtype in (tf.float16, tf.float32, tf.float64):
-        action = tf.check_numerics(action, "action")
+        action = tf.debugging.check_numerics(action, "action")
       def step(action):
         step_response = self._batch_env.step(action)
         # Current env doesn't return `info`, but EnvProblem does.
@@ -100,10 +100,10 @@ class PyFuncBatchEnv(InGraphBatchEnv):
         else:
           (observ, reward, done, _) = step_response
         return (observ, reward.astype(np.float32), done)
-      observ, reward, done = tf.py_func(
+      observ, reward, done = tf.compat.v1.py_func(
           step, [action],
           [self.observ_dtype, tf.float32, tf.bool], name="step")
-      reward = tf.check_numerics(reward, "reward")
+      reward = tf.debugging.check_numerics(reward, "reward")
       reward.set_shape((len(self),))
       done.set_shape((len(self),))
       with tf.control_dependencies([self._observ.assign(observ)]):
@@ -118,11 +118,11 @@ class PyFuncBatchEnv(InGraphBatchEnv):
     Returns:
       Batch tensor of the new observations.
     """
-    observ = tf.py_func(
+    observ = tf.compat.v1.py_func(
         self._batch_env.reset, [indices], self.observ_dtype, name="reset")
     observ.set_shape(indices.get_shape().concatenate(self.observ_shape))
     with tf.control_dependencies([
-        tf.scatter_update(self._observ, indices, observ)]):
+        tf.compat.v1.scatter_update(self._observ, indices, observ)]):
       return tf.identity(observ)
 
   @property

@@ -30,7 +30,7 @@ from tensor2tensor.data_generators import problem
 from tensor2tensor.data_generators import text_problems
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 _URL = "https://storage.cloud.google.com/mathematics-dataset/mathematics_dataset-v1.0.tar.gz"
@@ -70,10 +70,10 @@ class AlgorithmicMathDeepmindAll(text_problems.Text2TextProblem):
       The data examples.
     """
     # Create directories if needed.
-    if not tf.gfile.Exists(tmp_dir):
-      tf.gfile.MakeDirs(tmp_dir)
-    if not tf.gfile.Exists(data_dir):
-      tf.gfile.MakeDirs(data_dir)
+    if not tf.io.gfile.exists(tmp_dir):
+      tf.io.gfile.makedirs(tmp_dir)
+    if not tf.io.gfile.exists(data_dir):
+      tf.io.gfile.makedirs(data_dir)
 
     # Download and extract the data.
     filename = os.path.basename(_URL)
@@ -90,12 +90,12 @@ class AlgorithmicMathDeepmindAll(text_problems.Text2TextProblem):
 
     # Iterate over directories and files generating examples.
     for d in dirs:
-      files = tf.gfile.Glob(d + "/*.txt")
+      files = tf.io.gfile.glob(d + "/*.txt")
       for fname in files:
         # In each text file, the first line is the input, the next the answer,
         # and so on until the end of the file.
         cur_input = None
-        with tf.gfile.Open(fname, "rb") as f:
+        with tf.io.gfile.GFile(fname, "rb") as f:
           for line in f:
             if cur_input is None:
               cur_input = line.strip()

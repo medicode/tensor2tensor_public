@@ -25,7 +25,7 @@ from tensor2tensor.models.research import autoencoders  # pylint: disable=unused
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import trainer_lib
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -43,10 +43,10 @@ class AutoencoderTest(tf.test.TestCase):
     hparams = trainer_lib.create_hparams(
         hparams_set, problem_name="image_mnist_rev", data_dir=".")
     model = registry.model(model_name)(hparams, mode)
-    tf.train.create_global_step()
+    tf.compat.v1.train.create_global_step()
     logits, _ = model(features)
     with self.test_session() as session:
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       res = session.run(logits)
     return res
 

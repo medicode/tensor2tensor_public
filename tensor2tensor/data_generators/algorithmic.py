@@ -28,7 +28,7 @@ from tensor2tensor.data_generators import text_encoder
 from tensor2tensor.layers import modalities
 from tensor2tensor.utils import metrics
 from tensor2tensor.utils import registry
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 class AlgorithmicProblem(problem.Problem):
@@ -557,7 +557,7 @@ class TinyAlgo(AlgorithmicIdentityBinary40):
   def setup_for_test(cls):
     """Setup directories and files required to run the problem."""
 
-    tmp_dir = tf.test.get_temp_dir()
+    tmp_dir = tf.compat.v1.test.get_temp_dir()
     shutil.rmtree(tmp_dir)
     os.mkdir(tmp_dir)
     cls.data_dir = tmp_dir

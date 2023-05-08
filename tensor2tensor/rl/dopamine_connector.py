@@ -33,7 +33,7 @@ from dopamine.replay_memory.prioritized_replay_buffer import WrappedPrioritizedR
 import numpy as np
 
 from tensor2tensor.rl.policy_learner import PolicyLearner
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 # pylint: disable=g-import-not-at-top
 # pylint: disable=ungrouped-imports
@@ -725,7 +725,7 @@ def _parse_hparams(hparams):
 def _get_optimizer(params):
   assert params["class"] == "RMSProp", "RMSProp is the only one supported"
   params.pop("class")
-  return tf.train.RMSPropOptimizer(**params)
+  return tf.compat.v1.train.RMSPropOptimizer(**params)
 
 
 class DQNLearner(PolicyLearner):

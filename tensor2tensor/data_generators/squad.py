@@ -28,7 +28,7 @@ from tensor2tensor.data_generators import text_problems
 from tensor2tensor.data_generators import wiki_lm
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 _DEV_SET = "dev-v1.1.json"
@@ -52,7 +52,7 @@ def _generate_examples(tmp_dir, dataset_split):
   squad_file = generator_utils.maybe_download(tmp_dir,
                                               file_name,
                                               os.path.join(_URL, file_name))
-  with tf.gfile.GFile(squad_file, mode="r") as fp:
+  with tf.io.gfile.GFile(squad_file, mode="r") as fp:
     squad = json.load(fp)
 
   version = squad["version"]

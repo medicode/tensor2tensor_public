@@ -28,7 +28,7 @@ from six.moves import range  # pylint: disable=redefined-builtin
 from tensor2tensor.utils import contrib
 from tensor2tensor.utils import mlperf_log
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -36,7 +36,7 @@ def cast_ints_to_int32(features):
   f = {}
   for k, v in sorted(six.iteritems(features)):
     if v.dtype in [tf.int64, tf.uint8]:
-      v = tf.to_int32(v)
+      v = tf.cast(v, dtype=tf.int32)
     f[k] = v
   return f
 
@@ -227,15 +227,15 @@ def cpu_count():
 
 
 def _summarize_features(features, num_shards=1):
-  with tf.name_scope("input_stats"):
+  with tf.compat.v1.name_scope("input_stats"):
     for (k, v) in six.iteritems(features):
       if isinstance(v, tf.Tensor) and v.get_shape().ndims > 1:
-        tf.summary.scalar("%s_batch" % k, tf.shape(v)[0] // num_shards)
-        tf.summary.scalar("%s_length" % k, tf.shape(v)[1])
-        nonpadding = tf.to_float(tf.not_equal(v, 0))
+        tf.compat.v1.summary.scalar("%s_batch" % k, tf.shape(v)[0] // num_shards)
+        tf.compat.v1.summary.scalar("%s_length" % k, tf.shape(v)[1])
+        nonpadding = tf.cast(tf.not_equal(v, 0), dtype=tf.float32)
         nonpadding_tokens = tf.reduce_sum(nonpadding)
-        tf.summary.scalar("%s_nonpadding_tokens" % k, nonpadding_tokens)
-        tf.summary.scalar("%s_nonpadding_fraction" % k,
+        tf.compat.v1.summary.scalar("%s_nonpadding_tokens" % k, nonpadding_tokens)
+        tf.compat.v1.summary.scalar("%s_nonpadding_fraction" % k,
                           tf.reduce_mean(nonpadding))
 
 
@@ -274,7 +274,7 @@ def _file_num_records_cached(filename):
   if filename in _file_num_records_cache:
     return _file_num_records_cache[filename]
   ret = 0
-  for _ in tf.python_io.tf_record_iterator(filename):
+  for _ in tf.compat.v1.python_io.tf_record_iterator(filename):
     ret += 1
   _file_num_records_cache[filename] = ret
   return ret
@@ -397,7 +397,7 @@ def input_fn(dataset,
     if _are_shapes_fully_defined(dataset.output_shapes):
       batch_size_means_tokens = False
     else:
-      tf.logging.warning(
+      tf.compat.v1.logging.warning(
           "Shapes are not fully defined. Assuming batch_size means tokens.")
       batch_size_means_tokens = True
 
@@ -421,7 +421,7 @@ def input_fn(dataset,
       # examples across all datashards
       batch_size = params["batch_size"]
       if hparams.pad_batch:
-        tf.logging.warn(
+        tf.compat.v1.logging.warn(
             "Padding the batch to ensure that remainder eval batches are "
             "processed. This may lead to incorrect metrics for "
             "non-zero-padded features, e.g. images. Use a smaller batch "
@@ -456,7 +456,7 @@ def input_fn(dataset,
           # Make sure the last batch has the same fixed size as the rest.
           batch_multiple *= hparams.batch_size
         if batch_multiple > 1:
-          tf.logging.warn(
+          tf.compat.v1.logging.warn(
               "Padding the batch to ensure that remainder eval batches have "
               "a batch size divisible by the number of data shards. This may "
               "lead to incorrect metrics for non-zero-padded features, e.g. "
@@ -570,6 +570,6 @@ def input_fn(dataset,
     # This is because of a bug in the Estimator that short-circuits prediction
     # if it doesn't see a QueueRunner. DummyQueueRunner implements the
     # minimal expected interface but does nothing.
-    tf.add_to_collection(tf.GraphKeys.QUEUE_RUNNERS, DummyQueueRunner())
+    tf.compat.v1.add_to_collection(tf.compat.v1.GraphKeys.QUEUE_RUNNERS, DummyQueueRunner())
 
   return dataset

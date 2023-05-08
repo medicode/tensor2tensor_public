@@ -24,7 +24,7 @@ from tensor2tensor.layers import common_layers
 from tensor2tensor.utils import expert_utils
 from tensor2tensor.utils import mlperf_log
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -35,7 +35,7 @@ def layers():
 
 def transformer_prepare_encoder(inputs, target_space, hparams, features=None,
                                 type_ids=None, num_types=None,
-                                reuse_target_embedding=tf.AUTO_REUSE):
+                                reuse_target_embedding=tf.compat.v1.AUTO_REUSE):
   """Prepare one shard of the model for the encoder.
 
   Args:
@@ -65,7 +65,7 @@ def transformer_prepare_encoder(inputs, target_space, hparams, features=None,
     targets_segmentation = features["targets_segmentation"]
     if (hasattr(hparams, "unidirectional_encoder") and
         hparams.unidirectional_encoder):
-      tf.logging.info("Using unidirectional encoder")
+      tf.compat.v1.logging.info("Using unidirectional encoder")
       encoder_self_attention_bias = (
           common_attention.attention_bias_lower_triangle(
               common_layers.shape_list(inputs)[1]))
@@ -82,7 +82,7 @@ def transformer_prepare_encoder(inputs, target_space, hparams, features=None,
         encoder_padding)
     if (hasattr(hparams, "unidirectional_encoder") and
         hparams.unidirectional_encoder):
-      tf.logging.info("Using unidirectional encoder")
+      tf.compat.v1.logging.info("Using unidirectional encoder")
       encoder_self_attention_bias = (
           common_attention.attention_bias_lower_triangle(
               common_layers.shape_list(inputs)[1]))
@@ -187,7 +187,7 @@ def transformer_encoder(encoder_input,
           "hidden_size": hparams.hidden_size
       })
 
-  with tf.variable_scope(name):
+  with tf.compat.v1.variable_scope(name):
     if nonpadding is not None:
       padding = 1.0 - nonpadding
     else:
@@ -200,8 +200,8 @@ def transformer_encoder(encoder_input,
     if hparams.use_pad_remover and not common_layers.is_xla_compiled():
       pad_remover = expert_utils.PadRemover(padding)
     for layer in range(hparams.num_encoder_layers or hparams.num_hidden_layers):
-      with tf.variable_scope("layer_%d" % layer):
-        with tf.variable_scope("self_attention"):
+      with tf.compat.v1.variable_scope("layer_%d" % layer):
+        with tf.compat.v1.variable_scope("self_attention"):
           if layer < hparams.get("num_area_layers", 0):
             max_area_width = hparams.get("max_area_width", 1)
             max_area_height = hparams.get("max_area_height", 1)
@@ -241,7 +241,7 @@ def transformer_encoder(encoder_input,
               training=(hparams.get("mode", tf_estimator.ModeKeys.TRAIN)
                         == tf_estimator.ModeKeys.TRAIN))
           x = common_layers.layer_postprocess(x, y, hparams)
-        with tf.variable_scope("ffn"):
+        with tf.compat.v1.variable_scope("ffn"):
           y = transformer_ffn_layer(
               common_layers.layer_preprocess(x, hparams),
               hparams,

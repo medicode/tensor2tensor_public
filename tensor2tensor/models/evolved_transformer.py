@@ -28,7 +28,7 @@ from tensor2tensor.models import transformer
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import t2t_model
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.ops import inplace_ops
@@ -141,7 +141,7 @@ def evolved_transformer_encoder(encoder_input,
       common_layers.comma_separated_string_to_integer_list(
           getattr(hparams, "attention_dropout_broadcast_dims", "")))
 
-  with tf.variable_scope(name):
+  with tf.compat.v1.variable_scope(name):
     if nonpadding is not None:
       padding = 1.0 - nonpadding
     else:
@@ -151,18 +151,18 @@ def evolved_transformer_encoder(encoder_input,
       # Only bfloat16 and float32 supported.
       float_type = hparams.get("activation_dtype", "float32")
       if float_type == "bfloat16":
-        cast_fn = tf.to_bfloat16
+        cast_fn = tf.compat.v1.to_bfloat16
       else:
         assert float_type == "float32"
-        cast_fn = tf.to_float
+        cast_fn = tf.compat.v1.to_float
       padding = common_attention.attention_bias_to_padding(
           attention_bias, cast_fn)
       nonpadding = 1.0 - padding
 
     for layer in range(hparams.num_encoder_layers or hparams.num_hidden_layers):
-      with tf.variable_scope("layer_%d" % layer):
+      with tf.compat.v1.variable_scope("layer_%d" % layer):
 
-        with tf.variable_scope("gated_linear_unit"):
+        with tf.compat.v1.variable_scope("gated_linear_unit"):
 
           residual_state = hidden_state
           hidden_state = common_layers.layer_preprocess(hidden_state, hparams)
@@ -176,7 +176,7 @@ def evolved_transformer_encoder(encoder_input,
           hidden_state = common_layers.layer_postprocess(
               residual_state, hidden_state, hparams)
 
-        with tf.variable_scope("conv_branches"):
+        with tf.compat.v1.variable_scope("conv_branches"):
 
           residual_state = hidden_state
           hidden_state = common_layers.layer_preprocess(hidden_state, hparams)
@@ -189,7 +189,7 @@ def evolved_transformer_encoder(encoder_input,
           left_state = common_layers.layers().Dense(
               left_output_dim, activation=tf.nn.relu)(hidden_state)
           left_state = tf.nn.dropout(left_state,
-                                     1 - hparams.layer_prepostprocess_dropout)
+                                     rate=1 - (1 - hparams.layer_prepostprocess_dropout))
 
           right_output_dim = int(hparams.hidden_size / 2)
           right_state = common_layers.layers().Conv1D(
@@ -199,7 +199,7 @@ def evolved_transformer_encoder(encoder_input,
               name="standard_conv_3x1",
               activation=tf.nn.relu)(hidden_state)
           right_state = tf.nn.dropout(right_state,
-                                      1 - hparams.layer_prepostprocess_dropout)
+                                      rate=1 - (1 - hparams.layer_prepostprocess_dropout))
 
           right_state = tf.pad(
               right_state,
@@ -224,7 +224,7 @@ def evolved_transformer_encoder(encoder_input,
               residual_state, hidden_state, hparams)
 
         if hparams.get("et_encoder_self_attention", True):
-          with tf.variable_scope("self_attention"):
+          with tf.compat.v1.variable_scope("self_attention"):
             residual_state = hidden_state
             hidden_state = common_layers.layer_preprocess(hidden_state, hparams)
 
@@ -253,14 +253,14 @@ def evolved_transformer_encoder(encoder_input,
             hidden_state = common_layers.layer_postprocess(
                 residual_state, hidden_state, hparams)
 
-        with tf.variable_scope("dense_layers"):
+        with tf.compat.v1.variable_scope("dense_layers"):
           residual_state = hidden_state
           hidden_state = common_layers.layer_preprocess(hidden_state, hparams)
 
           hidden_state = common_layers.layers().Dense(
               int(hparams.hidden_size * 4), activation=tf.nn.relu)(hidden_state)
           hidden_state = tf.nn.dropout(hidden_state,
-                                       1 - hparams.layer_prepostprocess_dropout)
+                                       rate=1 - (1 - hparams.layer_prepostprocess_dropout))
 
           hidden_state = common_layers.layers().Dense(
               hparams.hidden_size)(hidden_state)
@@ -326,7 +326,7 @@ def evolved_transformer_decoder(decoder_input,
       common_layers.comma_separated_string_to_integer_list(
           getattr(hparams, "attention_dropout_broadcast_dims", "")))
 
-  with tf.variable_scope(name):
+  with tf.compat.v1.variable_scope(name):
     hidden_state = decoder_input
 
     num_layers = hparams.num_decoder_layers or hparams.num_hidden_layers
@@ -335,9 +335,9 @@ def evolved_transformer_decoder(decoder_input,
         hidden_state = tf.stop_gradient(hidden_state)
       layer_name = "layer_%d" % layer
       layer_cache = cache[layer_name] if cache is not None else None
-      with tf.variable_scope(layer_name):
+      with tf.compat.v1.variable_scope(layer_name):
 
-        with tf.variable_scope(_SIXTEEN_HEAD_ATTENTION_NAME):
+        with tf.compat.v1.variable_scope(_SIXTEEN_HEAD_ATTENTION_NAME):
           residual_state = hidden_state
           hidden_state = common_layers.layer_preprocess(hidden_state, hparams)
 
@@ -368,7 +368,7 @@ def evolved_transformer_decoder(decoder_input,
               weight_dtype=hparams.get("weight_dtype", "float32"))
 
         if encoder_output is not None:
-          with tf.variable_scope(_FIRST_ATTEND_TO_ENCODER_NAME):
+          with tf.compat.v1.variable_scope(_FIRST_ATTEND_TO_ENCODER_NAME):
             attention_cache = (
                 layer_cache[_FIRST_ATTEND_TO_ENCODER_NAME]
                 if layer_cache is not None else None)
@@ -395,9 +395,9 @@ def evolved_transformer_decoder(decoder_input,
                 weight_dtype=hparams.get("weight_dtype", "float32"))
 
             left_state = tf.nn.dropout(left_state,
-                                       1 - hparams.layer_prepostprocess_dropout)
+                                       rate=1 - (1 - hparams.layer_prepostprocess_dropout))
             right_state = tf.nn.dropout(
-                right_state, 1 - hparams.layer_prepostprocess_dropout)
+                right_state, rate=1 - (1 - hparams.layer_prepostprocess_dropout))
 
             hidden_state = residual_state + left_state + right_state
 
@@ -405,7 +405,7 @@ def evolved_transformer_decoder(decoder_input,
           hidden_state = common_layers.layer_postprocess(
               residual_state, left_state, hparams)
 
-        with tf.variable_scope(_CONV_BRANCHES_NAME):
+        with tf.compat.v1.variable_scope(_CONV_BRANCHES_NAME):
           residual_state = hidden_state
           hidden_state = common_layers.layer_preprocess(hidden_state, hparams)
 
@@ -466,7 +466,7 @@ def evolved_transformer_decoder(decoder_input,
                 paddings=[[0, 0], [_DECODER_RIGHT_CONV_PADDING, 0], [0, 0]])
 
           left_output_dim = int(hparams.hidden_size * 2)
-          separable_conv_11x1 = tf.layers.SeparableConv1D(
+          separable_conv_11x1 = tf.compat.v1.layers.SeparableConv1D(
               left_output_dim,
               11,
               padding="VALID",
@@ -474,14 +474,14 @@ def evolved_transformer_decoder(decoder_input,
               activation=tf.nn.relu)
           left_state = separable_conv_11x1.apply(left_state)
           left_state = tf.nn.dropout(left_state,
-                                     1 - hparams.layer_prepostprocess_dropout)
+                                     rate=1 - (1 - hparams.layer_prepostprocess_dropout))
 
           right_output_dim = int(hparams.hidden_size / 2)
-          separable_conv_7x1_1 = tf.layers.SeparableConv1D(
+          separable_conv_7x1_1 = tf.compat.v1.layers.SeparableConv1D(
               right_output_dim, 7, padding="VALID", name="separable_conv_7x1_1")
           right_state = separable_conv_7x1_1.apply(right_state)
           right_state = tf.nn.dropout(right_state,
-                                      1 - hparams.layer_prepostprocess_dropout)
+                                      rate=1 - (1 - hparams.layer_prepostprocess_dropout))
           right_state = tf.pad(
               right_state,
               [[0, 0], [0, 0], [0, left_output_dim - right_output_dim]],
@@ -531,7 +531,7 @@ def evolved_transformer_decoder(decoder_input,
                 hidden_state,
                 paddings=[[0, 0], [_DECODER_FINAL_CONV_PADDING, 0], [0, 0]])
 
-          separable_conv_7x1_2 = tf.layers.SeparableConv1D(
+          separable_conv_7x1_2 = tf.compat.v1.layers.SeparableConv1D(
               hparams.hidden_size,
               7,
               padding="VALID",
@@ -541,7 +541,7 @@ def evolved_transformer_decoder(decoder_input,
           hidden_state = common_layers.layer_postprocess(
               residual_state, hidden_state, hparams)
 
-        with tf.variable_scope(_VANILLA_ATTENTION_NAME):
+        with tf.compat.v1.variable_scope(_VANILLA_ATTENTION_NAME):
           residual_state = hidden_state
           hidden_state = common_layers.layer_preprocess(hidden_state, hparams)
 
@@ -574,7 +574,7 @@ def evolved_transformer_decoder(decoder_input,
               residual_state, hidden_state, hparams)
 
         if encoder_output is not None:
-          with tf.variable_scope(_SECOND_ATTEND_TO_ENCODER_NAME):
+          with tf.compat.v1.variable_scope(_SECOND_ATTEND_TO_ENCODER_NAME):
             residual_state = hidden_state
             hidden_state = common_layers.layer_preprocess(hidden_state, hparams)
 
@@ -605,20 +605,20 @@ def evolved_transformer_decoder(decoder_input,
             hidden_state = common_layers.layer_postprocess(
                 residual_state, hidden_state, hparams)
 
-        with tf.variable_scope("dense_layers"):
+        with tf.compat.v1.variable_scope("dense_layers"):
           residual_state = hidden_state
           hidden_state = common_layers.layer_preprocess(hidden_state, hparams)
 
-          hidden_state = tf.layers.dense(
+          hidden_state = tf.compat.v1.layers.dense(
               hidden_state,
               int(hparams.hidden_size * 4),
               activation=tf.nn.swish)
           hidden_state = tf.nn.dropout(hidden_state,
-                                       1 - hparams.layer_prepostprocess_dropout)
+                                       rate=1 - (1 - hparams.layer_prepostprocess_dropout))
 
           hidden_state = common_layers.layer_preprocess(hidden_state, hparams)
 
-          hidden_state = tf.layers.dense(hidden_state, hparams.hidden_size)
+          hidden_state = tf.compat.v1.layers.dense(hidden_state, hparams.hidden_size)
           hidden_state = common_layers.layer_postprocess(
               residual_state, hidden_state, hparams)
 
@@ -635,7 +635,7 @@ def _add_attend_to_encoder_cache(cache, attention_name, hparams, num_layers,
   """Add attend-to-encoder layers to cache."""
   for layer in range(num_layers):
     layer_name = "layer_%d" % layer
-    with tf.variable_scope("%sdecoder/%s/%s/multihead_attention" %
+    with tf.compat.v1.variable_scope("%sdecoder/%s/%s/multihead_attention" %
                            (scope_prefix, layer_name, attention_name)):
       k_encdec = common_attention.compute_attention_component(
           encoder_output,

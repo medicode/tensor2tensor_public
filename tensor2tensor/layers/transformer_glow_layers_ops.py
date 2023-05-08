@@ -24,19 +24,19 @@ import math
 from tensor2tensor.layers import common_attention
 from tensor2tensor.layers import common_layers
 from tensor2tensor.models.transformer import transformer_decoder_layer
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 import tensorflow_probability as tfp
 
 
 def dense(name, x, n_out, dtype=tf.float32, init_w=0.05):
   """Dense layer."""
   n_in = common_layers.shape_list(x)[2]
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
-    w = tf.get_variable(
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
+    w = tf.compat.v1.get_variable(
         "w", [n_in, n_out], dtype,
-        initializer=tf.random_normal_initializer(0.0, init_w), trainable=True)
-    b = tf.get_variable(
-        "b", [n_out,], dtype, initializer=tf.zeros_initializer, trainable=True)
+        initializer=tf.compat.v1.random_normal_initializer(0.0, init_w), trainable=True)
+    b = tf.compat.v1.get_variable(
+        "b", [n_out,], dtype, initializer=tf.compat.v1.zeros_initializer, trainable=True)
     x = tf.matmul(x, w) + b
     return x
 
@@ -46,23 +46,23 @@ def dense_weightnorm(
   """Dense layer with weight normalization."""
   n_in = common_layers.shape_list(x)[2]
   eps = tf.keras.backend.epsilon()
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
-    v = tf.get_variable(
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
+    v = tf.compat.v1.get_variable(
         "v", [n_in, n_out], dtype,
-        initializer=tf.random_normal_initializer(0, 0.05), trainable=True)
+        initializer=tf.compat.v1.random_normal_initializer(0, 0.05), trainable=True)
     v = v / tf.norm(v, axis=0, keepdims=True)
     t = tf.matmul(x, v)  # [B, L, n_out]
     mean, var = moments_over_bl(t, x_mask)
     g_init = init_scale / (tf.sqrt(var) + eps)
     g = get_variable_ddi(
         "g", [n_out], g_init, init,
-        initializer=tf.zeros_initializer, dtype=dtype, trainable=True)
+        initializer=tf.compat.v1.zeros_initializer, dtype=dtype, trainable=True)
     b = get_variable_ddi(
         "b", [n_out], -mean*g_init, init,
-        initializer=tf.zeros_initializer, dtype=dtype, trainable=True)
+        initializer=tf.compat.v1.zeros_initializer, dtype=dtype, trainable=True)
     w = g * v
     y = tf.matmul(x, w) + b
-    tf.summary.histogram("_g", g)
+    tf.compat.v1.summary.histogram("_g", g)
     return y
 
 
@@ -88,7 +88,7 @@ def transformer_decoder_block(name,
   Returns:
     outputs: Tensor of shape [batch_size, length, output_size].
   """
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     hparams = kwargs.pop("hparams")
     disable_dropout = kwargs.pop("disable_dropout")
     if disable_dropout:
@@ -102,7 +102,7 @@ def transformer_decoder_block(name,
       hparams.hidden_size = n_channels
 
     outputs = common_attention.add_timing_signal_1d(x)
-    with tf.variable_scope("decoder", reuse=tf.AUTO_REUSE):
+    with tf.compat.v1.variable_scope("decoder", reuse=tf.compat.v1.AUTO_REUSE):
       for layer_idx in range(n_layers):
         outputs = transformer_decoder_layer(
             decoder_input=outputs,
@@ -129,7 +129,7 @@ def reduce_sum_over_lc(x, x_mask):
   if x.shape.rank == 3 and x_mask.shape.rank == 2:
     x_mask = x_mask[..., tf.newaxis]
   else:
-    tf.logging.info("x: {}, x_mask: {}".format(x.shape.rank, x_mask.shape.rank))
+    tf.compat.v1.logging.info("x: {}, x_mask: {}".format(x.shape.rank, x_mask.shape.rank))
     raise ValueError("Dimension not supported.")
 
   mean = x * x_mask
@@ -150,7 +150,7 @@ def reduce_sum_over_l(x, x_mask):
   if x.shape.rank == 3 and x_mask.shape.rank == 2:
     x_mask = x_mask[..., tf.newaxis]
   else:
-    tf.logging.info("x: {}, x_mask: {}".format(x.shape.rank, x_mask.shape.rank))
+    tf.compat.v1.logging.info("x: {}, x_mask: {}".format(x.shape.rank, x_mask.shape.rank))
     raise ValueError("Dimension not supported.")
 
   mean = x * x_mask
@@ -176,7 +176,7 @@ def reduce_mean_over_bl(x, x_mask):
   if x.shape.rank == 3 and x_mask.shape.rank == 2:
     x_mask = x_mask[..., tf.newaxis]
   else:
-    tf.logging.info("x: {}, x_mask: {}".format(x.shape.rank, x_mask.shape.rank))
+    tf.compat.v1.logging.info("x: {}, x_mask: {}".format(x.shape.rank, x_mask.shape.rank))
     raise ValueError("Dimension not supported.")
 
   mean = x * x_mask
@@ -215,7 +215,7 @@ def standard_normal_density(x, x_mask, reduce_sum=False):
 
 def standard_normal(x, name="normal"):
   """Return standard normal distribution with same shape as x."""
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     dist = tfp.distributions.Normal(
         loc=tf.zeros_like(x),
         scale=tf.ones_like(x),
@@ -225,7 +225,7 @@ def standard_normal(x, name="normal"):
 
 def diagonal_normal(outputs, name="normal"):
   """Split outputs into mu and log_sigma and return z."""
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     loc, log_scale = tf.split(outputs, 2, axis=-1)
     scale = tf.exp(log_scale)
     dist = tfp.distributions.Normal(
@@ -288,7 +288,7 @@ def get_variable_ddi(
     kwargs["initializer"] = initializer
   if regularizer:
     kwargs["regularizer"] = regularizer
-  w = tf.get_variable(name, shape, dtype, **kwargs)
+  w = tf.compat.v1.get_variable(name, shape, dtype, **kwargs)
   if isinstance(init, bool):
     if init:
       return assign(w, value)

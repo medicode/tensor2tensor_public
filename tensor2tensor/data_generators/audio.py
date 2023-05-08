@@ -23,7 +23,7 @@ import subprocess
 import tarfile
 import wave
 from absl import flags
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 FLAGS = flags.FLAGS
 
@@ -46,7 +46,7 @@ def _get_timit(directory):
 
   assert FLAGS.timit_paths
   for path in FLAGS.timit_paths.split(","):
-    with tf.gfile.GFile(path) as f:
+    with tf.io.gfile.GFile(path) as f:
       with tarfile.open(fileobj=f, mode="r:gz") as timit_compressed:
         timit_compressed.extractall(directory)
 
@@ -85,7 +85,7 @@ def _get_audio_data(filepath):
 
 
 def _get_text_data(filepath):
-  with tf.gfile.GFile(filepath, mode="r") as text_file:
+  with tf.io.gfile.GFile(filepath, mode="r") as text_file:
     words = []
     for line in text_file:
       word = line.strip().split()[2]

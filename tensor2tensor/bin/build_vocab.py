@@ -30,7 +30,7 @@ import os
 from tensor2tensor import problems as problems_lib  # pylint: disable=unused-import
 from tensor2tensor.data_generators import text_problems
 from tensor2tensor.utils import registry
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 flags = tf.flags
 FLAGS = flags.FLAGS
@@ -56,17 +56,17 @@ def main(_):
   data_dir = os.path.expanduser(FLAGS.data_dir)
   tmp_dir = os.path.expanduser(FLAGS.tmp_dir)
 
-  tf.gfile.MakeDirs(data_dir)
-  tf.gfile.MakeDirs(tmp_dir)
+  tf.io.gfile.makedirs(data_dir)
+  tf.io.gfile.makedirs(tmp_dir)
 
-  tf.logging.info("Saving vocabulary to data_dir: %s" % data_dir)
+  tf.compat.v1.logging.info("Saving vocabulary to data_dir: %s" % data_dir)
 
   problem.get_or_create_vocab(data_dir, tmp_dir)
 
-  tf.logging.info("Saved vocabulary file: " +
+  tf.compat.v1.logging.info("Saved vocabulary file: " +
                   os.path.join(data_dir, problem.vocab_filename))
 
 
 if __name__ == "__main__":
-  tf.logging.set_verbosity(tf.logging.INFO)
-  tf.app.run()
+  tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
+  tf.compat.v1.app.run()

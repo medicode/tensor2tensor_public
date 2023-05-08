@@ -23,7 +23,7 @@ from tensor2tensor.layers import common_attention
 from tensor2tensor.layers import common_layers
 from tensor2tensor.models import transformer
 from tensor2tensor.utils import registry
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -40,7 +40,7 @@ class NeuralAssistant(transformer.Transformer):
     self.triple_num = hparams.train_triple_num
 
   def model_fn(self, features):
-    with tf.variable_scope(tf.get_variable_scope(), use_resource=True) as vs:
+    with tf.compat.v1.variable_scope(tf.compat.v1.get_variable_scope(), use_resource=True) as vs:
       self._add_variable_scope("model_fn", vs)
       transformed_features = self.bottom(features)
 
@@ -49,18 +49,18 @@ class NeuralAssistant(transformer.Transformer):
           if v.dtype == tf.float32:
             transformed_features[k] = tf.cast(v, tf.bfloat16)
 
-      with tf.variable_scope("body") as body_vs:
+      with tf.compat.v1.variable_scope("body") as body_vs:
         self._add_variable_scope("body", body_vs)
         body_out = self.body(transformed_features)
       output, losses = self._normalize_body_output(body_out)
 
       if "training" in losses:
-        tf.logging.info(
+        tf.compat.v1.logging.info(
             "Skipping T2TModel top and loss because training loss returned from body"
         )
         logits = output
       else:
-        tf.logging.warn("The loss will be computed in model_fn now.")
+        tf.compat.v1.logging.warn("The loss will be computed in model_fn now.")
         logits = self.top(output, features)
         losses["training"] = 0.0
         cur_kb_loss = losses["kb_loss"]
@@ -76,18 +76,18 @@ class NeuralAssistant(transformer.Transformer):
               1 - kb_train_weight) * (
                   cur_kb_loss * cur_kb_loss_weight +
                   (lm_loss_num / lm_loss_denom) * cur_lm_loss_weight)
-          tf.summary.scalar("kb_loss", cur_kb_loss)
-          tf.summary.scalar("transe_loss", cur_knowledge_training_loss)
-          tf.summary.scalar("lm_loss", (lm_loss_num / lm_loss_denom))
-          tf.summary.scalar("cur_kb_loss_weight",
+          tf.compat.v1.summary.scalar("kb_loss", cur_kb_loss)
+          tf.compat.v1.summary.scalar("transe_loss", cur_knowledge_training_loss)
+          tf.compat.v1.summary.scalar("lm_loss", (lm_loss_num / lm_loss_denom))
+          tf.compat.v1.summary.scalar("cur_kb_loss_weight",
                             tf.reshape(cur_kb_loss_weight, []))
-          tf.logging.info("Loss computed " + str(total_loss))
+          tf.compat.v1.logging.info("Loss computed " + str(total_loss))
           losses = {"training": total_loss}
 
       return logits, losses
 
   def encode_knowledge_bottom(self, features):
-    tf.logging.info("Encoding knowledge " + str(self.triple_num))
+    tf.compat.v1.logging.info("Encoding knowledge " + str(self.triple_num))
     # Make sure this is embeddings for triples
     # <tf.float32>[batch_size, triple_num*max_triple_length, 1, emb_dim]
     fact_embedding = features["encoded_triples"]
@@ -140,8 +140,8 @@ class NeuralAssistant(transformer.Transformer):
     # <tf.float32>[batch_size, input_length]
     context_padding = common_attention.embedding_to_padding(inputs)
     # <tf.float32>[batch_size]
-    context_lens = tf.to_float(
-        common_attention.padding_to_length(context_padding))
+    context_lens = tf.cast(
+        common_attention.padding_to_length(context_padding), dtype=tf.float32)
     # <tf.float32>[batch_size, 1]
     context_lens = tf.expand_dims(context_lens, -1)
     # Compute context vector summary.
@@ -175,7 +175,7 @@ class NeuralAssistant(transformer.Transformer):
           outer_product,
           [-1, self.triple_num, encoder_hidden_dim * encoder_hidden_dim])
       triple_logits = tf.squeeze(
-          tf.layers.dense(outer_product, 1, name="knolwedge_final_mlp"), -1)
+          tf.compat.v1.layers.dense(outer_product, 1, name="knolwedge_final_mlp"), -1)
 
     avg_triple_loss = 0.0
     triple_labels = features["triple_labels"]
@@ -237,14 +237,14 @@ class NeuralAssistant(transformer.Transformer):
     # KB pretraining loss
 
     positive_loss = tf.reduce_mean(
-        tf.squared_difference(subject_vect + predicate_vect, object_vect))
+        tf.math.squared_difference(subject_vect + predicate_vect, object_vect))
     negative_loss = 0
     for n_adv in range(num_negative_samples):
       negative_loss += tf.reduce_mean(
-          tf.squared_difference(shuffled_subject_vect[n_adv] + predicate_vect,
+          tf.math.squared_difference(shuffled_subject_vect[n_adv] + predicate_vect,
                                 object_vect))
       negative_loss += tf.reduce_mean(
-          tf.squared_difference(subject_vect + predicate_vect,
+          tf.math.squared_difference(subject_vect + predicate_vect,
                                 shuffled_object_vect[n_adv]))
 
     # TransE Loss
@@ -261,7 +261,7 @@ class NeuralAssistant(transformer.Transformer):
           logits=triple_logits,
           pos_weight=hparams.pos_weight)
       avg_triple_loss = tf.reduce_mean(triple_losses)
-      tf.summary.scalar("triple_loss", avg_triple_loss)
+      tf.compat.v1.summary.scalar("triple_loss", avg_triple_loss)
 
     return triple_logits, avg_triple_loss, original_knowledge_encoder_output, transe_loss
 
@@ -278,7 +278,7 @@ class NeuralAssistant(transformer.Transformer):
     Returns:
       Final decoder representation. [batch_size, decoder_length, hidden_dim]
     """
-    tf.logging.info("Using PgScratch BODY function.")
+    tf.compat.v1.logging.info("Using PgScratch BODY function.")
     hparams = self._hparams
 
     losses = {}
@@ -289,14 +289,14 @@ class NeuralAssistant(transformer.Transformer):
     encoder_output, encoder_decoder_attention_bias = self.encode(
         inputs, target_space, hparams, features=features, losses=losses)
 
-    with tf.variable_scope("knowledge"):
-      with tf.name_scope("knowledge_encoding"):
+    with tf.compat.v1.variable_scope("knowledge"):
+      with tf.compat.v1.name_scope("knowledge_encoding"):
         # Encode knowledge.
         # <tf.float32>[batch_size, triple_num, emb_dim]
         fact_embedding, fact_lengths = self.encode_knowledge_bottom(features)
-        tf.logging.info("Encoded knowledge")
+        tf.compat.v1.logging.info("Encoded knowledge")
 
-      with tf.name_scope("knowledge_selection_and_loss"):
+      with tf.compat.v1.name_scope("knowledge_selection_and_loss"):
         # Compute knowledge selection and loss.
         triple_logits, avg_triple_selection_loss, knowledge_encoder_output, transe_loss = self.compute_knowledge_selection_and_loss(
             features, encoder_output, fact_embedding, fact_lengths,
@@ -305,8 +305,8 @@ class NeuralAssistant(transformer.Transformer):
         losses["transe_loss"] = transe_loss
 
     if hparams.attend_kb:
-      tf.logging.info("ATTEND_KB is ACTIVE")
-      with tf.name_scope("knowledge_attention"):
+      tf.compat.v1.logging.info("ATTEND_KB is ACTIVE")
+      with tf.compat.v1.name_scope("knowledge_attention"):
 
         knowledge_padding = tf.zeros_like(triple_logits, dtype=tf.float32)
         knowledge_attention_bias = common_attention.attention_bias_ignore_padding(
@@ -317,7 +317,7 @@ class NeuralAssistant(transformer.Transformer):
             [knowledge_attention_bias, encoder_decoder_attention_bias], -1)
 
     else:
-      tf.logging.info("ATTEND_KB is INACTIVE")
+      tf.compat.v1.logging.info("ATTEND_KB is INACTIVE")
 
     targets = features["targets"]
     targets_shape = common_layers.shape_list(targets)
@@ -438,9 +438,9 @@ def compute_last_embedding(input_embeddings, input_lengths, hparams):
   # <tf.float32>[bs, 1, emb_dim]
   sum_embedding = tf.matmul(final_mask, input_embeddings)
   # <tf.float32>[bs, 1, emb_dim]
-  last_k_embedding = sum_embedding / tf.to_float(
+  last_k_embedding = sum_embedding / tf.cast(
       tf.expand_dims(
-          tf.ones([tf.shape(input_embeddings)[0], 1]) * hparams.last_k, 2))
+          tf.ones([tf.shape(input_embeddings)[0], 1]) * hparams.last_k, 2), dtype=tf.float32)
   # <tf.float32>[bs, dim]
   return tf.squeeze(last_k_embedding, 1)
 
@@ -482,7 +482,7 @@ def compute_average_embedding(input_embeddings, input_lengths):
   # <tf.float32>[bs, 1, emb_dim]
   sum_embedding = tf.matmul(mask, input_embeddings)
   # <tf.float32>[bs, 1, emb_dim]
-  avg_embedding = sum_embedding / tf.to_float(tf.expand_dims(input_lengths, 2))
+  avg_embedding = sum_embedding / tf.cast(tf.expand_dims(input_lengths, 2), dtype=tf.float32)
   # <tf.float32>[bs, dim]
   return tf.squeeze(avg_embedding, 1)
 

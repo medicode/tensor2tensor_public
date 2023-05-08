@@ -23,7 +23,7 @@ import numpy as np
 from tensor2tensor.data_generators import problem_hparams
 from tensor2tensor.models import bytenet
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -45,7 +45,7 @@ class ByteNetTest(tf.test.TestCase):
       model = bytenet.ByteNet(
           hparams, tf_estimator.ModeKeys.TRAIN, p_hparams)
       logits, _ = model(features)
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       res = session.run(logits)
     self.assertEqual(res.shape, (3, 50, 1, 1, vocab_size))
 

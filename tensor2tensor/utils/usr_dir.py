@@ -21,7 +21,7 @@ from __future__ import print_function
 import importlib
 import os
 import sys
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 INTERNAL_USR_DIR_PACKAGE = "t2t_usr_dir_internal"
 
@@ -38,7 +38,7 @@ def import_usr_dir(usr_dir):
 
   dir_path = os.path.abspath(os.path.expanduser(usr_dir).rstrip("/"))
   containing_dir, module_name = os.path.split(dir_path)
-  tf.logging.info("Importing user module %s from path %s", module_name,
+  tf.compat.v1.logging.info("Importing user module %s from path %s", module_name,
                   containing_dir)
   sys.path.insert(0, containing_dir)
   importlib.import_module(module_name)

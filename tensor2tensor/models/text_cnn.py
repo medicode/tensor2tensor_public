@@ -24,7 +24,7 @@ from tensor2tensor.layers import common_layers
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import t2t_model
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 @registry.register_model
@@ -53,15 +53,15 @@ class TextCNN(t2t_model.T2TModel):
 
     pooled_outputs = []
     for _, filter_size in enumerate(hparams.filter_sizes):
-      with tf.name_scope("conv-maxpool-%s" % filter_size):
+      with tf.compat.v1.name_scope("conv-maxpool-%s" % filter_size):
         filter_shape = [filter_size, vocab_size, 1, hparams.num_filters]
         filter_var = tf.Variable(
-            tf.truncated_normal(filter_shape, stddev=0.1), name="W")
+            tf.random.truncated_normal(filter_shape, stddev=0.1), name="W")
         filter_bias = tf.Variable(
             tf.constant(0.1, shape=[hparams.num_filters]), name="b")
         conv = tf.nn.conv2d(
             inputs,
-            filter_var,
+            filters=filter_var,
             strides=[1, 1, 1, 1],
             padding="VALID",
             name="conv")
@@ -76,7 +76,7 @@ class TextCNN(t2t_model.T2TModel):
     h_pool_flat = tf.reshape(h_pool, [-1, num_filters_total])
 
     # Add dropout
-    output = tf.nn.dropout(h_pool_flat, 1 - hparams.output_dropout)
+    output = tf.nn.dropout(h_pool_flat, rate=1 - (1 - hparams.output_dropout))
     output = tf.reshape(output, [-1, 1, 1, num_filters_total])
 
     return output

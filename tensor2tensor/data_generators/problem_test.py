@@ -32,9 +32,9 @@ from tensor2tensor.layers import modalities
 from tensor2tensor.utils import hparam
 from tensor2tensor.utils import test_utils
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
-tf.enable_eager_execution()
+tf.compat.v1.enable_eager_execution()
 
 
 def assert_tensors_equal(sess, t1, t2, n):
@@ -66,10 +66,10 @@ class ProblemTest(parameterized.TestCase, tf.test.TestCase):
                               data_dir=algorithmic.TinyAlgo.data_dir,
                               shuffle_files=False)
 
-    tensor1 = dataset.make_one_shot_iterator().get_next()["targets"]
-    tensor2 = dataset.make_one_shot_iterator().get_next()["targets"]
+    tensor1 = tf.compat.v1.data.make_one_shot_iterator(dataset).get_next()["targets"]
+    tensor2 = tf.compat.v1.data.make_one_shot_iterator(dataset).get_next()["targets"]
 
-    with tf.Session() as sess:
+    with tf.compat.v1.Session() as sess:
       self.assertTrue(assert_tensors_equal(sess, tensor1, tensor2, 20))
 
   @test_utils.run_in_graph_mode_only()
@@ -83,10 +83,10 @@ class ProblemTest(parameterized.TestCase, tf.test.TestCase):
                                data_dir=algorithmic.TinyAlgo.data_dir,
                                shuffle_files=False, preprocess=True)
 
-    tensor1 = dataset1.make_one_shot_iterator().get_next()["targets"]
-    tensor2 = dataset2.make_one_shot_iterator().get_next()["targets"]
+    tensor1 = tf.compat.v1.data.make_one_shot_iterator(dataset1).get_next()["targets"]
+    tensor2 = tf.compat.v1.data.make_one_shot_iterator(dataset2).get_next()["targets"]
 
-    with tf.Session() as sess:
+    with tf.compat.v1.Session() as sess:
       self.assertTrue(assert_tensors_equal(sess, tensor1, tensor2, 20))
 
   @test_utils.run_in_graph_and_eager_modes()
@@ -236,7 +236,7 @@ class ProblemTest(parameterized.TestCase, tf.test.TestCase):
 
   def testChunkPadding(self):
     chunk_size = 4
-    with tf.Session() as sess:
+    with tf.compat.v1.Session() as sess:
       ex_1_inputs = tf.convert_to_tensor([0, 1, 2])
       ex1_targets = tf.convert_to_tensor([2, 3])
       example = {'inputs': ex_1_inputs,

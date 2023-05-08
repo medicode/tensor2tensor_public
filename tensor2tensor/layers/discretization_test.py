@@ -23,15 +23,15 @@ import numpy as np
 from tensor2tensor.layers import discretization
 from tensor2tensor.utils import test_utils
 
-import tensorflow.compat.v1 as tf
-tf.enable_eager_execution()
+import tensorflow as tf
+tf.compat.v1.enable_eager_execution()
 
 
 class DiscretizationTest(tf.test.TestCase):
   """Tests for discretization layers."""
 
   def setUp(self):
-    tf.set_random_seed(1234)
+    tf.compat.v1.set_random_seed(1234)
     np.random.seed(123)
 
   @test_utils.run_in_graph_and_eager_modes()
@@ -72,7 +72,7 @@ class DiscretizationTest(tf.test.TestCase):
     block_dim = 20
     num_blocks = 3
     x = tf.zeros(shape=[1, 1, hidden_size], dtype=tf.float32)
-    projection_tensors = tf.random_normal(
+    projection_tensors = tf.random.normal(
         shape=[num_blocks, hidden_size, block_dim], dtype=tf.float32)
     x_projected = discretization.project_hidden(x, projection_tensors,
                                                 hidden_size, num_blocks)
@@ -128,7 +128,7 @@ class DiscretizationTest(tf.test.TestCase):
     means_new, _, _ = discretization.get_vq_codebook(bottleneck_size,
                                                      hidden_size)
     with self.test_session() as sess:
-      tf.global_variables_initializer().run()
+      tf.compat.v1.global_variables_initializer().run()
       sess.run(assign_op)
       self.assertTrue(np.all(sess.run(means_new) == 0))
       self.assertTrue(np.all(sess.run(ema_count) == 0))
@@ -147,23 +147,23 @@ class DiscretizationTest(tf.test.TestCase):
   def testVQDiscreteBottleneck(self):
     x = tf.constant([[0, 0.9, 0], [0.8, 0., 0.]], dtype=tf.float32)
     x_means_hot, _ = discretization.vq_discrete_bottleneck(x, bottleneck_bits=2)
-    self.evaluate(tf.global_variables_initializer())
+    self.evaluate(tf.compat.v1.global_variables_initializer())
     x_means_hot_eval = self.evaluate(x_means_hot)
     self.assertEqual(np.shape(x_means_hot_eval), (2, 4))
 
   def testVQDiscreteUnbottlenck(self):
     x = tf.constant([[1, 0, 0, 0], [0, 0, 1, 0]], dtype=tf.int32)
     x_means = discretization.vq_discrete_unbottleneck(x, hidden_size=3)
-    self.evaluate(tf.global_variables_initializer())
+    self.evaluate(tf.compat.v1.global_variables_initializer())
     x_means_eval = self.evaluate(x_means)
     self.assertEqual(np.shape(x_means_eval), (2, 3))
 
   def testGumbelSoftmaxDiscreteBottleneck(self):
     x = tf.constant([[0, 0.9, 0], [0.8, 0., 0.]], dtype=tf.float32)
-    tf.add_to_collection(tf.GraphKeys.GLOBAL_STEP, tf.constant(1))
+    tf.compat.v1.add_to_collection(tf.compat.v1.GraphKeys.GLOBAL_STEP, tf.constant(1))
     x_means_hot, _ = discretization.gumbel_softmax_discrete_bottleneck(
         x, bottleneck_bits=2)
-    self.evaluate(tf.global_variables_initializer())
+    self.evaluate(tf.compat.v1.global_variables_initializer())
     x_means_hot_eval = self.evaluate(x_means_hot)
     self.assertEqual(np.shape(x_means_hot_eval), (2, 4))
 
@@ -172,21 +172,21 @@ class DiscretizationTest(tf.test.TestCase):
     hidden_size = 60
     z_size = 4
     x = tf.zeros(shape=[100, 1, hidden_size], dtype=tf.float32)
-    with tf.variable_scope("test", reuse=tf.AUTO_REUSE):
-      means = tf.get_variable("means",
+    with tf.compat.v1.variable_scope("test", reuse=tf.compat.v1.AUTO_REUSE):
+      means = tf.compat.v1.get_variable("means",
                               shape=[1, 1, 2**z_size, hidden_size],
-                              initializer=tf.constant_initializer(0.),
+                              initializer=tf.compat.v1.constant_initializer(0.),
                               dtype=tf.float32)
       ema_count = []
-      ema_count_i = tf.get_variable(
+      ema_count_i = tf.compat.v1.get_variable(
           "ema_count",
           [1, 2**z_size],
-          initializer=tf.constant_initializer(0),
+          initializer=tf.compat.v1.constant_initializer(0),
           trainable=False)
       ema_count.append(ema_count_i)
       ema_means = []
-      with tf.colocate_with(means):
-        ema_means_i = tf.get_variable("ema_means",
+      with tf.compat.v1.colocate_with(means):
+        ema_means_i = tf.compat.v1.get_variable("ema_means",
                                       initializer=means.initialized_value()[0],
                                       trainable=False)
         ema_means.append(ema_means_i)
@@ -194,7 +194,7 @@ class DiscretizationTest(tf.test.TestCase):
           x, hidden_size, z_size, 32, means=means, num_blocks=1,
           ema_means=ema_means, ema_count=ema_count, name="test")
       with self.test_session() as sess:
-        sess.run(tf.global_variables_initializer())
+        sess.run(tf.compat.v1.global_variables_initializer())
         x_means_dense_eval, x_means_hot_eval = sess.run(
             [x_means_dense, x_means_hot])
         means_eval = sess.run(means)
@@ -208,21 +208,21 @@ class DiscretizationTest(tf.test.TestCase):
     hidden_size = 60
     z_size = 4
     x = tf.zeros(shape=[100, 1, hidden_size], dtype=tf.float32)
-    with tf.variable_scope("test2", reuse=tf.AUTO_REUSE):
-      means = tf.get_variable("means",
+    with tf.compat.v1.variable_scope("test2", reuse=tf.compat.v1.AUTO_REUSE):
+      means = tf.compat.v1.get_variable("means",
                               shape=[1, 1, 2**z_size, hidden_size],
-                              initializer=tf.constant_initializer(0.),
+                              initializer=tf.compat.v1.constant_initializer(0.),
                               dtype=tf.float32)
       ema_count = []
-      ema_count_i = tf.get_variable(
+      ema_count_i = tf.compat.v1.get_variable(
           "ema_count",
           [1, 2**z_size],
-          initializer=tf.constant_initializer(0),
+          initializer=tf.compat.v1.constant_initializer(0),
           trainable=False)
       ema_count.append(ema_count_i)
       ema_means = []
-      with tf.colocate_with(means):
-        ema_means_i = tf.get_variable("ema_means",
+      with tf.compat.v1.colocate_with(means):
+        ema_means_i = tf.compat.v1.get_variable("ema_means",
                                       initializer=means.initialized_value()[0],
                                       trainable=False)
         ema_means.append(ema_means_i)
@@ -231,7 +231,7 @@ class DiscretizationTest(tf.test.TestCase):
           x, hidden_size, z_size, 32, means=means, num_blocks=1, cond=cond,
           ema_means=ema_means, ema_count=ema_count, name="test2")
       with self.test_session() as sess:
-        sess.run(tf.global_variables_initializer())
+        sess.run(tf.compat.v1.global_variables_initializer())
         x_means_dense_eval, x_means_hot_eval = sess.run(
             [x_means_dense, x_means_hot])
         means_eval = sess.run(means)

@@ -41,7 +41,7 @@ from tensor2tensor.utils import mlperf_log
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import t2t_model
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 # pylint: disable=g-direct-tensorflow-import
@@ -94,7 +94,7 @@ def transformer_encode(encoder_function, inputs, target_space, hparams,
       hparams=hparams)
 
   encoder_input = tf.nn.dropout(encoder_input,
-                                1.0 - hparams.layer_prepostprocess_dropout)
+                                rate=1 - (1.0 - hparams.layer_prepostprocess_dropout))
 
   attn_bias_for_padding = None
   # Otherwise the encoder will just use encoder_self_attention_bias.
@@ -157,7 +157,7 @@ def transformer_decode(decoder_function,
       value=hparams.layer_prepostprocess_dropout,
       hparams=hparams)
   decoder_input = tf.nn.dropout(decoder_input,
-                                1.0 - hparams.layer_prepostprocess_dropout)
+                                rate=1 - (1.0 - hparams.layer_prepostprocess_dropout))
 
   decoder_output = decoder_function(
       decoder_input,
@@ -337,7 +337,7 @@ class Transformer(t2t_model.T2TModel):
     if (self._target_modality_is_real or
         self._hparams.self_attention_type != "dot_product"):
       return super(Transformer, self)._greedy_infer(features, decode_length)
-    with tf.variable_scope(self.name):
+    with tf.compat.v1.variable_scope(self.name):
       if use_tpu:
         return self._fast_decode_tpu(features, decode_length)
       return self._fast_decode(features, decode_length)
@@ -376,7 +376,7 @@ class Transformer(t2t_model.T2TModel):
       # dot_product and dot_product_relative.
       return self._beam_decode_slow(features, decode_length, beam_size,
                                     top_beams, alpha, use_tpu)
-    with tf.variable_scope(self.name):
+    with tf.compat.v1.variable_scope(self.name):
       if use_tpu:
         return self._fast_decode_tpu(features, decode_length, beam_size,
                                      top_beams, alpha)
@@ -410,7 +410,7 @@ class Transformer(t2t_model.T2TModel):
     modality_name = hparams.name.get("inputs",
                                      modalities.get_name(input_modality))(
                                          hparams, input_vocab_size)
-    with tf.variable_scope(modality_name):
+    with tf.compat.v1.variable_scope(modality_name):
       bottom = hparams.bottom.get("inputs",
                                   modalities.get_bottom(input_modality))
       inputs = dp(bottom, inputs, hparams, input_vocab_size)
@@ -471,7 +471,7 @@ class Transformer(t2t_model.T2TModel):
             inputs_shape[1] + features.get("decode_length", decode_length))
       batch_size = inputs_shape[0]
       inputs = self._prepare_inputs_for_decode(features)
-      with tf.variable_scope("body"):
+      with tf.compat.v1.variable_scope("body"):
         encoder_output, encoder_decoder_attention_bias = dp(
             self.encode,
             inputs,
@@ -494,7 +494,7 @@ class Transformer(t2t_model.T2TModel):
         partial_targets = features["targets"]
       assert partial_targets is not None
       partial_targets = common_layers.expand_squeeze_to_nd(partial_targets, 2)
-      partial_targets = tf.to_int64(partial_targets)
+      partial_targets = tf.cast(partial_targets, dtype=tf.int64)
       partial_targets_shape = common_layers.shape_list(partial_targets)
       partial_targets_length = partial_targets_shape[1]
       decode_length = (
@@ -535,7 +535,7 @@ class Transformer(t2t_model.T2TModel):
       modality_name = hparams.name.get(
           "targets",
           modalities.get_name(target_modality))(hparams, target_vocab_size)
-      with tf.variable_scope(modality_name):
+      with tf.compat.v1.variable_scope(modality_name):
         bottom = hparams.bottom.get(
             "targets", modalities.get_targets_bottom(target_modality))
         targets = dp(bottom, targets, hparams, target_vocab_size)[0]
@@ -584,7 +584,7 @@ class Transformer(t2t_model.T2TModel):
       bias = tf.slice(decoder_self_attention_bias, [0, 0, i, 0],
                       [bias_shape[0], bias_shape[1], 1, bias_shape[3]])
 
-      with tf.variable_scope("body"):
+      with tf.compat.v1.variable_scope("body"):
         body_outputs = dp(
             self.decode,
             targets,
@@ -598,7 +598,7 @@ class Transformer(t2t_model.T2TModel):
       modality_name = hparams.name.get(
           "targets",
           modalities.get_name(target_modality))(hparams, target_vocab_size)
-      with tf.variable_scope(modality_name):
+      with tf.compat.v1.variable_scope(modality_name):
         top = hparams.top.get("targets",
                               modalities.get_top(target_modality))
         logits = dp(top, body_outputs, None, hparams, target_vocab_size)[0]
@@ -728,7 +728,7 @@ class Transformer(t2t_model.T2TModel):
             inputs_shape[1] + features.get("decode_length", decode_length))
       batch_size = inputs_shape[0]
       inputs = self._prepare_inputs_for_decode(features)
-      with tf.variable_scope("body"):
+      with tf.compat.v1.variable_scope("body"):
         encoder_output, encoder_decoder_attention_bias = dp(
             self.encode,
             inputs,
@@ -753,7 +753,7 @@ class Transformer(t2t_model.T2TModel):
 
     if partial_targets is not None:
       partial_targets = common_layers.expand_squeeze_to_nd(partial_targets, 2)
-      partial_targets = tf.to_int64(partial_targets)
+      partial_targets = tf.cast(partial_targets, dtype=tf.int64)
       partial_targets_shape = common_layers.shape_list(partial_targets)
       partial_targets_length = partial_targets_shape[1]
       decode_length = (
@@ -794,7 +794,7 @@ class Transformer(t2t_model.T2TModel):
       modality_name = hparams.name.get(
           "targets",
           modalities.get_name(target_modality))(hparams, target_vocab_size)
-      with tf.variable_scope(modality_name):
+      with tf.compat.v1.variable_scope(modality_name):
         bottom = hparams.bottom.get(
             "targets", modalities.get_targets_bottom(target_modality))
         targets = dp(bottom, targets, hparams, target_vocab_size)[0]
@@ -856,7 +856,7 @@ class Transformer(t2t_model.T2TModel):
       targets = preprocess_targets_method(targets, i)
 
       bias = decoder_self_attention_bias[:, :, i:i + 1, :i + 1]
-      with tf.variable_scope("body"):
+      with tf.compat.v1.variable_scope("body"):
         body_outputs = dp(
             self.decode,
             targets,
@@ -872,7 +872,7 @@ class Transformer(t2t_model.T2TModel):
       modality_name = hparams.name.get(
           "targets",
           modalities.get_name(target_modality))(hparams, target_vocab_size)
-      with tf.variable_scope(modality_name):
+      with tf.compat.v1.variable_scope(modality_name):
         top = hparams.top.get("targets", modalities.get_top(target_modality))
         logits = dp(top, body_outputs, None, hparams, target_vocab_size)[0]
 
@@ -967,7 +967,7 @@ def _init_transformer_cache(cache, hparams, batch_size, attention_init_length,
   if encoder_output is not None:
     for layer in range(num_layers):
       layer_name = "layer_%d" % layer
-      with tf.variable_scope(
+      with tf.compat.v1.variable_scope(
           "%sdecoder/%s/encdec_attention/multihead_attention" %
           (scope_prefix, layer_name)):
         k_encdec = common_attention.compute_attention_component(
@@ -1104,10 +1104,10 @@ def fast_decode_tpu(encoder_output,
         next_id = common_layers.sample_with_temperature(logits, temperature,
                                                         top_k)
 
-      log_prob_indices = tf.stack([tf.range(tf.to_int64(batch_size)), next_id],
+      log_prob_indices = tf.stack([tf.range(tf.cast(batch_size, dtype=tf.int64)), next_id],
                                   axis=1)
       log_prob += tf.gather_nd(
-          log_probs, log_prob_indices) * (1 - tf.to_float(hit_eos))
+          log_probs, log_prob_indices) * (1 - tf.cast(hit_eos, dtype=tf.float32))
       # Note(thangluong): we purposely update hit_eos after aggregating log_prob
       # There is a subtle detail here that we want to include log_probs up to
       # (and inclusive of) the first eos generated, but not subsequent tokens.
@@ -1135,8 +1135,8 @@ def fast_decode_tpu(encoder_output,
       return tf.TensorShape(tensor.shape.as_list())
 
     _, _, _, decoded_ids, _, log_prob = tf.while_loop(
-        is_not_finished,
-        inner_loop, [
+        cond=is_not_finished,
+        body=inner_loop, loop_vars=[
             tf.constant(0), hit_eos, next_id, decoded_ids, cache,
             initial_log_prob
         ],
@@ -1256,10 +1256,10 @@ def fast_decode(encoder_output,
         next_id = common_layers.sample_with_temperature(logits, temperature,
                                                         top_k)
 
-      log_prob_indices = tf.stack([tf.range(tf.to_int64(batch_size)), next_id],
+      log_prob_indices = tf.stack([tf.range(tf.cast(batch_size, dtype=tf.int64)), next_id],
                                   axis=1)
       log_prob += tf.gather_nd(
-          log_probs, log_prob_indices) * (1 - tf.to_float(hit_eos))
+          log_probs, log_prob_indices) * (1 - tf.cast(hit_eos, dtype=tf.float32))
       # Note(thangluong): we purposely update hit_eos after aggregating log_prob
       # There is a subtle detail here that we want to include log_probs up to
       # (and inclusive of) the first eos generated, but not subsequent tokens.
@@ -1281,8 +1281,8 @@ def fast_decode(encoder_output,
     next_id = sos_id * tf.ones([batch_size, 1], dtype=tf.int64)
     initial_log_prob = tf.zeros([batch_size], dtype=tf.float32)
     _, _, _, decoded_ids, cache, log_prob = tf.while_loop(
-        is_not_finished,
-        inner_loop, [
+        cond=is_not_finished,
+        body=inner_loop, loop_vars=[
             tf.constant(0), hit_eos, next_id, decoded_ids, cache,
             initial_log_prob
         ],
@@ -1324,7 +1324,7 @@ class TransformerScorer(Transformer):
 
     # Run the model
     self.hparams.force_full_predict = True
-    with tf.variable_scope(self.name):
+    with tf.compat.v1.variable_scope(self.name):
       logits, _ = self.model_fn(features)
     assert len(logits.shape) == 5  # [batch, time, 1, 1, vocab]
     logits = tf.squeeze(logits, [2, 3])
@@ -1360,7 +1360,7 @@ class TransformerEncoder(t2t_model.T2TModel):
         transformer_prepare_encoder(inputs, target_space, hparams))
 
     encoder_input = tf.nn.dropout(encoder_input,
-                                  1.0 - hparams.layer_prepostprocess_dropout)
+                                  rate=1 - (1.0 - hparams.layer_prepostprocess_dropout))
     encoder_output = transformer_encoder(
         encoder_input,
         encoder_self_attention_bias,
@@ -1381,17 +1381,17 @@ class TransformerRegressor(TransformerEncoder):
   def top(self, body_output, features):
     """Computes single scalar value from body_output."""
 
-    with tf.variable_scope("reg_top_ffn"):
+    with tf.compat.v1.variable_scope("reg_top_ffn"):
       x = body_output
       x = tf.reduce_mean(x, axis=[1, 2], keepdims=True)
-      res = tf.layers.dense(x, 1, name="model_top")
+      res = tf.compat.v1.layers.dense(x, 1, name="model_top")
       return res
 
 
 def features_to_nonpadding(features, inputs_or_targets="inputs"):
   key = inputs_or_targets + "_segmentation"
   if features and key in features:
-    return tf.minimum(tf.to_float(features[key]), 1.0)
+    return tf.minimum(tf.cast(features[key], dtype=tf.float32), 1.0)
   return None
 
 
@@ -1493,8 +1493,8 @@ def transformer_self_attention_layer(decoder_input,
     max_area_width = 1
     max_area_height = 1
     memory_height = 1
-  with tf.variable_scope(layer_name):
-    with tf.variable_scope("self_attention"):
+  with tf.compat.v1.variable_scope(layer_name):
+    with tf.compat.v1.variable_scope("self_attention"):
       y = common_attention.multihead_attention(
           common_layers.layer_preprocess(
               x, hparams, layer_collection=layer_collection),
@@ -1536,7 +1536,7 @@ def transformer_self_attention_layer(decoder_input,
     if encoder_output is not None:
       if not isinstance(encoder_output, (list,)):
         encoder_output = [encoder_output]
-      with tf.variable_scope("encdec_attention"):
+      with tf.compat.v1.variable_scope("encdec_attention"):
         for enc_output in encoder_output:
           y = common_attention.multihead_attention(
               common_layers.layer_preprocess(
@@ -1608,8 +1608,8 @@ def transformer_decoder_layer(decoder_input,
 
   layer = layer_idx
   layer_name = "layer_%d" % layer
-  with tf.variable_scope(layer_name):
-    with tf.variable_scope("ffn"):
+  with tf.compat.v1.variable_scope(layer_name):
+    with tf.compat.v1.variable_scope("ffn"):
       y = transformer_ffn_layer(
           common_layers.layer_preprocess(
               x, hparams, layer_collection=layer_collection),
@@ -1693,7 +1693,7 @@ def transformer_decoder(decoder_input,
       },
       hparams=hparams)
 
-  with tf.variable_scope(name):
+  with tf.compat.v1.variable_scope(name):
     for layer_idx in range(hparams.num_decoder_layers or
                            hparams.num_hidden_layers):
       x = transformer_decoder_layer(

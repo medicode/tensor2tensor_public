@@ -22,7 +22,7 @@ from __future__ import print_function
 from tensor2tensor.layers import common_layers
 from tensor2tensor.layers import common_video
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 class NextFrameBaseVae(object):
@@ -57,7 +57,7 @@ class NextFrameBaseVae(object):
       # Caping the beta between 0 and 1. May need to change this later on.
       shadow_beta = tf.maximum(shadow_beta, 0.0)
       shadow_beta = tf.minimum(shadow_beta, 1.0)
-      update_op = tf.assign(beta, shadow_beta)
+      update_op = tf.compat.v1.assign(beta, shadow_beta)
     else:
       beta = common_video.beta_schedule(
           schedule=self.hparams.latent_loss_multiplier_schedule,
@@ -68,7 +68,7 @@ class NextFrameBaseVae(object):
           decay_end=self.hparams.anneal_end)
       update_op = tf.identity(beta)  # fake update for regular beta.
     with tf.control_dependencies([update_op]):
-      tf.summary.scalar("beta", beta)
+      tf.compat.v1.summary.scalar("beta", beta)
       return beta
 
   def get_kl_loss(self, means, log_vars, means_p=None, log_vars_p=None):
@@ -82,11 +82,11 @@ class NextFrameBaseVae(object):
     if self.is_training and self.hparams.stochastic_model:
       for i, (mean, log_var, mean_p, log_var_p) in enumerated_inputs:
         kl_loss += common_layers.kl_divergence(mean, log_var, mean_p, log_var_p)
-        tf.summary.histogram("posterior_mean_%d" % i, mean)
-        tf.summary.histogram("posterior_log_var_%d" % i, log_var)
-        tf.summary.histogram("prior_mean_%d" % i, mean_p)
-        tf.summary.histogram("prior_log_var_%d" % i, log_var_p)
-      tf.summary.scalar("kl_raw", tf.reduce_mean(kl_loss))
+        tf.compat.v1.summary.histogram("posterior_mean_%d" % i, mean)
+        tf.compat.v1.summary.histogram("posterior_log_var_%d" % i, log_var)
+        tf.compat.v1.summary.histogram("prior_mean_%d" % i, mean_p)
+        tf.compat.v1.summary.histogram("prior_log_var_%d" % i, log_var_p)
+      tf.compat.v1.summary.scalar("kl_raw", tf.reduce_mean(kl_loss))
 
     beta = self.get_beta(kl_loss)
     # information capacity from "Understanding disentangling in beta-VAE"
@@ -103,7 +103,7 @@ class NextFrameBaseVae(object):
     # use all frames by default but this allows more
     # predicted frames at inference time
     latent_num_frames = self.hparams.latent_num_frames
-    tf.logging.info("Creating latent tower with %d frames." % latent_num_frames)
+    tf.compat.v1.logging.info("Creating latent tower with %d frames." % latent_num_frames)
     if latent_num_frames > 0:
       images = images[:, :latent_num_frames]
 

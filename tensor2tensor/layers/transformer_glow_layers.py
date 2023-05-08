@@ -37,7 +37,7 @@ import numpy as np
 import scipy
 from tensor2tensor.layers import common_layers
 import tensor2tensor.layers.transformer_glow_layers_ops as gops
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 def actnorm(name, x, x_mask, inverse, init, logscale_factor=3.0):
@@ -45,14 +45,14 @@ def actnorm(name, x, x_mask, inverse, init, logscale_factor=3.0):
   eps = tf.keras.backend.epsilon()
   n_channels = common_layers.shape_list(x)[2]
 
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     x_mean, x_var = gops.moments_over_bl(x, x_mask)
     b = gops.get_variable_ddi(
-        "b", (n_channels), -x_mean, init, tf.zeros_initializer)
-    log_w_init = -0.5 * tf.log(x_var + eps) / logscale_factor
+        "b", (n_channels), -x_mean, init, tf.compat.v1.zeros_initializer)
+    log_w_init = -0.5 * tf.math.log(x_var + eps) / logscale_factor
     log_w = gops.get_variable_ddi(
         "log_w", (n_channels), log_w_init, init,
-        tf.zeros_initializer) * logscale_factor
+        tf.compat.v1.zeros_initializer) * logscale_factor
 
     if not inverse:
       x = (x + b) * tf.exp(log_w)
@@ -91,13 +91,13 @@ def multihead_invertible_1x1_conv_np(
 
   def get_mask_init():
     ones = tf.ones([n_1x1_heads, n_channels, n_channels], dtype=dtype)
-    l_mask = tf.matrix_band_part(ones, -1, 0) - tf.matrix_band_part(ones, 0, 0)
-    u_mask = tf.matrix_band_part(ones, 0, -1) - tf.matrix_band_part(ones, 0, 0)
+    l_mask = tf.linalg.band_part(ones, -1, 0) - tf.linalg.band_part(ones, 0, 0)
+    u_mask = tf.linalg.band_part(ones, 0, -1) - tf.linalg.band_part(ones, 0, 0)
     return tf.stack([l_mask, u_mask], axis=0)
 
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
-    params = tf.get_variable("params", initializer=get_init_np, dtype=dtype)
-    mask_params = tf.get_variable(
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
+    params = tf.compat.v1.get_variable("params", initializer=get_init_np, dtype=dtype)
+    mask_params = tf.compat.v1.get_variable(
         "mask_params", initializer=get_mask_init, dtype=dtype, trainable=False)
 
     p = tf.stop_gradient(params[:, :n_channels, :])
@@ -112,7 +112,7 @@ def multihead_invertible_1x1_conv_np(
     l_diag = l * l_mask + (
         tf.eye(n_channels, n_channels, [n_1x1_heads], dtype=dtype))
     u_diag = u * u_mask + (
-        tf.matrix_diag(sign_s * tf.exp(log_s)))
+        tf.linalg.diag(sign_s * tf.exp(log_s)))
     w = tf.matmul(p, tf.matmul(l_diag, u_diag))
 
     if multihead_split == "a":
@@ -129,7 +129,7 @@ def multihead_invertible_1x1_conv_np(
       # [n_1x1_heads, 1, n_channels, n_channels]
       x = tf.matmul(x, w[:, tf.newaxis, :, :])
     else:
-      w_inv = tf.matrix_inverse(w)
+      w_inv = tf.linalg.inv(w)
       x = tf.matmul(x, w_inv[:, tf.newaxis, :, :])
 
     if multihead_split == "a":
@@ -165,7 +165,7 @@ def additive_coupling(
   hparams = kwargs["hparams"]
   batch_size, length, n_channels = common_layers.shape_list(x)
   assert hparams.scale_width > 0.0 and hparams.scale_width < 1.0
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     x_id, x_tr, _, n_transform, bias, mask = gops.split_coupling(
         x, x_mask, split_dim, identity_first, decoder_self_attention_bias)
     z_id = x_id
@@ -185,7 +185,7 @@ def additive_coupling(
       z_tr = x_tr - loc
     logabsdet = tf.constant(0.0, dtype=tf.float32)
 
-    tf.summary.histogram("_loc", tf.boolean_mask(loc, mask))
+    tf.compat.v1.summary.histogram("_loc", tf.boolean_mask(loc, mask))
     result = gops.join_coupling(z_id, z_tr, split_dim, identity_first)
     result = tf.reshape(result, [batch_size, length, n_channels])
     return result, logabsdet
@@ -216,7 +216,7 @@ def affine_coupling(
   hparams = kwargs["hparams"]
   batch_size, length, n_channels = common_layers.shape_list(x)
   assert hparams.scale_width > 0.0 and hparams.scale_width < 1.0
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     x_id, x_tr, _, n_transform, bias, mask = gops.split_coupling(
         x, x_mask, split_dim, identity_first, decoder_self_attention_bias)
     z_id = x_id
@@ -237,12 +237,12 @@ def affine_coupling(
     else:
       z_tr = x_tr / scale - loc
 
-    logabsdet = gops.reduce_sum_over_lc(tf.log(scale), mask)  # [B]
+    logabsdet = gops.reduce_sum_over_lc(tf.math.log(scale), mask)  # [B]
     if inverse:
       logabsdet *= -1
 
-    tf.summary.histogram("_loc", tf.boolean_mask(loc, mask))
-    tf.summary.histogram("_scale", tf.boolean_mask(scale, mask))
+    tf.compat.v1.summary.histogram("_loc", tf.boolean_mask(loc, mask))
+    tf.compat.v1.summary.histogram("_scale", tf.boolean_mask(scale, mask))
     result = gops.join_coupling(z_id, z_tr, split_dim, identity_first)
     result = tf.reshape(result, [batch_size, length, n_channels])
     return result, logabsdet
@@ -251,7 +251,7 @@ def affine_coupling(
 def flow_step_glow(name, x, x_mask, split_dims, inverse, init, dtype, **kwargs):
   """One step of flow."""
   conv_fn = multihead_invertible_1x1_conv_np
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     reversible_ops = []
     for _, split_dim in enumerate(split_dims):
       identity_first = True
@@ -279,7 +279,7 @@ def flow_level(
     name, x, x_mask, depth, split_dims, prior, inverse, init, dtype, **kwargs):
   """One level of flow."""
   flow_step_fn = flow_step_glow
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     reversible_ops = []
     for step in np.arange(depth):
       reversible_ops += [functools.partial(
@@ -318,7 +318,7 @@ def split(name, x, x_mask, inverse, temp=1.0, dtype=tf.float32, z=None):
     z: second half of the channel dimensions. modelled as standard normal.
     log_p: log p(x2; N(0,1)), shape=[B]
   """
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     if not inverse:
       x1, x2 = tf.split(x, 2, axis=-1)
       log_p = gops.standard_normal_density(x2, x_mask)
@@ -335,7 +335,7 @@ def split(name, x, x_mask, inverse, temp=1.0, dtype=tf.float32, z=None):
 
 def squeeze(name, x, factor, inverse):
   """Temporal squeezing of x to increase the number of channels."""
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     if factor == 1:
       return x
     batch_size, length, n_channels = common_layers.shape_list(x)
@@ -390,7 +390,7 @@ def glow(
   n_levels = len(depths)
   logabsdets = tf.constant(0.0, dtype=dtype)
   log_ps = tf.constant(0.0, dtype=dtype)
-  with tf.variable_scope(name, use_resource=True, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, use_resource=True, reuse=tf.compat.v1.AUTO_REUSE):
     if not inverse:  # z -> e (density estimation)
       x_mask, self_attn_bias = max_x_mask, max_self_attn_bias
       split_zs = []

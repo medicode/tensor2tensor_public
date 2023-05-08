@@ -23,7 +23,7 @@ from absl.testing import parameterized
 from tensor2tensor.data_generators import celeba
 from tensor2tensor.utils import hparam
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -34,7 +34,7 @@ class CelebaTest(parameterized.TestCase, tf.test.TestCase):
       ("Area", "AREA"),
       ("Dilated", "DILATED"))
   def testCelebaMultiResolutionPreprocessExample(self, resize_method):
-    example = {"inputs": tf.random_uniform([218, 178, 3], minval=-1.)}
+    example = {"inputs": tf.random.uniform([218, 178, 3], minval=-1.)}
     mode = tf_estimator.ModeKeys.TRAIN
     hparams = hparam.HParams(resolutions=[8, 16, 32])
     if resize_method is not None:

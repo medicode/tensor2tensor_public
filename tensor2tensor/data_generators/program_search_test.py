@@ -28,7 +28,7 @@ from builtins import bytes  # pylint: disable=redefined-builtin
 from tensor2tensor.data_generators import problem
 from tensor2tensor.data_generators import program_search
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 class ProgramSearchAlgolispStub(program_search.ProgramSearchAlgolisp):
@@ -78,7 +78,7 @@ class ProgramSearchAlgolispTest(tf.test.TestCase):
   @classmethod
   def setUpClass(cls):
     # Setup the temp directory tree.
-    cls.tmp_dir = tf.test.get_temp_dir()
+    cls.tmp_dir = tf.compat.v1.test.get_temp_dir()
     shutil.rmtree(cls.tmp_dir)
     os.mkdir(cls.tmp_dir)
 

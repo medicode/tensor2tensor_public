@@ -28,7 +28,7 @@ from tensor2tensor.utils import contrib
 from tensor2tensor.utils import rouge
 from tensor2tensor.utils import sari_hook
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.python.util import tf_inspect as inspect
 
 from fathomt2t_dependencies.fh_metrics import set_auc
@@ -83,8 +83,8 @@ def image_rmse(predictions, labels, weights_fn=common_layers.weights_all):
   return padded_rmse(predictions, labels, weights_fn)
 
 def padded_rmse(predictions, labels, weights_fn=common_layers.weights_all):
-  predictions = tf.to_float(predictions)
-  labels = tf.to_float(labels)
+  predictions = tf.cast(predictions, dtype=tf.float32)
+  labels = tf.cast(labels, dtype=tf.float32)
   predictions, labels = common_layers.pad_with_zeros(predictions, labels)
   weights = weights_fn(labels)
   error = tf.pow(predictions - labels, 2)
@@ -93,8 +93,8 @@ def padded_rmse(predictions, labels, weights_fn=common_layers.weights_all):
 
 
 def unpadded_mse(predictions, labels, weights_fn=common_layers.weights_all):
-  predictions = tf.to_float(predictions)
-  labels = tf.to_float(labels)
+  predictions = tf.cast(predictions, dtype=tf.float32)
+  labels = tf.cast(labels, dtype=tf.float32)
   weights = weights_fn(labels)
   error = tf.pow(predictions - labels, 2)
   mean_error = tf.reduce_mean(error * weights)
@@ -142,18 +142,18 @@ def padded_accuracy_topk(predictions,
                          k,
                          weights_fn=common_layers.weights_nonzero):
   """Percentage of times that top-k predictions matches labels on non-0s."""
-  with tf.variable_scope("padded_accuracy_topk", values=[predictions, labels]):
+  with tf.compat.v1.variable_scope("padded_accuracy_topk", values=[predictions, labels]):
     padded_predictions, padded_labels = common_layers.pad_with_zeros(
         predictions, labels)
     weights = weights_fn(padded_labels)
     effective_k = tf.minimum(k,
                              common_layers.shape_list(padded_predictions)[-1])
     _, outputs = tf.nn.top_k(padded_predictions, k=effective_k)
-    outputs = tf.to_int32(outputs)
-    padded_labels = tf.to_int32(padded_labels)
+    outputs = tf.cast(outputs, dtype=tf.int32)
+    padded_labels = tf.cast(padded_labels, dtype=tf.int32)
     padded_labels = tf.expand_dims(padded_labels, axis=-1)
     padded_labels += tf.zeros_like(outputs)  # Pad to same shape.
-    same = tf.to_float(tf.equal(outputs, padded_labels))
+    same = tf.cast(tf.equal(outputs, padded_labels), dtype=tf.float32)
     same_topk = tf.reduce_sum(same, axis=-1)
     return same_topk, weights
 
@@ -168,10 +168,10 @@ def rounding_sequence_accuracy(predictions,
                                labels,
                                weights_fn=common_layers.weights_nonzero):
   """Sequence accuracy for L1/L2 losses: round down the predictions to ints."""
-  outputs = tf.squeeze(tf.to_int32(predictions), axis=-1)
+  outputs = tf.squeeze(tf.cast(predictions, dtype=tf.int32), axis=-1)
   weights = weights_fn(labels)
-  labels = tf.to_int32(labels)
-  not_correct = tf.to_float(tf.not_equal(outputs, labels)) * weights
+  labels = tf.cast(labels, dtype=tf.int32)
+  not_correct = tf.cast(tf.not_equal(outputs, labels), dtype=tf.float32) * weights
   axis = list(range(1, len(outputs.get_shape())))
   correct_seq = 1.0 - tf.minimum(1.0, tf.reduce_sum(not_correct, axis=axis))
   return correct_seq, tf.constant(1.0)
@@ -179,11 +179,11 @@ def rounding_sequence_accuracy(predictions,
 
 def two_class_accuracy(predictions, labels, weights_fn=None):
   """Accuracy for two class classification with 0/1 labels."""
-  with tf.variable_scope("two_class_accuracy", values=[predictions, labels]):
+  with tf.compat.v1.variable_scope("two_class_accuracy", values=[predictions, labels]):
     del weights_fn
-    hard_predictions = tf.to_int32(tf.math.round(tf.squeeze(predictions)))
-    int_labels = tf.to_int32(labels)
-    _, accuracy = tf.metrics.accuracy(labels=int_labels,
+    hard_predictions = tf.cast(tf.math.round(tf.squeeze(predictions)), dtype=tf.int32)
+    int_labels = tf.cast(labels, dtype=tf.int32)
+    _, accuracy = tf.compat.v1.metrics.accuracy(labels=int_labels,
                                       predictions=hard_predictions)
     return accuracy, tf.constant(1.0)
 
@@ -208,7 +208,7 @@ def two_class_log_likelihood(predictions, labels, weights_fn=None):
   onehot_targets = tf.cast(tf.one_hot(int_labels, 2), dtype=tf.float64)
   chosen_probs = tf.einsum(
       "ij,ij->i", batch_probs, onehot_targets, name="chosen_probs")
-  avg_log_likelihood = tf.reduce_mean(tf.log(chosen_probs))
+  avg_log_likelihood = tf.reduce_mean(tf.math.log(chosen_probs))
   return avg_log_likelihood, tf.constant(1.0)
 
 
@@ -220,7 +220,7 @@ def padded_sequence_accuracy(predictions,
   if common_layers.shape_list(predictions)[-1] == 1:
     return rounding_sequence_accuracy(
         predictions, labels, weights_fn=weights_fn)
-  with tf.variable_scope(
+  with tf.compat.v1.variable_scope(
       "padded_sequence_accuracy", values=[predictions, labels]):
     padded_predictions, padded_labels = common_layers.pad_with_zeros(
         predictions, labels)
@@ -240,9 +240,9 @@ def padded_sequence_accuracy(predictions,
     padded_labels = tf.reshape(padded_labels, [batch_size, flat_size])
     weights = tf.reshape(weights, [batch_size, flat_size])
 
-    outputs = tf.to_int32(tf.argmax(padded_predictions, axis=-1))
-    padded_labels = tf.to_int32(padded_labels)
-    not_correct = tf.to_float(tf.not_equal(outputs, padded_labels)) * weights
+    outputs = tf.cast(tf.argmax(padded_predictions, axis=-1), dtype=tf.int32)
+    padded_labels = tf.cast(padded_labels, dtype=tf.int32)
+    not_correct = tf.cast(tf.not_equal(outputs, padded_labels), dtype=tf.float32) * weights
     axis = list(range(1, len(outputs.get_shape())))
     correct_seq = 1.0 - tf.minimum(1.0, tf.reduce_sum(not_correct, axis=axis))
     return correct_seq, tf.constant(1.0)
@@ -273,13 +273,13 @@ def prefix_accuracy(predictions,
   if weights_fn is not common_layers.weights_nonzero:
     raise ValueError("Only weights_nonzero can be used for this metric.")
 
-  predictions = tf.to_int32(tf.squeeze(tf.argmax(predictions, axis=-1), axis=2))
+  predictions = tf.cast(tf.squeeze(tf.argmax(predictions, axis=-1), axis=2), dtype=tf.int32)
   labels = tf.squeeze(labels, axis=(2, 3))
   seq_len = tf.reduce_sum(
       tf.cast(tf.not_equal(labels, tf.constant(0)), dtype=tf.float32), axis=1)
   matching_elements = tf.equal(labels, predictions)
   prefix_len = tf.reduce_sum(
-      tf.cumprod(tf.cast(matching_elements, tf.float32), axis=1), axis=1)
+      tf.math.cumprod(tf.cast(matching_elements, tf.float32), axis=1), axis=1)
   return tf.reduce_mean(prefix_len / seq_len), tf.constant(1.0)
 
 
@@ -308,22 +308,22 @@ def sequence_edit_distance(predictions,
   if weights_fn is not common_layers.weights_nonzero:
     raise ValueError("Only weights_nonzero can be used for this metric.")
 
-  with tf.variable_scope("edit_distance", values=[predictions, labels]):
+  with tf.compat.v1.variable_scope("edit_distance", values=[predictions, labels]):
     # Transform logits into sequence classes by taking max at every step.
-    predictions = tf.to_int32(
-        tf.squeeze(tf.argmax(predictions, axis=-1), axis=(2, 3)))
-    nonzero_idx = tf.where(tf.not_equal(predictions, 0))
+    predictions = tf.cast(
+        tf.squeeze(tf.argmax(predictions, axis=-1), axis=(2, 3)), dtype=tf.int32)
+    nonzero_idx = tf.compat.v1.where(tf.not_equal(predictions, 0))
     sparse_outputs = tf.SparseTensor(nonzero_idx,
                                      tf.gather_nd(predictions, nonzero_idx),
                                      tf.shape(predictions, out_type=tf.int64))
     labels = tf.squeeze(labels, axis=(2, 3))
-    nonzero_idx = tf.where(tf.not_equal(labels, 0))
+    nonzero_idx = tf.compat.v1.where(tf.not_equal(labels, 0))
     label_sparse_outputs = tf.SparseTensor(nonzero_idx,
                                            tf.gather_nd(labels, nonzero_idx),
                                            tf.shape(labels, out_type=tf.int64))
     distance = tf.reduce_sum(
         tf.edit_distance(sparse_outputs, label_sparse_outputs, normalize=False))
-    reference_length = tf.to_float(common_layers.shape_list(nonzero_idx)[0])
+    reference_length = tf.cast(common_layers.shape_list(nonzero_idx)[0], dtype=tf.float32)
     return distance / reference_length, reference_length
 
 
@@ -373,11 +373,11 @@ def rounding_accuracy(predictions,
                       labels,
                       weights_fn=common_layers.weights_nonzero):
   """Rounding accuracy for L1/L2 losses: round down the predictions to ints."""
-  outputs = tf.squeeze(tf.to_int32(predictions))
+  outputs = tf.squeeze(tf.cast(predictions, dtype=tf.int32))
   labels = tf.squeeze(labels)
   weights = weights_fn(labels)
-  labels = tf.to_int32(labels)
-  return tf.to_float(tf.equal(outputs, labels)), weights
+  labels = tf.cast(labels, dtype=tf.int32)
+  return tf.cast(tf.equal(outputs, labels), dtype=tf.float32), weights
 
 
 def padded_accuracy(predictions,
@@ -387,13 +387,13 @@ def padded_accuracy(predictions,
   # If the last dimension is 1 then we're using L1/L2 loss.
   if common_layers.shape_list(predictions)[-1] == 1:
     return rounding_accuracy(predictions, labels, weights_fn=weights_fn)
-  with tf.variable_scope("padded_accuracy", values=[predictions, labels]):
+  with tf.compat.v1.variable_scope("padded_accuracy", values=[predictions, labels]):
     padded_predictions, padded_labels = common_layers.pad_with_zeros(
         predictions, labels)
     weights = weights_fn(padded_labels)
-    outputs = tf.to_int32(tf.argmax(padded_predictions, axis=-1))
-    padded_labels = tf.to_int32(padded_labels)
-    return tf.to_float(tf.equal(outputs, padded_labels)), weights
+    outputs = tf.cast(tf.argmax(padded_predictions, axis=-1), dtype=tf.int32)
+    padded_labels = tf.cast(padded_labels, dtype=tf.int32)
+    return tf.cast(tf.equal(outputs, padded_labels), dtype=tf.float32), weights
 
 def fathom_padded_accuracy(predictions,
                             labels,
@@ -438,13 +438,13 @@ def multilabel_accuracy_matchk(predictions,
     weights: returns all ones.
 
   """
-  predictions = tf.to_int32(tf.argmax(predictions, axis=-1))
-  scores = tf.to_float(tf.equal(predictions, labels))
+  predictions = tf.cast(tf.argmax(predictions, axis=-1), dtype=tf.int32)
+  scores = tf.cast(tf.equal(predictions, labels), dtype=tf.float32)
   # those label == 0 do not count
   weights = weights_fn(labels)
   scores *= weights
   scores = tf.reduce_sum(scores, axis=[1, 2, 3])
-  scores = tf.minimum(scores / tf.to_float(k), 1)
+  scores = tf.minimum(scores / tf.cast(k, dtype=tf.float32), 1)
   # every sample count
   weights = tf.ones(tf.shape(scores), dtype=tf.float32)
 
@@ -470,13 +470,13 @@ def set_precision(predictions, labels,
     hits: A Tensor of shape [batch, nlabels].
     weights: A Tensor of shape [batch, nlabels].
   """
-  with tf.variable_scope("set_precision", values=[predictions, labels]):
+  with tf.compat.v1.variable_scope("set_precision", values=[predictions, labels]):
     labels = tf.squeeze(labels, [2, 3])
     weights = weights_fn(labels)
     labels = tf.one_hot(labels, predictions.shape[-1])
     labels = tf.reduce_max(labels, axis=1)
     labels = tf.cast(labels, tf.bool)
-    return tf.to_float(tf.equal(labels, predictions)), weights
+    return tf.cast(tf.equal(labels, predictions), dtype=tf.float32), weights
 
 
 def set_recall(predictions, labels, weights_fn=common_layers.weights_nonzero):
@@ -492,13 +492,13 @@ def set_recall(predictions, labels, weights_fn=common_layers.weights_nonzero):
     hits: A Tensor of shape [batch, nlabels].
     weights: A Tensor of shape [batch, nlabels].
   """
-  with tf.variable_scope("set_recall", values=[predictions, labels]):
+  with tf.compat.v1.variable_scope("set_recall", values=[predictions, labels]):
     labels = tf.squeeze(labels, [2, 3])
     weights = weights_fn(labels)
     labels = tf.one_hot(labels, predictions.shape[-1])
     labels = tf.reduce_max(labels, axis=1)
     labels = tf.cast(labels, tf.bool)
-    return tf.to_float(tf.equal(labels, predictions)), weights
+    return tf.cast(tf.equal(labels, predictions), dtype=tf.float32), weights
 
 def image_summary(predictions, targets, hparams):
   """Reshapes predictions and passes it to tensorboard.
@@ -515,9 +515,9 @@ def image_summary(predictions, targets, hparams):
   del hparams
   results = tf.cast(tf.argmax(predictions, axis=-1), tf.uint8)
   gold = tf.cast(targets, tf.uint8)
-  summary1 = tf.summary.image("prediction", results, max_outputs=2)
-  summary2 = tf.summary.image("data", gold, max_outputs=2)
-  summary = tf.summary.merge([summary1, summary2])
+  summary1 = tf.compat.v1.summary.image("prediction", results, max_outputs=2)
+  summary2 = tf.compat.v1.summary.image("data", gold, max_outputs=2)
+  summary = tf.compat.v1.summary.merge([summary1, summary2])
   return summary, tf.zeros_like(predictions)
 
 
@@ -531,10 +531,10 @@ def softmax_cross_entropy_one_hot(logits, labels, weights_fn=None):
   Returns:
     cross-entropy (scalar), weights
   """
-  with tf.variable_scope("softmax_cross_entropy_one_hot",
+  with tf.compat.v1.variable_scope("softmax_cross_entropy_one_hot",
                          values=[logits, labels]):
     del weights_fn
-    cross_entropy = tf.losses.softmax_cross_entropy(
+    cross_entropy = tf.compat.v1.losses.softmax_cross_entropy(
         onehot_labels=labels, logits=logits)
     return cross_entropy, tf.constant(1.0)
 
@@ -549,12 +549,12 @@ def sigmoid_accuracy_one_hot(logits, labels, weights_fn=None):
   Returns:
     accuracy (scalar), weights
   """
-  with tf.variable_scope("sigmoid_accuracy_one_hot", values=[logits, labels]):
+  with tf.compat.v1.variable_scope("sigmoid_accuracy_one_hot", values=[logits, labels]):
     del weights_fn
     predictions = tf.nn.sigmoid(logits)
     labels = tf.argmax(labels, -1)
     predictions = tf.argmax(predictions, -1)
-    _, accuracy = tf.metrics.accuracy(labels=labels, predictions=predictions)
+    _, accuracy = tf.compat.v1.metrics.accuracy(labels=labels, predictions=predictions)
     return accuracy, tf.constant(1.0)
 
 
@@ -568,11 +568,11 @@ def sigmoid_accuracy(logits, labels, weights_fn=None):
   Returns:
     accuracy (scalar), weights
   """
-  with tf.variable_scope("sigmoid_accuracy", values=[logits, labels]):
+  with tf.compat.v1.variable_scope("sigmoid_accuracy", values=[logits, labels]):
     del weights_fn
     predictions = tf.nn.sigmoid(logits)
     predictions = tf.argmax(predictions, -1)
-    _, accuracy = tf.metrics.accuracy(labels=labels, predictions=predictions)
+    _, accuracy = tf.compat.v1.metrics.accuracy(labels=labels, predictions=predictions)
     return accuracy, tf.constant(1.0)
 
 
@@ -589,13 +589,13 @@ def sigmoid_precision_one_hot(logits, labels, weights_fn=None):
   Returns:
     precision (scalar), weights
   """
-  with tf.variable_scope("sigmoid_precision_one_hot", values=[logits, labels]):
+  with tf.compat.v1.variable_scope("sigmoid_precision_one_hot", values=[logits, labels]):
     del weights_fn
     num_classes = logits.shape[-1]
     predictions = tf.nn.sigmoid(logits)
     predictions = tf.argmax(predictions, -1)
     predictions = tf.one_hot(predictions, num_classes)
-    _, precision = tf.metrics.precision(labels=labels, predictions=predictions)
+    _, precision = tf.compat.v1.metrics.precision(labels=labels, predictions=predictions)
     return precision, tf.constant(1.0)
 
 
@@ -612,13 +612,13 @@ def sigmoid_recall_one_hot(logits, labels, weights_fn=None):
   Returns:
     recall (scalar), weights
   """
-  with tf.variable_scope("sigmoid_recall_one_hot", values=[logits, labels]):
+  with tf.compat.v1.variable_scope("sigmoid_recall_one_hot", values=[logits, labels]):
     del weights_fn
     num_classes = logits.shape[-1]
     predictions = tf.nn.sigmoid(logits)
     predictions = tf.argmax(predictions, -1)
     predictions = tf.one_hot(predictions, num_classes)
-    _, recall = tf.metrics.recall(labels=labels, predictions=predictions)
+    _, recall = tf.compat.v1.metrics.recall(labels=labels, predictions=predictions)
     return recall, tf.constant(1.0)
 
 
@@ -632,10 +632,10 @@ def sigmoid_cross_entropy_one_hot(logits, labels, weights_fn=None):
   Returns:
     cross_entropy (scalar), weights
   """
-  with tf.variable_scope("sigmoid_cross_entropy_one_hot",
+  with tf.compat.v1.variable_scope("sigmoid_cross_entropy_one_hot",
                          values=[logits, labels]):
     del weights_fn
-    cross_entropy = tf.losses.sigmoid_cross_entropy(
+    cross_entropy = tf.compat.v1.losses.sigmoid_cross_entropy(
         multi_class_labels=labels, logits=logits)
     return cross_entropy, tf.constant(1.0)
 
@@ -653,9 +653,9 @@ def roc_auc(logits, labels, weights_fn=None):
     ROC AUC (scalar), weights
   """
   del weights_fn
-  with tf.variable_scope("roc_auc", values=[logits, labels]):
+  with tf.compat.v1.variable_scope("roc_auc", values=[logits, labels]):
     predictions = tf.argmax(logits, axis=-1)
-    _, auc = tf.metrics.auc(labels, predictions, curve="ROC")
+    _, auc = tf.compat.v1.metrics.auc(labels, predictions, curve="ROC")
     return auc, tf.constant(1.0)
 
 
@@ -715,7 +715,7 @@ def create_evaluation_metrics(problems, model_hparams):
 
       scores, weights = metric_fn(predictions, labels,
                                   weights_fn=weights_fn, **kwargs)
-      return tf.metrics.mean(scores, weights)
+      return tf.compat.v1.metrics.mean(scores, weights)
 
     return problem_metric_fn
 
@@ -858,9 +858,9 @@ def word_error_rate(raw_predictions,
 
   def from_tokens(raw, lookup_):
     gathered = tf.gather(lookup_, tf.cast(raw, tf.int32))
-    joined = tf.regex_replace(tf.reduce_join(gathered, axis=1), b"<EOS>.*", b"")
-    cleaned = tf.regex_replace(joined, b"_", b" ")
-    tokens = tf.string_split(cleaned, " ")
+    joined = tf.strings.regex_replace(tf.strings.reduce_join(gathered, axis=1), b"<EOS>.*", b"")
+    cleaned = tf.strings.regex_replace(joined, b"_", b" ")
+    tokens = tf.compat.v1.string_split(cleaned, " ")
     return tokens
 
   def from_characters(raw, lookup_):
@@ -869,9 +869,9 @@ def word_error_rate(raw_predictions,
         tf.clip_by_value(tf.subtract(raw, 2), 0, 255), tf.uint8)
 
     gathered = tf.gather(lookup_, tf.cast(corrected, tf.int32))[:, :, 0]
-    joined = tf.reduce_join(gathered, axis=1)
-    cleaned = tf.regex_replace(joined, b"\0", b"")
-    tokens = tf.string_split(cleaned, " ")
+    joined = tf.strings.reduce_join(gathered, axis=1)
+    cleaned = tf.strings.regex_replace(joined, b"\0", b"")
+    tokens = tf.compat.v1.string_split(cleaned, " ")
     return tokens
 
   if lookup is None:
@@ -883,7 +883,7 @@ def word_error_rate(raw_predictions,
   if weights_fn is not common_layers.weights_nonzero:
     raise ValueError("Only weights_nonzero can be used for this metric.")
 
-  with tf.variable_scope("word_error_rate", values=[raw_predictions, labels]):
+  with tf.compat.v1.variable_scope("word_error_rate", values=[raw_predictions, labels]):
 
     raw_predictions = tf.squeeze(
         tf.argmax(raw_predictions, axis=-1), axis=(2, 3))

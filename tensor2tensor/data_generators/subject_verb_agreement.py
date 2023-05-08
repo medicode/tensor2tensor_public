@@ -39,7 +39,7 @@ from tensor2tensor.data_generators import text_problems
 from tensor2tensor.utils import metrics
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 _FILE_NAME = 'agr_50_mostcommon_10K'
 _TAR = _FILE_NAME + '.tsv.gz'
@@ -60,7 +60,7 @@ def _build_vocab(examples, example_field, vocab_dir, vocab_name):
     text encoder.
   """
   vocab_path = os.path.join(vocab_dir, vocab_name)
-  if not tf.gfile.Exists(vocab_path):
+  if not tf.io.gfile.exists(vocab_path):
     data = []
     for e in examples:
       data.extend(e[example_field].split())
@@ -88,12 +88,12 @@ def load_examples(tmp_dir, prop_train=0.09, prop_val=0.01):
   """
 
   infile = generator_utils.maybe_download(tmp_dir, _TAR, _URL)
-  tf.logging.info('Loading examples')
+  tf.compat.v1.logging.info('Loading examples')
 
   all_examples = []
   for i, d in enumerate(csv.DictReader(gzip.open(infile), delimiter='\t')):
     if i % 100000 == 0:
-      tf.logging.info('%d examples have been loaded....' % i)
+      tf.compat.v1.logging.info('%d examples have been loaded....' % i)
     ex = {x: int(y) if y.isdigit() else y for x, y in d.items()}
     all_examples.append(ex)
 

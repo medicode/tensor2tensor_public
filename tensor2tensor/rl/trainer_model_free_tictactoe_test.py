@@ -22,7 +22,7 @@ from __future__ import print_function
 from tensor2tensor.rl import trainer_model_free
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 FLAGS = tf.flags.FLAGS
 
@@ -39,7 +39,7 @@ class TrainerModelFreeTicTacToeTest(tf.test.TestCase):
     hparams.epochs_num = 100
     hparams.eval_every_epochs = 25
 
-    FLAGS.output_dir = tf.test.get_temp_dir()
+    FLAGS.output_dir = tf.compat.v1.test.get_temp_dir()
     FLAGS.env_problem_name = "tic_tac_toe_env_problem"
     trainer_model_free.train(hparams, FLAGS.output_dir, FLAGS.env_problem_name)
 

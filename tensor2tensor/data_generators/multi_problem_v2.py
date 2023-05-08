@@ -61,7 +61,7 @@ import numpy as np
 
 from tensor2tensor.data_generators import problem
 from tensor2tensor.data_generators import text_problems
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 class MultiProblemV2(problem.Problem):
@@ -120,7 +120,7 @@ class MultiProblemV2(problem.Problem):
     ]
     if mode is problem.DatasetSplit.TRAIN:
       if global_step is None:
-        global_step = tf.train.get_or_create_global_step()
+        global_step = tf.compat.v1.train.get_or_create_global_step()
       pmf = get_schedule_distribution(self.schedule, global_step)
       return get_multi_dataset(datasets, pmf)
     elif self.only_eval_first_problem:
@@ -164,8 +164,8 @@ class MultiText2TextProblem(MultiProblemV2, text_problems.Text2TextProblem):
           example['inputs_position'] = _to_constant_shape(
               example['inputs_position'])
         else:
-          example['inputs_segmentation'] = tf.to_int64(
-              tf.not_equal(example['inputs'], 0))
+          example['inputs_segmentation'] = tf.cast(
+              tf.not_equal(example['inputs'], 0), dtype=tf.int64)
           example['inputs_position'] = (
               example['inputs_segmentation'] * tf.range(length, dtype=tf.int64))
       if 'targets_segmentation' in example:
@@ -174,8 +174,8 @@ class MultiText2TextProblem(MultiProblemV2, text_problems.Text2TextProblem):
         example['targets_position'] = _to_constant_shape(
             example['targets_position'])
       else:
-        example['targets_segmentation'] = tf.to_int64(
-            tf.not_equal(example['targets'], 0))
+        example['targets_segmentation'] = tf.cast(
+            tf.not_equal(example['targets'], 0), dtype=tf.int64)
         example['targets_position'] = (
             example['targets_segmentation'] * tf.range(length, dtype=tf.int64))
     return example
@@ -183,7 +183,7 @@ class MultiText2TextProblem(MultiProblemV2, text_problems.Text2TextProblem):
   def generate_data_with_shared_vocab(self, data_dir, tmp_dir, task_id=-1):
     """Generates TF-Records for problems using a global vocabulary file."""
     global_vocab_filename = os.path.join(data_dir, self.vocab_filename)
-    if not tf.gfile.Exists(global_vocab_filename):
+    if not tf.io.gfile.exists(global_vocab_filename):
       raise ValueError(
           'Global vocabulary file: %s does not exist, '
           'please create one using build_vocab.py' % global_vocab_filename)
@@ -192,8 +192,8 @@ class MultiText2TextProblem(MultiProblemV2, text_problems.Text2TextProblem):
     # imposes the fewest changes to the text-to-text API.
     for p in self.problems:
       local_vocab_filename = os.path.join(data_dir, p.vocab_filename)
-      if not tf.gfile.Exists(local_vocab_filename):
-        tf.gfile.Copy(global_vocab_filename, local_vocab_filename)
+      if not tf.io.gfile.exists(local_vocab_filename):
+        tf.io.gfile.copy(global_vocab_filename, local_vocab_filename)
       p.generate_data(data_dir, tmp_dir, task_id)
 
   @property
@@ -218,7 +218,7 @@ def get_multi_dataset(datasets, pmf=None):
     make_one_shot_iterator.
   """
   pmf = tf.fill([len(datasets)], 1.0 / len(datasets)) if pmf is None else pmf
-  samplers = [d.repeat().make_one_shot_iterator().get_next for d in datasets]
+  samplers = [tf.compat.v1.data.make_one_shot_iterator(d.repeat()).get_next for d in datasets]
   sample = lambda _: categorical_case(pmf, samplers)
   return tf.data.Dataset.from_tensors([]).repeat().map(sample)
 
@@ -240,7 +240,7 @@ def get_schedule_distribution(schedule, global_step=None):
     # TODO(noam): get the general case working.
     return pmfs[0]
   if global_step is None:
-    global_step = tf.train.get_or_create_global_step()
+    global_step = tf.compat.v1.train.get_or_create_global_step()
   if interpolation == 'step':
     interpolation_fn = step_interpolation
   elif interpolation == 'linear':
@@ -248,7 +248,7 @@ def get_schedule_distribution(schedule, global_step=None):
   else:
     raise ValueError('Invalid interpolation strategy: %s' % interpolation)
   return tf.reshape(
-      tf.py_func(
+      tf.compat.v1.py_func(
           func=lambda x: interpolation_fn(x, np.array(steps), np.array(pmfs)),
           inp=[global_step], Tout=tf.float32), [len(pmfs[0])])
 
@@ -264,7 +264,7 @@ def categorical_case(pmf, fns, rand=None):
   Returns:
     A tensor, the output of fns[i] with probability pmf[i].
   """
-  rand = tf.random_uniform([]) if rand is None else rand
+  rand = tf.random.uniform([]) if rand is None else rand
   cmf = tf.pad(tf.cumsum(pmf), [(1, 0)])
   cmf = [cmf[i] for i in range(len(fns) + 1)]
   preds = [(rand >= a) & (rand < b) for a, b in zip(cmf[:-1], cmf[1:])]

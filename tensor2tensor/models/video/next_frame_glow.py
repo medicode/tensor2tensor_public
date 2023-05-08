@@ -28,7 +28,7 @@ from tensor2tensor.models.research import glow
 from tensor2tensor.models.research import glow_ops
 from tensor2tensor.utils import contrib
 from tensor2tensor.utils import registry
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 import tensorflow_probability as tfp
 
 arg_scope = contrib.framework().arg_scope
@@ -173,7 +173,7 @@ def get_cond_latents(all_latents=None, hparams=None):
         cond_latents = all_latents[-1]
 
   if hparams.gen_mode == "conditional":
-    global_step = tf.train.get_or_create_global_step()
+    global_step = tf.compat.v1.train.get_or_create_global_step()
     condition = tf.greater(global_step, hparams.pretrain_steps)
   else:
     condition = tf.constant(False, dtype=tf.bool)
@@ -231,7 +231,7 @@ class NextFrameGlow(glow.Glow):
       num_target_frames = self.hparams.video_num_target_frames
 
     ops = [glow_ops.get_variable_ddi, glow_ops.actnorm, glow_ops.get_dropout]
-    var_scope = tf.variable_scope("next_frame_glow/body", reuse=True)
+    var_scope = tf.compat.v1.variable_scope("next_frame_glow/body", reuse=True)
     all_frames = []
 
     # If eps=None, images are sampled from the prior.
@@ -328,7 +328,7 @@ class NextFrameGlow(glow.Glow):
     Raises:
       ValueError: If cond_top_latents are not of the expected length.
     """
-    with tf.variable_scope("top", reuse=tf.AUTO_REUSE):
+    with tf.compat.v1.variable_scope("top", reuse=tf.compat.v1.AUTO_REUSE):
       if self.hparams.latent_dist_encoder == "pointwise":
         last_latent = cond_top_latents
         top = glow_ops.scale_gaussian_prior(

@@ -21,7 +21,7 @@ from __future__ import print_function
 import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
 from tensor2tensor.layers import common_layers
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 def lengths_to_area_mask(feature_length, length, max_area_size):
@@ -61,7 +61,7 @@ def _pool_one_shape(features_2d, area_width, area_height, batch_size,
   Returns:
     pool_tensor: A Tensor of shape [batch_size, num_areas, depth]
   """
-  with tf.name_scope(name, default_name="pool_one_shape"):
+  with tf.compat.v1.name_scope(name, default_name="pool_one_shape"):
     images = []
     for y_shift in range(area_height):
       image_height = tf.maximum(height - area_height + 1 + y_shift, 0)
@@ -91,7 +91,7 @@ def basic_pool(features, max_area_width, max_area_height=1, height=1,
     area_heights: A Tensor of shape [batch_size, num_areas, 1]
     area_widths: A Tensor of shape [batch_size, num_areas, 1]
   """
-  with tf.name_scope(name, default_name="basic_pool"):
+  with tf.compat.v1.name_scope(name, default_name="basic_pool"):
     feature_shape = common_layers.shape_list(features)
     batch_size = feature_shape[0]
     length = feature_shape[-2]
@@ -143,7 +143,7 @@ def _compute_sum_image(features, max_area_width, max_area_height=1, height=1,
     area_heights: A Tensor of shape [batch_size, num_areas, 1]
     area_widths: A Tensor of shape [batch_size, num_areas, 1]
   """
-  with tf.name_scope(name, default_name="compute_sum_image"):
+  with tf.compat.v1.name_scope(name, default_name="compute_sum_image"):
     feature_shape = common_layers.shape_list(features)
     batch_size = feature_shape[0]
     length = feature_shape[-2]
@@ -213,8 +213,8 @@ def compute_area_features(features, max_area_width, max_area_height=1, height=1,
     area_heights: A Tensor of shape [batch_size, num_areas, 1]
     area_widths: A Tensor of shape [batch_size, num_areas, 1]
   """
-  with tf.name_scope("compute_area_features"):
-    tf.logging.info("area_attention compute_area_features: %d x %d",
+  with tf.compat.v1.name_scope("compute_area_features"):
+    tf.compat.v1.logging.info("area_attention compute_area_features: %d x %d",
                     max_area_height, max_area_width)
     area_sum, area_heights, area_widths = _compute_sum_image(
         features, max_area_width=max_area_width,
@@ -223,9 +223,9 @@ def compute_area_features(features, max_area_width, max_area_height=1, height=1,
         tf.pow(features, 2), max_area_width=max_area_width,
         max_area_height=max_area_height, height=height)
     sizes = tf.multiply(area_heights, area_widths)
-    float_area_sizes = tf.to_float(sizes)
-    area_mean = tf.div(area_sum, float_area_sizes)
-    s2_n = tf.div(area_squared_sum, float_area_sizes)
+    float_area_sizes = tf.cast(sizes, dtype=tf.float32)
+    area_mean = tf.compat.v1.div(area_sum, float_area_sizes)
+    s2_n = tf.compat.v1.div(area_squared_sum, float_area_sizes)
     area_variance = tf.subtract(s2_n, tf.pow(area_mean, 2))
     area_std = tf.sqrt(tf.abs(area_variance) + epsilon)
     return area_mean, area_std, area_sum, area_heights, area_widths
@@ -249,7 +249,7 @@ def compute_area_key(features, max_area_width, max_area_height=1, height=1,
     area_key: a Tensor in the shape of [batch_size, num_areas, depth]
   """
 
-  tf.logging.info("area_attention mode=%s", mode)
+  tf.compat.v1.logging.info("area_attention mode=%s", mode)
   area_mean, area_std, _, area_heights, area_widths =\
       compute_area_features(features, max_area_width=max_area_width,
                             max_area_height=max_area_height, height=height)
@@ -261,18 +261,18 @@ def compute_area_key(features, max_area_width, max_area_height=1, height=1,
     return area_max
   elif mode == "sample":
     if training:
-      area_mean += (area_std * tf.random_normal(tf.shape(area_std)))
+      area_mean += (area_std * tf.random.normal(tf.shape(area_std)))
     return area_mean
-  with tf.variable_scope(
+  with tf.compat.v1.variable_scope(
       name, default_name="combine_area_features",
       values=[area_mean, area_std, area_heights, area_widths]):
     depth = common_layers.shape_list(area_mean)[-1]
     height_embed = tf.nn.embedding_lookup(
-        params=tf.get_variable("area_height_emb",
+        params=tf.compat.v1.get_variable("area_height_emb",
                                [max_area_height, depth // 2]),
         ids=area_heights[:, :, 0] - 1)
     width_embed = tf.nn.embedding_lookup(
-        params=tf.get_variable("area_width_emb",
+        params=tf.compat.v1.get_variable("area_width_emb",
                                [max_area_width, depth // 2]),
         ids=area_widths[:, :, 0] - 1)
     size_embed = tf.concat([height_embed, width_embed], -1)
@@ -287,18 +287,18 @@ def compute_area_key(features, max_area_width, max_area_height=1, height=1,
       feature_concat = size_embed + area_mean + area_std
     elif mode == "sample_concat":
       if training:
-        area_mean += (area_std * tf.random_normal(tf.shape(area_std)))
+        area_mean += (area_std * tf.random.normal(tf.shape(area_std)))
       feature_concat = tf.concat([area_mean, size_embed], -1)
     elif mode == "sample_sum":
       if training:
-        area_mean += (area_std * tf.random_normal(tf.shape(area_std)))
+        area_mean += (area_std * tf.random.normal(tf.shape(area_std)))
       feature_concat = area_mean + size_embed
     else:
       raise ValueError("Unsupported area key mode=%s" % mode)
-    feature_hidden = tf.layers.dense(inputs=feature_concat,
+    feature_hidden = tf.compat.v1.layers.dense(inputs=feature_concat,
                                      units=depth,
                                      activation=tf.nn.relu)
-    area_key = tf.layers.dense(feature_hidden, units=depth)
+    area_key = tf.compat.v1.layers.dense(feature_hidden, units=depth)
     return area_key
 
 
@@ -353,14 +353,14 @@ def dot_product_area_attention(q,
     Tensor with shape [..., length_q, depth_v].
   """
 
-  tf.logging.info("dot_product_area_attention: "
+  tf.compat.v1.logging.info("dot_product_area_attention: "
                   "area_h=%d, area_w=%d, mem_h=%d, "
                   "area_key_mode=%s, area_value_mode=%s, "
                   "area_temperature=%f",
                   max_area_height, max_area_width, memory_height,
                   area_key_mode, area_value_mode,
                   area_temperature)
-  with tf.variable_scope(
+  with tf.compat.v1.variable_scope(
       name, default_name="dot_product_area_attention",
       values=[q, k, v]) as scope:
     mem_shape = common_layers.shape_list(k)
@@ -396,16 +396,16 @@ def dot_product_area_attention(q,
     logits = tf.matmul(q, k, transpose_b=True)  # [..., length_q, length_kv]
     if bias is not None:
       bias = common_layers.cast_like(bias, logits)
-      with tf.name_scope("compute_area_att_bias", values=[bias]):
+      with tf.compat.v1.name_scope("compute_area_att_bias", values=[bias]):
         bias_shape = common_layers.shape_list(bias)
         mem_length = bias_shape[-1]
         bias_values = tf.reshape(
-            tf.to_float(tf.less(bias, -1)), [-1, mem_length, 1])
+            tf.cast(tf.less(bias, -1), dtype=tf.float32), [-1, mem_length, 1])
         _, _, padding_sum, _, _ = compute_area_features(
             bias_values, max_area_width=max_area_width,
             max_area_height=max_area_height, height=memory_height)
-        bias = tf.where(
-            tf.cast(tf.to_int32(padding_sum), tf.bool),
+        bias = tf.compat.v1.where(
+            tf.cast(tf.cast(padding_sum, dtype=tf.int32), tf.bool),
             tf.fill(tf.shape(padding_sum), -np.inf),
             tf.zeros_like(padding_sum, dtype=tf.float32))
         bias = tf.reshape(bias,
@@ -415,13 +415,13 @@ def dot_product_area_attention(q,
     logits = logits / area_temperature
     weights = tf.nn.softmax(logits, name="attention_weights")
     if top_k_areas > 0:
-      tf.logging.info("area_attention top_k_areas=%d", top_k_areas)
+      tf.compat.v1.logging.info("area_attention top_k_areas=%d", top_k_areas)
       top_k = tf.minimum(common_layers.shape_list(weights)[-1], top_k_areas)
       top_weights, _ = tf.nn.top_k(weights, k=top_k)
       min_values = tf.reduce_min(top_weights, -1, keepdims=True)
-      weights = tf.where(tf.greater_equal(weights, min_values),
+      weights = tf.compat.v1.where(tf.greater_equal(weights, min_values),
                          weights, tf.zeros_like(weights))
-      weights = tf.div(weights, tf.reduce_sum(weights, -1, keepdims=True))
+      weights = tf.compat.v1.div(weights, tf.reduce_sum(weights, -1, keepdims=True))
     if save_weights_to is not None:
       save_weights_to[scope.name] = weights
       save_weights_to[scope.name + "/logits"] = logits

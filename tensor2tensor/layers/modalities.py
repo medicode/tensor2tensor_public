@@ -32,7 +32,7 @@ from tensor2tensor.layers import common_layers
 from tensor2tensor.layers import common_video
 from tensor2tensor.layers import discretization
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow_probability as tfp
 
@@ -140,11 +140,11 @@ def audio_bottom(x, model_hparams, vocab_size):
   """
   del vocab_size  # unused arg
   inputs = x
-  with tf.variable_scope("audio_modality"):
+  with tf.compat.v1.variable_scope("audio_modality"):
     # TODO(aidangomez): Will need to sort out a better audio pipeline
     def xnet_resblock(x, filters, res_relu, name):
       """Xception block."""
-      with tf.variable_scope(name):
+      with tf.compat.v1.variable_scope(name):
         # Typically audio samples are >100k samples in length and have a width
         # of 2 or 4. Mono audio has a single channel while stereo has 2.
         y = common_layers.separable_conv_block(
@@ -164,7 +164,7 @@ def audio_bottom(x, model_hparams, vocab_size):
             force2d=True,
             name="res_conv0")
 
-    x = tf.to_float(inputs) / 255.
+    x = tf.cast(inputs, dtype=tf.float32) / 255.
     x.set_shape([None, None, None, 1])
     for i in range(model_hparams.audio_compression):
       x = xnet_resblock(x, 2**(i + 1), True, "compress_block_%d" % i)
@@ -188,11 +188,11 @@ def audio_spectral_bottom(x, model_hparams, vocab_size):
   """
   del vocab_size  # unused arg
   inputs = x
-  with tf.variable_scope("audio_spectral_modality"):
+  with tf.compat.v1.variable_scope("audio_spectral_modality"):
     # TODO(aidangomez): Will need to sort out a better audio pipeline
     def xnet_resblock(x, filters, res_relu, name):
       """Xception-like block."""
-      with tf.variable_scope(name):
+      with tf.compat.v1.variable_scope(name):
         # We only stride along the length dimension to preserve the spectral
         # bins (which are tiny in dimensionality relative to length)
         y = common_layers.separable_conv_block(
@@ -224,7 +224,7 @@ def audio_spectral_bottom(x, model_hparams, vocab_size):
 
 
 def class_label_bottom(x, model_hparams, vocab_size):
-  with tf.variable_scope("class_label_modality_%d_%d" % (
+  with tf.compat.v1.variable_scope("class_label_modality_%d_%d" % (
       vocab_size, model_hparams.hidden_size)):
     multiplier = 1.0
     if model_hparams.multiply_embedding_mode == "sqrt_depth":
@@ -236,7 +236,7 @@ def class_label_bottom(x, model_hparams, vocab_size):
 
 
 def class_label_targets_bottom(x, model_hparams, vocab_size):
-  with tf.variable_scope("class_label_modality_%d_%d" % (
+  with tf.compat.v1.variable_scope("class_label_modality_%d_%d" % (
       vocab_size, model_hparams.hidden_size)):
     return tf.zeros([common_layers.shape_list(x)[0],
                      1,
@@ -246,25 +246,25 @@ def class_label_targets_bottom(x, model_hparams, vocab_size):
 
 def identity_bottom(x, model_hparams, vocab_size):
   del model_hparams, vocab_size  # unused arg
-  return tf.to_float(x)
+  return tf.cast(x, dtype=tf.float32)
 
 
 def image_bottom(x, model_hparams, vocab_size):
   del model_hparams, vocab_size  # unused arg
-  with tf.variable_scope("image_modality"):
+  with tf.compat.v1.variable_scope("image_modality"):
     if not tf.executing_eagerly():
-      tf.summary.image(
+      tf.compat.v1.summary.image(
           "inputs", common_layers.tpu_safe_image_summary(x), max_outputs=2)
-    return tf.to_float(x)
+    return tf.cast(x, dtype=tf.float32)
 
 
 def image_targets_bottom(x, model_hparams, vocab_size):
   """Bottom transformation for target images."""
   pixel_embedding_size = 64
   inputs = x
-  with tf.variable_scope("image_modality"):
+  with tf.compat.v1.variable_scope("image_modality"):
     if not tf.executing_eagerly():
-      tf.summary.image(
+      tf.compat.v1.summary.image(
           "targets_bottom",
           common_layers.tpu_safe_image_summary(inputs),
           max_outputs=1)
@@ -273,16 +273,16 @@ def image_targets_bottom(x, model_hparams, vocab_size):
       raise ValueError("Assuming images given as int tensors in the format "
                        "[batch, height, width, channels] (256 values).")
     # We embed each of 256=vocab_size possible pixel values.
-    embedding_var = tf.get_variable(
+    embedding_var = tf.compat.v1.get_variable(
         "pixel_embedding",
         [vocab_size, pixel_embedding_size])
-    hot_inputs = tf.one_hot(tf.to_int32(inputs), vocab_size)
+    hot_inputs = tf.one_hot(tf.cast(inputs, dtype=tf.int32), vocab_size)
     hot_inputs = tf.reshape(hot_inputs, [-1, vocab_size])
     embedded = tf.matmul(hot_inputs, embedding_var)
     # Let's now merge all channels that were embedded into a single vector.
     merged_size = pixel_embedding_size * inputs_shape[3]
     embedded = tf.reshape(embedded, inputs_shape[:3] + [merged_size])
-    merged = tf.layers.dense(
+    merged = tf.compat.v1.layers.dense(
         embedded,
         model_hparams.hidden_size,
         name="merge_pixel_embedded_channels")
@@ -307,11 +307,11 @@ def _image_channel_compress_bottom(inputs, model_hparams, name="bottom"):
       [batch, img_len, img_len, model_hparams.hidden_size].
   """
   num_channels = 3
-  with tf.variable_scope(name):
-    inputs = tf.to_float(inputs)
+  with tf.compat.v1.variable_scope(name):
+    inputs = tf.cast(inputs, dtype=tf.float32)
     hp = model_hparams
     if hp.mode != tf_estimator.ModeKeys.PREDICT:
-      tf.summary.image(
+      tf.compat.v1.summary.image(
           "inputs",
           common_layers.tpu_safe_image_summary(inputs),
           max_outputs=2)
@@ -323,7 +323,7 @@ def _image_channel_compress_bottom(inputs, model_hparams, name="bottom"):
         inputs, [-1, inputs_shape[1], inputs_shape[2] * inputs_shape[3], 1])
 
     # Compress RGB intensities for each pixel using a convolution.
-    outputs = tf.layers.conv2d(
+    outputs = tf.compat.v1.layers.conv2d(
         inputs,
         model_hparams.hidden_size,
         kernel_size=(1, num_channels),
@@ -347,7 +347,7 @@ def image_channel_compress_targets_bottom(x, model_hparams, vocab_size):
 def image_channel_embeddings_bottom(x, model_hparams, vocab_size):
   """Bottom transformation for image targets."""
   del vocab_size  # unused arg
-  inputs = tf.to_int32(x)
+  inputs = tf.cast(x, dtype=tf.int32)
   io_depth = model_hparams.num_channels
   tshape = common_layers.shape_list(inputs)
   hidden_size = model_hparams.hidden_size
@@ -359,7 +359,7 @@ def image_channel_embeddings_bottom(x, model_hparams, vocab_size):
 
 def make_targets_bottom(bottom):
   def targets_bottom(x, model_hparams, vocab_size):
-    with tf.variable_scope("targets_bottom"):
+    with tf.compat.v1.variable_scope("targets_bottom"):
       return bottom(x, model_hparams, vocab_size)
 
   return targets_bottom
@@ -367,9 +367,9 @@ def make_targets_bottom(bottom):
 
 def real_bottom(x, model_hparams, vocab_size):
   del vocab_size  # unused arg
-  with tf.variable_scope("real"):
-    return tf.layers.dense(
-        tf.to_float(x), model_hparams.hidden_size, name="bottom")
+  with tf.compat.v1.variable_scope("real"):
+    return tf.compat.v1.layers.dense(
+        tf.cast(x, dtype=tf.float32), model_hparams.hidden_size, name="bottom")
 
 
 def speech_recognition_bottom(x, model_hparams, vocab_size):
@@ -390,10 +390,10 @@ def speech_recognition_bottom(x, model_hparams, vocab_size):
   num_mel_bins = p.audio_num_mel_bins
   num_channels = 3 if p.audio_add_delta_deltas else 1
 
-  with tf.variable_scope("speech_recognition_modality"):
+  with tf.compat.v1.variable_scope("speech_recognition_modality"):
     if p.audio_preproc_in_bottom:
       # Compute filterbanks
-      with tf.variable_scope("fbanks"):
+      with tf.compat.v1.variable_scope("fbanks"):
         waveforms = tf.squeeze(inputs, [2, 3])
         mel_fbanks = common_audio.compute_mel_filterbank_features(
             waveforms,
@@ -424,7 +424,7 @@ def speech_recognition_bottom(x, model_hparams, vocab_size):
                     2. * mean * tf.reduce_sum(x, axis=[1], keepdims=True) +
                     tf.reduce_sum(x ** 2, axis=[1], keepdims=True)
                     ) / num_of_nonpadding_elements
-        x = (x - mean) * tf.rsqrt(variance + var_epsilon) * tf.expand_dims(
+        x = (x - mean) * tf.math.rsqrt(variance + var_epsilon) * tf.expand_dims(
             nonpadding_mask, -1)
     else:
       x = inputs
@@ -437,7 +437,7 @@ def speech_recognition_bottom(x, model_hparams, vocab_size):
     # TODO(chorowski): how to specify bottom's hparams and avoid hardcoding?
     x = tf.pad(x, [[0, 0], [0, 8], [0, 0], [0, 0]])
     for _ in range(2):
-      x = tf.layers.conv2d(
+      x = tf.compat.v1.layers.conv2d(
           x, 128, (3, 3), (2, 2), use_bias=False)
       x = common_layers.layer_norm(x)
       x = tf.nn.relu(x)
@@ -446,7 +446,7 @@ def speech_recognition_bottom(x, model_hparams, vocab_size):
     # apply a conv that will remove all frequencies and at the same time
     # project the output into desired hidden_size
     x = tf.pad(x, [[0, 0], [0, 2], [0, 0], [0, 0]])
-    x = tf.layers.conv2d(x, p.hidden_size, (3, xshape[2]), use_bias=False)
+    x = tf.compat.v1.layers.conv2d(x, p.hidden_size, (3, xshape[2]), use_bias=False)
 
     assert common_layers.shape_list(x)[2] == 1
     x = common_layers.layer_norm(x)
@@ -474,9 +474,9 @@ def get_weights(model_hparams, vocab_size, hidden_dim=None):
         1 if i < vocab_size % num_shards else 0)
     var_name = "weights_%d" % i
     shards.append(
-        tf.get_variable(
+        tf.compat.v1.get_variable(
             var_name, [shard_size, hidden_dim],
-            initializer=tf.random_normal_initializer(0.0, hidden_dim ** -0.5)))
+            initializer=tf.compat.v1.random_normal_initializer(0.0, hidden_dim ** -0.5)))
   if num_shards == 1:
     ret = shards[0]
   else:
@@ -489,7 +489,7 @@ def get_weights(model_hparams, vocab_size, hidden_dim=None):
 
 def _symbol_bottom_simple(x, model_hparams, vocab_size, name, reuse):
   """Bottom transformation for symbols."""
-  with tf.variable_scope(name, reuse=reuse):
+  with tf.compat.v1.variable_scope(name, reuse=reuse):
     # Ensure the inputs are 3-D
     if len(x.get_shape()) == 4:
       x = tf.squeeze(x, axis=3)
@@ -555,14 +555,14 @@ def video_bitwise_bottom(x, model_hparams, vocab_size):
   """Bottom transformation for embedding video bitwise."""
   pixel_embedding_size = 64
   inputs = x
-  with tf.variable_scope("video_modality_bitwise", reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope("video_modality_bitwise", reuse=tf.compat.v1.AUTO_REUSE):
     common_layers.summarize_video(inputs, "bottom")
     # Embed bitwise.
     assert vocab_size == 256
     embedded = discretization.int_to_bit_embed(inputs, 8,
                                                pixel_embedding_size)
     # Project.
-    return tf.layers.dense(
+    return tf.compat.v1.layers.dense(
         embedded,
         model_hparams.hidden_size,
         name="merge_pixel_embedded_frames")
@@ -572,7 +572,7 @@ def video_bitwise_targets_bottom(x, model_hparams, vocab_size):
   """Bottom transformation for embedding target video bitwise."""
   pixel_embedding_size = 64
   inputs = x
-  with tf.variable_scope("video_modality_bitwise", reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope("video_modality_bitwise", reuse=tf.compat.v1.AUTO_REUSE):
     common_layers.summarize_video(inputs, "targets_bottom")
     # Embed bitwise.
     assert vocab_size == 256
@@ -580,7 +580,7 @@ def video_bitwise_targets_bottom(x, model_hparams, vocab_size):
                                                pixel_embedding_size)
     # Transpose and project.
     transposed = common_layers.time_to_channels(embedded)
-    return tf.layers.dense(
+    return tf.compat.v1.layers.dense(
         transposed,
         model_hparams.hidden_size,
         name="merge_pixel_embedded_frames")
@@ -606,8 +606,8 @@ def video_pixel_noise_bottom(x, model_hparams, vocab_size):
     background = tfp.stats.percentile(inputs, 50., axis=[0, 1, 2, 3])
     input_shape = common_layers.shape_list(inputs)
     input_size = tf.reduce_prod(input_shape[:-1])
-    input_mask = tf.multinomial(
-        tf.log([[input_noise, 1. - input_noise]]), input_size)
+    input_mask = tf.random.categorical(
+        tf.math.log([[input_noise, 1. - input_noise]]), input_size)
     input_mask = tf.reshape(tf.cast(input_mask, tf.int32),
                             input_shape[:-1] + [1])
     inputs = inputs * input_mask + background * (1 - input_mask)
@@ -641,7 +641,7 @@ def ctc_symbol_loss(top_out, targets, model_hparams, vocab_size, weight_fn):
   """Compute the CTC loss."""
   del model_hparams, vocab_size  # unused arg
   logits = top_out
-  with tf.name_scope("ctc_loss", values=[logits, targets]):
+  with tf.compat.v1.name_scope("ctc_loss", values=[logits, targets]):
     # For CTC we assume targets are 1d, [batch, length, 1, 1] here.
     targets_shape = targets.get_shape().as_list()
     assert len(targets_shape) == 4
@@ -649,11 +649,11 @@ def ctc_symbol_loss(top_out, targets, model_hparams, vocab_size, weight_fn):
     assert targets_shape[3] == 1
     targets = tf.squeeze(targets, axis=[2, 3])
     logits = tf.squeeze(logits, axis=[2, 3])
-    targets_mask = 1 - tf.to_int32(tf.equal(targets, 0))
+    targets_mask = 1 - tf.cast(tf.equal(targets, 0), dtype=tf.int32)
     targets_lengths = tf.reduce_sum(targets_mask, axis=1)
     sparse_targets = tf.keras.backend.ctc_label_dense_to_sparse(
         targets, targets_lengths)
-    xent = tf.nn.ctc_loss(
+    xent = tf.compat.v1.nn.ctc_loss(
         sparse_targets,
         logits,
         targets_lengths,
@@ -684,7 +684,7 @@ def generic_l2_loss(body_output,
                     vocab_size,
                     weights_fn):
   del model_hparams, vocab_size, weights_fn  # unused arg
-  loss = tf.squared_difference(body_output, tf.to_float(targets))
+  loss = tf.math.squared_difference(body_output, tf.cast(targets, dtype=tf.float32))
   return tf.reduce_mean(loss), tf.constant(1.0)
 
 
@@ -708,7 +708,7 @@ def multi_label_loss(top_out, targets, model_hparams, vocab_size, weights_fn):
   loss = tf.reduce_sum(xent, axis=1)
   weights = tf.reduce_sum(weights, axis=1)
   loss /= (weights + 1e-8)
-  weights = tf.to_float(tf.greater(weights, 0.))
+  weights = tf.cast(tf.greater(weights, 0.), dtype=tf.float32)
 
   return tf.reduce_sum(loss * weights), tf.reduce_sum(weights)
 
@@ -731,7 +731,7 @@ def one_hot_class_label_loss(top_out,
     loss_scale (cross-entropy), loss_denom
   """
   del model_hparams, vocab_size  # unused arg
-  loss_scale = tf.losses.softmax_cross_entropy(
+  loss_scale = tf.compat.v1.losses.softmax_cross_entropy(
       onehot_labels=targets, logits=top_out)
   weights = weights_fn(targets)
   loss_denom = tf.reduce_sum(weights)
@@ -744,7 +744,7 @@ def real_l2_loss(top_out, targets, model_hparams, vocab_size, weights_fn):
   if (len(common_layers.shape_list(top_out)) != len(
       common_layers.shape_list(targets))):
     predictions = tf.squeeze(top_out, axis=[-1])
-  with tf.name_scope("l2"):
+  with tf.compat.v1.name_scope("l2"):
     weights = weights_fn(targets)
     l2 = tf.pow(predictions - targets, 2)
     return tf.reduce_sum(l2 * weights), tf.reduce_sum(weights)
@@ -761,7 +761,7 @@ def real_log_poisson_loss(top_out,
   if (len(common_layers.shape_list(top_out)) != len(
       common_layers.shape_list(targets))):
     predictions = tf.squeeze(top_out, axis=[-1])
-  with tf.name_scope("log_possion"):
+  with tf.compat.v1.name_scope("log_possion"):
     weights = weights_fn(targets)
     lp_loss = tf.nn.log_poisson_loss(targets, predictions)
     return tf.reduce_sum(lp_loss * weights), tf.reduce_sum(weights)
@@ -776,7 +776,7 @@ def sigmoid_class_label_loss(top_out,
   # Expect inputs of size [batch-size, timesteps, 1, num-classes], where the
   # last dimension of num-classes represents logits for binary labels
   del model_hparams, vocab_size  # unused arg
-  loss_scale = tf.losses.sigmoid_cross_entropy(
+  loss_scale = tf.compat.v1.losses.sigmoid_cross_entropy(
       multi_class_labels=targets, logits=top_out)
   weights = weights_fn(targets)
   loss_denom = tf.reduce_sum(weights)
@@ -792,7 +792,7 @@ def sigmoid_max_pooling_class_label_loss(top_out,
   # Expect inputs of size [batch-size, 1, 1, num-classes], where the
   # last dimension of num-classes represents logits for binary labels
   del model_hparams, vocab_size  # unused arg
-  loss_scale = tf.losses.sigmoid_cross_entropy(
+  loss_scale = tf.compat.v1.losses.sigmoid_cross_entropy(
       multi_class_labels=targets, logits=top_out)
   weights = weights_fn(targets)
   loss_denom = tf.reduce_sum(weights)
@@ -807,7 +807,7 @@ def symbol_one_hot_loss(top_out,
   del model_hparams, weights_fn  # unused arg
   labels = tf.one_hot(targets, vocab_size)
   loss = tf.nn.softmax_cross_entropy_with_logits(
-      logits=top_out, labels=labels)
+      logits=top_out, labels=tf.stop_gradient(labels))
   return tf.reduce_mean(loss), tf.constant(1.0)
 
 
@@ -862,7 +862,7 @@ def video_l1_loss(top_out, targets, model_hparams, vocab_size, weights_fn):
   # So for int targets, say 0 and 7, we actually train to predict 0.5 and 7.5.
   # Later (in merics or infer) this is cast to int anyway. Also, we have no
   # loss beyond cutoff = 0.2 as these are already correct predictions.
-  targets = tf.to_float(targets) + 0.5
+  targets = tf.cast(targets, dtype=tf.float32) + 0.5
   loss = video_l1_internal_loss(logits, targets, model_hparams)
   return tf.reduce_sum(loss * weights), tf.reduce_sum(weights)
 
@@ -870,7 +870,7 @@ def video_l1_loss(top_out, targets, model_hparams, vocab_size, weights_fn):
 def video_l2_internal_loss(logits, targets, model_hparams):
   cutoff = getattr(model_hparams, "video_modality_loss_cutoff", 0.2)
   return tf.nn.relu(
-      tf.squared_difference(logits, targets) - cutoff * cutoff)
+      tf.math.squared_difference(logits, targets) - cutoff * cutoff)
 
 
 def video_l2_loss(top_out, targets, model_hparams, vocab_size, weights_fn):
@@ -884,7 +884,7 @@ def video_l2_loss(top_out, targets, model_hparams, vocab_size, weights_fn):
   # So for int targets, say 0 and 7, we actually train to predict 0.5 and 7.5.
   # Later (in merics or infer) this is cast to int anyway. Also, we have no
   # loss beyond cutoff = 0.2 as these are already correct predictions.
-  targets = tf.to_float(targets) + 0.5
+  targets = tf.cast(targets, dtype=tf.float32) + 0.5
   loss = video_l2_internal_loss(logits, targets, model_hparams)
   return tf.reduce_sum(loss * weights), tf.reduce_sum(weights)
 
@@ -892,14 +892,14 @@ def video_l2_loss(top_out, targets, model_hparams, vocab_size, weights_fn):
 def video_l2_raw_loss(top_out, targets, model_hparams, vocab_size, weights_fn):
   del model_hparams, vocab_size, weights_fn  # unused arg
   prediction, groundtruth = convert_rgb_to_real(top_out, targets)
-  loss = tf.losses.mean_squared_error(prediction, groundtruth)
+  loss = tf.compat.v1.losses.mean_squared_error(prediction, groundtruth)
   return loss, tf.constant(1.0)
 
 
 def video_l1_raw_loss(top_out, targets, model_hparams, vocab_size, weights_fn):
   del model_hparams, vocab_size, weights_fn  # unused arg
   prediction, groundtruth = convert_rgb_to_real(top_out, targets)
-  loss = tf.losses.absolute_difference(prediction, groundtruth)
+  loss = tf.compat.v1.losses.absolute_difference(prediction, groundtruth)
   return loss, tf.constant(1.0)
 
 
@@ -941,11 +941,11 @@ def class_label_top(body_output, targets, model_hparams, vocab_size):
     a Tensors, each with shape [batch_size, 1, 1, 1, vocab_size]
   """
   del targets  # unused arg
-  with tf.variable_scope("class_label_modality_%d_%d" % (
+  with tf.compat.v1.variable_scope("class_label_modality_%d_%d" % (
       vocab_size, model_hparams.hidden_size)):
     x = body_output
     x = tf.reduce_mean(x, axis=[1, 2], keepdims=True)
-    res = tf.layers.dense(x, vocab_size)
+    res = tf.compat.v1.layers.dense(x, vocab_size)
     return tf.expand_dims(res, 3)
 
 
@@ -959,15 +959,15 @@ def image_top(body_output, targets, model_hparams, vocab_size):
   del targets  # unused arg
   # TODO(lukaszkaiser): is this a universal enough way to get channels?
   num_channels = model_hparams.problem.num_channels
-  with tf.variable_scope("rgb_softmax"):
+  with tf.compat.v1.variable_scope("rgb_softmax"):
     body_output_shape = common_layers.shape_list(body_output)
     reshape_shape = body_output_shape[:3]
     reshape_shape.extend([num_channels, vocab_size])
-    res = tf.layers.dense(body_output, vocab_size * num_channels)
+    res = tf.compat.v1.layers.dense(body_output, vocab_size * num_channels)
     res = tf.reshape(res, reshape_shape)
-    if not tf.get_variable_scope().reuse:
+    if not tf.compat.v1.get_variable_scope().reuse:
       res_argmax = tf.argmax(res, axis=-1)
-      tf.summary.image(
+      tf.compat.v1.summary.image(
           "result",
           common_layers.tpu_safe_image_summary(res_argmax),
           max_outputs=1)
@@ -987,12 +987,12 @@ def image_channel_compress_top(body_output, targets, model_hparams, vocab_size):
     Tensor of shape [batch, img_len, img_len, channels, vocab_size].
   """
   del targets  # unused arg
-  with tf.variable_scope("image_channel_compress_modality"):
+  with tf.compat.v1.variable_scope("image_channel_compress_modality"):
     hidden_size = model_hparams.hidden_size
     img_len = model_hparams.img_len
     channels = 3  # RGB
     batch = common_layers.shape_list(body_output)[0]
-    x = tf.layers.conv2d(
+    x = tf.compat.v1.layers.conv2d(
         body_output,
         hidden_size * channels,
         kernel_size=(1, 1),
@@ -1002,7 +1002,7 @@ def image_channel_compress_top(body_output, targets, model_hparams, vocab_size):
         name="decompress_conv")
     x = tf.reshape(x, [batch, img_len, img_len * channels, hidden_size])
     x = common_layers.layer_preprocess(x, model_hparams)
-    x = tf.layers.dense(x,
+    x = tf.compat.v1.layers.dense(x,
                         vocab_size,
                         use_bias=True,
                         activation=None,
@@ -1018,10 +1018,10 @@ def image_channel_embeddings_top(body_output,
                                  vocab_size):
   """Top transformation for images."""
   del targets  # unused arg
-  with tf.variable_scope("image_channel_embeddings_bottom"):
+  with tf.compat.v1.variable_scope("image_channel_embeddings_bottom"):
     img_len = model_hparams.img_len
     channels = model_hparams.num_channels
-    x = tf.layers.dense(
+    x = tf.compat.v1.layers.dense(
         body_output, 256, use_bias=True, activation=None, name="output_conv")
     x = tf.reshape(x,
                    [-1, img_len, img_len, channels, vocab_size])
@@ -1031,8 +1031,8 @@ def image_channel_embeddings_top(body_output,
 @is_pointwise
 def real_top(body_output, targets, model_hparams, vocab_size):
   del targets, model_hparams  # unused arg
-  with tf.variable_scope("real"):
-    return tf.layers.dense(body_output, vocab_size, name="top")
+  with tf.compat.v1.variable_scope("real"):
+    return tf.compat.v1.layers.dense(body_output, vocab_size, name="top")
 
 
 def sigmoid_max_pooling_class_label_top(body_output,
@@ -1053,12 +1053,12 @@ def sigmoid_max_pooling_class_label_top(body_output,
     a Tensors, each with shape [batch_size, 1, 1, vocab_size]
   """
   del targets  # unused arg
-  with tf.variable_scope(
+  with tf.compat.v1.variable_scope(
       "sigmoid_max_pooling_class_symbol_modality_%d_%d" % (
           vocab_size, model_hparams.hidden_size)):
     x = body_output
     x = tf.reduce_max(x, axis=1, keepdims=True)
-    return tf.layers.dense(x, vocab_size)
+    return tf.compat.v1.layers.dense(x, vocab_size)
 
 
 def softmax_average_pooling_class_label_top(body_output,
@@ -1067,12 +1067,12 @@ def softmax_average_pooling_class_label_top(body_output,
                                             vocab_size):
   """Loss for class label."""
   del targets  # unused arg
-  with tf.variable_scope(
+  with tf.compat.v1.variable_scope(
       "softmax_average_pooling_onehot_class_label_modality_%d_%d" % (
           vocab_size, model_hparams.hidden_size)):
     x = body_output
     x = tf.reduce_mean(x, axis=1, keepdims=True)
-    return tf.layers.dense(x, vocab_size)
+    return tf.compat.v1.layers.dense(x, vocab_size)
 
 
 def softmax_last_timestep_class_label_top(body_output,
@@ -1081,12 +1081,12 @@ def softmax_last_timestep_class_label_top(body_output,
                                           vocab_size):
   """Loss for class label."""
   del targets  # unused arg
-  with tf.variable_scope(
+  with tf.compat.v1.variable_scope(
       "softmax_last_timestep_onehot_class_label_modality_%d_%d" % (
           vocab_size, model_hparams.hidden_size)):
     x = body_output
     x = tf.expand_dims(x[:, -1], 1)  # Pick the last timestep
-    return tf.layers.dense(x, vocab_size)
+    return tf.compat.v1.layers.dense(x, vocab_size)
 
 
 def softmax_max_pooling_class_label_top(body_output,
@@ -1095,12 +1095,12 @@ def softmax_max_pooling_class_label_top(body_output,
                                         vocab_size):
   """Loss for class label."""
   del targets  # unused arg
-  with tf.variable_scope(
+  with tf.compat.v1.variable_scope(
       "softmax_max_pooling_onehot_class_label_modality_%d_%d" % (
           vocab_size, model_hparams.hidden_size)):
     x = body_output
     x = tf.reduce_max(x, axis=1, keepdims=True)
-    return tf.layers.dense(x, vocab_size)
+    return tf.compat.v1.layers.dense(x, vocab_size)
 
 
 @is_pointwise
@@ -1120,11 +1120,11 @@ def symbol_top(body_output, targets, model_hparams, vocab_size):
   del targets  # unused arg
   if model_hparams.shared_embedding_and_softmax_weights:
     scope_name = "shared"
-    reuse = tf.AUTO_REUSE
+    reuse = tf.compat.v1.AUTO_REUSE
   else:
     scope_name = "softmax"
     reuse = False
-  with tf.variable_scope(scope_name, reuse=reuse):
+  with tf.compat.v1.variable_scope(scope_name, reuse=reuse):
     body_output_shape = common_layers.shape_list(body_output)
     var = get_weights(model_hparams, vocab_size, body_output_shape[-1])
     if (model_hparams.factored_logits and
@@ -1164,14 +1164,14 @@ def video_l1_top(body_output, targets, model_hparams, vocab_size):
   del targets, vocab_size  # unused arg
   num_channels = model_hparams.problem.num_channels
   num_frames = model_hparams.video_num_target_frames
-  with tf.variable_scope("rgb"):
+  with tf.compat.v1.variable_scope("rgb"):
     body_output_shape = common_layers.shape_list(body_output)
-    res = tf.layers.dense(body_output, num_channels * num_frames, name="cast")
+    res = tf.compat.v1.layers.dense(body_output, num_channels * num_frames, name="cast")
     res = tf.reshape(res, body_output_shape[:3] + [num_channels, num_frames])
     res = tf.transpose(res, [0, 4, 1, 2, 3])  # Move frames next to batch.
-    if not tf.get_variable_scope().reuse:
+    if not tf.compat.v1.get_variable_scope().reuse:
       res_argmax = res[:, -1, :, :, :]
-      tf.summary.image(
+      tf.compat.v1.summary.image(
           "result",
           common_layers.tpu_safe_image_summary(res_argmax),
           max_outputs=1)
@@ -1570,9 +1570,9 @@ class SymbolModality(modality.Modality):
           1 if i < self._vocab_size % num_shards else 0)
       var_name = "weights_%d" % i
       shards.append(
-          tf.get_variable(
+          tf.compat.v1.get_variable(
               var_name, [shard_size, hidden_dim],
-              initializer=tf.random_normal_initializer(0.0, hidden_dim**-0.5)))
+              initializer=tf.compat.v1.random_normal_initializer(0.0, hidden_dim**-0.5)))
     if num_shards == 1:
       ret = shards[0]
     else:
@@ -1583,7 +1583,7 @@ class SymbolModality(modality.Modality):
     return ret
 
   def bottom_simple(self, x, name, reuse):
-    with tf.variable_scope(name, reuse=reuse):
+    with tf.compat.v1.variable_scope(name, reuse=reuse):
       # Ensure the inputs are 3-D
       if len(x.get_shape()) == 4:
         x = tf.squeeze(x, axis=3)
@@ -1596,7 +1596,7 @@ class SymbolModality(modality.Modality):
       ret = common_layers.gather(var, x)
       if self._model_hparams.multiply_embedding_mode == "sqrt_depth":
         ret *= self._body_input_depth**0.5
-      ret *= tf.expand_dims(tf.to_float(tf.not_equal(x, 0)), -1)
+      ret *= tf.expand_dims(tf.cast(tf.not_equal(x, 0), dtype=tf.float32), -1)
       return ret
 
   def bottom(self, x):
@@ -1634,7 +1634,7 @@ class SymbolModality(modality.Modality):
       scope_name = "softmax"
       reuse = False
 
-    with tf.variable_scope(scope_name, reuse=reuse):
+    with tf.compat.v1.variable_scope(scope_name, reuse=reuse):
       body_output_shape = common_layers.shape_list(body_output)
       var = self._get_weights(body_output_shape[-1])
       if (self._model_hparams.factored_logits and
@@ -1675,7 +1675,7 @@ class SymbolModalityOneHot(SymbolModality):
   def loss(self, top_out, targets):
     labels = tf.one_hot(targets, self._vocab_size)
     loss = tf.nn.softmax_cross_entropy_with_logits(
-        logits=top_out, labels=labels)
+        logits=top_out, labels=tf.stop_gradient(labels))
     return tf.reduce_mean(loss), tf.constant(1.0)
 
 
@@ -1685,7 +1685,7 @@ class CTCSymbolModality(SymbolModality):
   def loss(self, top_out, targets):
     """Compute the CTC loss."""
     logits = top_out
-    with tf.name_scope("ctc_loss", values=[logits, targets]):
+    with tf.compat.v1.name_scope("ctc_loss", values=[logits, targets]):
       # For CTC we assume targets are 1d, [batch, length, 1, 1] here.
       targets_shape = targets.get_shape().as_list()
       assert len(targets_shape) == 4
@@ -1693,11 +1693,11 @@ class CTCSymbolModality(SymbolModality):
       assert targets_shape[3] == 1
       targets = tf.squeeze(targets, axis=[2, 3])
       logits = tf.squeeze(logits, axis=[2, 3])
-      targets_mask = 1 - tf.to_int32(tf.equal(targets, 0))
+      targets_mask = 1 - tf.cast(tf.equal(targets, 0), dtype=tf.int32)
       targets_lengths = tf.reduce_sum(targets_mask, axis=1)
       sparse_targets = tf.keras.backend.ctc_label_dense_to_sparse(
           targets, targets_lengths)
-      xent = tf.nn.ctc_loss(
+      xent = tf.compat.v1.nn.ctc_loss(
           sparse_targets,
           logits,
           targets_lengths,
@@ -1713,17 +1713,17 @@ class ImageModality(modality.Modality):
   PIXEL_EMBEDDING_SIZE = 64
 
   def bottom(self, x):
-    with tf.variable_scope(self.name):
+    with tf.compat.v1.variable_scope(self.name):
       if not tf.contrib.eager.in_eager_mode():
-        tf.summary.image(
+        tf.compat.v1.summary.image(
             "inputs", common_layers.tpu_safe_image_summary(x), max_outputs=2)
-      return tf.to_float(x)
+      return tf.cast(x, dtype=tf.float32)
 
   def targets_bottom(self, x):
     inputs = x
-    with tf.variable_scope(self.name):
+    with tf.compat.v1.variable_scope(self.name):
       if not tf.contrib.eager.in_eager_mode():
-        tf.summary.image(
+        tf.compat.v1.summary.image(
             "targets_bottom",
             common_layers.tpu_safe_image_summary(inputs),
             max_outputs=1)
@@ -1732,16 +1732,16 @@ class ImageModality(modality.Modality):
         raise ValueError("Assuming images given as int tensors in the format "
                          "[batch, height, width, channels] (256 values).")
       # We embed each of 256=self.top_dimensionality possible pixel values.
-      embedding_var = tf.get_variable(
+      embedding_var = tf.compat.v1.get_variable(
           "pixel_embedding",
           [self.top_dimensionality, self.PIXEL_EMBEDDING_SIZE])
-      hot_inputs = tf.one_hot(tf.to_int32(inputs), self.top_dimensionality)
+      hot_inputs = tf.one_hot(tf.cast(inputs, dtype=tf.int32), self.top_dimensionality)
       hot_inputs = tf.reshape(hot_inputs, [-1, self.top_dimensionality])
       embedded = tf.matmul(hot_inputs, embedding_var)
       # Let's now merge all channels that were embedded into a single vector.
       merged_size = self.PIXEL_EMBEDDING_SIZE * inputs_shape[3]
       embedded = tf.reshape(embedded, inputs_shape[:3] + [merged_size])
-      merged = tf.layers.dense(
+      merged = tf.compat.v1.layers.dense(
           embedded,
           self._body_input_depth,
           name="merge_pixel_embedded_channels")
@@ -1750,15 +1750,15 @@ class ImageModality(modality.Modality):
   def top(self, body_output, _):
     # TODO(lukaszkaiser): is this a universal enough way to get channels?
     num_channels = self._model_hparams.problem.num_channels
-    with tf.variable_scope("rgb_softmax"):
+    with tf.compat.v1.variable_scope("rgb_softmax"):
       body_output_shape = common_layers.shape_list(body_output)
       reshape_shape = body_output_shape[:3]
       reshape_shape.extend([num_channels, self.top_dimensionality])
-      res = tf.layers.dense(body_output, self.top_dimensionality * num_channels)
+      res = tf.compat.v1.layers.dense(body_output, self.top_dimensionality * num_channels)
       res = tf.reshape(res, reshape_shape)
-      if not tf.get_variable_scope().reuse:
+      if not tf.compat.v1.get_variable_scope().reuse:
         res_argmax = tf.argmax(res, axis=-1)
-        tf.summary.image(
+        tf.compat.v1.summary.image(
             "result",
             common_layers.tpu_safe_image_summary(res_argmax),
             max_outputs=1)
@@ -1798,11 +1798,11 @@ class ImageChannelCompressModality(modality.Modality):
     Returns:
       body_input: Tensor of shape [batch, img_len, img_len, body_input_depth].
     """
-    with tf.variable_scope(name):
-      inputs = tf.to_float(inputs)
+    with tf.compat.v1.variable_scope(name):
+      inputs = tf.cast(inputs, dtype=tf.float32)
       hp = self._model_hparams
       if hp.mode != tf_estimator.ModeKeys.PREDICT:
-        tf.summary.image(
+        tf.compat.v1.summary.image(
             "inputs",
             common_layers.tpu_safe_image_summary(inputs),
             max_outputs=2)
@@ -1814,7 +1814,7 @@ class ImageChannelCompressModality(modality.Modality):
           inputs, [-1, inputs_shape[1], inputs_shape[2] * inputs_shape[3], 1])
 
       # Compress RGB intensities for each pixel using a convolution.
-      outputs = tf.layers.conv2d(
+      outputs = tf.compat.v1.layers.conv2d(
           inputs,
           self._body_input_depth,
           kernel_size=(1, self.num_channels),
@@ -1839,12 +1839,12 @@ class ImageChannelCompressModality(modality.Modality):
     Returns:
       Tensor of shape [batch, img_len, img_len, channels, top_dimensionality].
     """
-    with tf.variable_scope(self.name):
+    with tf.compat.v1.variable_scope(self.name):
       hidden_size = self._model_hparams.hidden_size
       img_len = self._model_hparams.img_len
       channels = self.num_channels  # RGB
       batch = common_layers.shape_list(body_output)[0]
-      x = tf.layers.conv2d(
+      x = tf.compat.v1.layers.conv2d(
           body_output,
           hidden_size * channels,
           kernel_size=(1, 1),
@@ -1854,7 +1854,7 @@ class ImageChannelCompressModality(modality.Modality):
           name="decompress_conv")
       x = tf.reshape(x, [batch, img_len, img_len * channels, hidden_size])
       x = common_layers.layer_preprocess(x, self._model_hparams)
-      x = tf.layers.dense(x,
+      x = tf.compat.v1.layers.dense(x,
                           self.top_dimensionality,
                           use_bias=True,
                           activation=None,
@@ -1880,7 +1880,7 @@ class ImageChannelEmbeddingsBottom(modality.Modality):
                              name="channel"):
     """Get separate embedding for each of the channels."""
     targets_split = tf.split(targets, io_depth, axis=3)
-    rgb_embedding_var = tf.get_variable("rgb_target_emb_%s" % name,
+    rgb_embedding_var = tf.compat.v1.get_variable("rgb_target_emb_%s" % name,
                                         [256 * io_depth, hidden_size])
     rgb_embedding_var = tf.identity(rgb_embedding_var)
     rgb_embedding_var *= float(hidden_size)**0.5
@@ -1905,10 +1905,10 @@ class ImageChannelEmbeddingsBottom(modality.Modality):
                       [tshape[0], tshape[1], tshape[2] * io_depth, hidden_size])
 
   def top(self, body_output, _):
-    with tf.variable_scope(self.name):
+    with tf.compat.v1.variable_scope(self.name):
       img_len = self._model_hparams.img_len
       channels = self._model_hparams.num_channels
-      x = tf.layers.dense(
+      x = tf.compat.v1.layers.dense(
           body_output, 256, use_bias=True, activation=None, name="output_conv")
       x = tf.reshape(x,
                      [-1, img_len, img_len, channels, self.top_dimensionality])
@@ -1927,11 +1927,11 @@ class AudioModality(modality.Modality):
       body_input: A Tensor with shape [batch, ?, ?, body_input_depth].
     """
     inputs = x
-    with tf.variable_scope(self.name):
+    with tf.compat.v1.variable_scope(self.name):
       # TODO(aidangomez): Will need to sort out a better audio pipeline
       def xnet_resblock(x, filters, res_relu, name):
         """Xception block."""
-        with tf.variable_scope(name):
+        with tf.compat.v1.variable_scope(name):
           # Typically audio samples are >100k samples in length and have a width
           # of 2 or 4. Mono audio has a single channel while stereo has 2.
           y = common_layers.separable_conv_block(
@@ -1951,7 +1951,7 @@ class AudioModality(modality.Modality):
               force2d=True,
               name="res_conv0")
 
-      x = tf.to_float(inputs) / 255.
+      x = tf.cast(inputs, dtype=tf.float32) / 255.
       x.set_shape([None, None, None, 1])
       for i in range(self._model_hparams.audio_compression):
         x = xnet_resblock(x, 2**(i + 1), True, "compress_block_%d" % i)
@@ -1971,11 +1971,11 @@ class AudioSpectralModality(modality.Modality):
       body_input: A Tensor with shape [batch, ?, ?, body_input_depth].
     """
     inputs = x
-    with tf.variable_scope(self.name):
+    with tf.compat.v1.variable_scope(self.name):
       # TODO(aidangomez): Will need to sort out a better audio pipeline
       def xnet_resblock(x, filters, res_relu, name):
         """Xception-like block."""
-        with tf.variable_scope(name):
+        with tf.compat.v1.variable_scope(name):
           # We only stride along the length dimension to preserve the spectral
           # bins (which are tiny in dimensionality relative to length)
           y = common_layers.separable_conv_block(
@@ -2022,10 +2022,10 @@ class SpeechRecognitionModality(modality.Modality):
     num_mel_bins = p.audio_num_mel_bins
     num_channels = 3 if p.audio_add_delta_deltas else 1
 
-    with tf.variable_scope(self.name):
+    with tf.compat.v1.variable_scope(self.name):
       if p.audio_preproc_in_bottom:
         # Compute filterbanks
-        with tf.variable_scope("fbanks"):
+        with tf.compat.v1.variable_scope("fbanks"):
           waveforms = tf.squeeze(inputs, [2, 3])
           mel_fbanks = common_audio.compute_mel_filterbank_features(
               waveforms,
@@ -2056,7 +2056,7 @@ class SpeechRecognitionModality(modality.Modality):
                       2. * mean * tf.reduce_sum(x, axis=[1], keepdims=True) +
                       tf.reduce_sum(x**2, axis=[1], keepdims=True)
                      ) / num_of_nonpadding_elements
-          x = (x - mean) * tf.rsqrt(variance + var_epsilon) * tf.expand_dims(
+          x = (x - mean) * tf.math.rsqrt(variance + var_epsilon) * tf.expand_dims(
               nonpadding_mask, -1)
       else:
         x = inputs
@@ -2069,7 +2069,7 @@ class SpeechRecognitionModality(modality.Modality):
       # TODO(chorowski): how to specify bottom's hparams and avoid hardcoding?
       x = tf.pad(x, [[0, 0], [0, 8], [0, 0], [0, 0]])
       for _ in range(2):
-        x = tf.layers.conv2d(
+        x = tf.compat.v1.layers.conv2d(
             x, 128, (3, 3), (2, 2), use_bias=False)
         x = common_layers.layer_norm(x)
         x = tf.nn.relu(x)
@@ -2078,7 +2078,7 @@ class SpeechRecognitionModality(modality.Modality):
       # apply a conv that will remove all frequencies and at the same time
       # project the output into desired hidden_size
       x = tf.pad(x, [[0, 0], [0, 2], [0, 0], [0, 0]])
-      x = tf.layers.conv2d(x, p.hidden_size, (3, xshape[2]), use_bias=False)
+      x = tf.compat.v1.layers.conv2d(x, p.hidden_size, (3, xshape[2]), use_bias=False)
 
       assert common_layers.shape_list(x)[2] == 1
       x = common_layers.layer_norm(x)
@@ -2130,21 +2130,21 @@ class VideoModalityBitwise(VideoModality):
 
   def bottom(self, x):
     inputs = x
-    with tf.variable_scope(self.name, reuse=tf.AUTO_REUSE):
+    with tf.compat.v1.variable_scope(self.name, reuse=tf.compat.v1.AUTO_REUSE):
       common_layers.summarize_video(inputs, "bottom")
       # Embed bitwise.
       assert self.top_dimensionality == 256
       embedded = discretization.int_to_bit_embed(inputs, 8,
                                                  self.PIXEL_EMBEDDING_SIZE)
       # Project.
-      return tf.layers.dense(
+      return tf.compat.v1.layers.dense(
           embedded,
           self._body_input_depth,
           name="merge_pixel_embedded_frames")
 
   def targets_bottom(self, x):  # pylint: disable=arguments-differ
     inputs = x
-    with tf.variable_scope(self.name, reuse=tf.AUTO_REUSE):
+    with tf.compat.v1.variable_scope(self.name, reuse=tf.compat.v1.AUTO_REUSE):
       common_layers.summarize_video(inputs, "targets_bottom")
       # Embed bitwise.
       assert self.top_dimensionality == 256
@@ -2152,7 +2152,7 @@ class VideoModalityBitwise(VideoModality):
                                                  self.PIXEL_EMBEDDING_SIZE)
       # Transpose and project.
       transposed = common_layers.time_to_channels(embedded)
-      return tf.layers.dense(
+      return tf.compat.v1.layers.dense(
           transposed,
           self._body_input_depth,
           name="merge_pixel_embedded_frames")
@@ -2168,8 +2168,8 @@ class VideoModalityPixelNoise(VideoModality):
                                                        axis=[0, 1, 2, 3])
       input_shape = common_layers.shape_list(inputs)
       input_size = tf.reduce_prod(input_shape[:-1])
-      input_mask = tf.multinomial(
-          tf.log([[self.input_noise, 1.-self.input_noise]]), input_size)
+      input_mask = tf.random.categorical(
+          tf.math.log([[self.input_noise, 1.-self.input_noise]]), input_size)
       input_mask = tf.reshape(tf.cast(input_mask, tf.int32),
                               input_shape[:-1]+[1])
       inputs = inputs * input_mask + background * (1 - input_mask)
@@ -2186,14 +2186,14 @@ class VideoModalityL1(VideoModality):
   def top(self, body_output, _):
     num_channels = self._model_hparams.problem.num_channels
     num_frames = self._model_hparams.video_num_target_frames
-    with tf.variable_scope("rgb"):
+    with tf.compat.v1.variable_scope("rgb"):
       body_output_shape = common_layers.shape_list(body_output)
-      res = tf.layers.dense(body_output, num_channels * num_frames, name="cast")
+      res = tf.compat.v1.layers.dense(body_output, num_channels * num_frames, name="cast")
       res = tf.reshape(res, body_output_shape[:3] + [num_channels, num_frames])
       res = tf.transpose(res, [0, 4, 1, 2, 3])  # Move frames next to batch.
-      if not tf.get_variable_scope().reuse:
+      if not tf.compat.v1.get_variable_scope().reuse:
         res_argmax = res[:, -1, :, :, :]
-        tf.summary.image(
+        tf.compat.v1.summary.image(
             "result",
             common_layers.tpu_safe_image_summary(res_argmax),
             max_outputs=1)
@@ -2216,7 +2216,7 @@ class VideoModalityL1(VideoModality):
     # So for int targets, say 0 and 7, we actually train to predict 0.5 and 7.5.
     # Later (in merics or infer) this is cast to int anyway. Also, we have no
     # loss beyond self.cutoff = 0.2 as these are already correct predictions.
-    targets = tf.to_float(targets) + 0.5
+    targets = tf.cast(targets, dtype=tf.float32) + 0.5
     loss = self.internal_loss(logits, targets)
     return tf.reduce_sum(loss * weights), tf.reduce_sum(weights)
 
@@ -2256,7 +2256,7 @@ class VideoModalityL2Raw(VideoModalityL2):
 
   def loss(self, top_out, targets):
     prediction, groundtruth = self.convert_rgb_to_real(top_out, targets)
-    loss = tf.losses.mean_squared_error(prediction, groundtruth)
+    loss = tf.compat.v1.losses.mean_squared_error(prediction, groundtruth)
     return loss, tf.constant(1.0)
 
 
@@ -2265,7 +2265,7 @@ class VideoModalityL1Raw(VideoModalityL2Raw):
 
   def loss(self, top_out, targets):
     prediction, groundtruth = self.convert_rgb_to_real(top_out, targets)
-    loss = tf.losses.absolute_difference(prediction, groundtruth)
+    loss = tf.compat.v1.losses.absolute_difference(prediction, groundtruth)
     return loss, tf.constant(1.0)
 
 
@@ -2278,7 +2278,7 @@ class ClassLabelModality(modality.Modality):
                                            self._body_input_depth)
 
   def bottom(self, x):
-    with tf.variable_scope(self.name):
+    with tf.compat.v1.variable_scope(self.name):
       return common_layers.embedding(
           x,
           self._vocab_size,
@@ -2287,7 +2287,7 @@ class ClassLabelModality(modality.Modality):
           self._model_hparams.multiply_embedding_mode == "sqrt_depth" else 1.0)
 
   def targets_bottom(self, x):
-    with tf.variable_scope(self.name):
+    with tf.compat.v1.variable_scope(self.name):
       return tf.zeros(
           [common_layers.shape_list(x)[0], 1, 1, self._body_input_depth])
 
@@ -2302,10 +2302,10 @@ class ClassLabelModality(modality.Modality):
     Returns:
       a Tensors, each with shape [batch_size, ?, ?, vocab_size]
     """
-    with tf.variable_scope(self.name):
+    with tf.compat.v1.variable_scope(self.name):
       x = body_output
       x = tf.reduce_mean(x, axis=[1, 2], keepdims=True)
-      res = tf.layers.dense(x, self._vocab_size)
+      res = tf.compat.v1.layers.dense(x, self._vocab_size)
       return tf.expand_dims(res, 3)
 
 
@@ -2336,7 +2336,7 @@ class MultiLabelModality(ClassLabelModality):
     loss = tf.reduce_sum(xent, axis=1)
     weights = tf.reduce_sum(weights, axis=1)
     loss /= (weights + 1e-8)
-    weights = tf.to_float(tf.greater(weights, 0.))
+    weights = tf.cast(tf.greater(weights, 0.), dtype=tf.float32)
 
     return tf.reduce_sum(loss*weights), tf.reduce_sum(weights)
 
@@ -2353,7 +2353,7 @@ class OneHotClassLabelModality(ClassLabelModality):
     Returns:
       loss_scale (cross-entropy), loss_denom
     """
-    loss_scale = tf.losses.softmax_cross_entropy(
+    loss_scale = tf.compat.v1.losses.softmax_cross_entropy(
         onehot_labels=targets, logits=top_out)
     weights = self.targets_weights_fn(targets)
     loss_denom = tf.reduce_sum(weights)
@@ -2364,7 +2364,7 @@ class IdentityModality(modality.Modality):
   """Does nothing."""
 
   def bottom(self, x):
-    return tf.to_float(x)
+    return tf.cast(x, dtype=tf.float32)
 
   def top(self, body_output, _):
     return body_output
@@ -2384,7 +2384,7 @@ class GenericL2LossModality(IdentityModality):
     Returns:
       a Tensors, each with shape [batch_size, 1, 1, vocab_size]
     """
-    with tf.variable_scope(self.name):
+    with tf.compat.v1.variable_scope(self.name):
       x = body_output
       x = tf.reduce_max(x, axis=1, keepdims=True)
-      return tf.layers.dense(x, self._vocab_size)
+      return tf.compat.v1.layers.dense(x, self._vocab_size)

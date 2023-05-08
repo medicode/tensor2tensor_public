@@ -24,7 +24,7 @@ from tensor2tensor.data_generators import mnist  # pylint: disable=unused-import
 from tensor2tensor.models import basic
 from tensor2tensor.utils import trainer_lib
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -42,7 +42,7 @@ class BasicTest(tf.test.TestCase):
       }
       model = basic.BasicFcRelu(hparams, tf_estimator.ModeKeys.TRAIN)
       logits, _ = model(features)
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       res = session.run(logits)
     self.assertEqual(res.shape, (1, 1, 1, 1, 10))
 

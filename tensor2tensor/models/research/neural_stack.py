@@ -35,7 +35,7 @@ from tensor2tensor.utils import contrib
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import t2t_model
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 # This is the interface between the RNN controller and the neural stack.
 NeuralStackControllerInterface = collections.namedtuple(
@@ -49,7 +49,7 @@ NeuralStackState = collections.namedtuple(
     "write_strengths")
 
 
-class NeuralStackCell(tf.nn.rnn_cell.RNNCell):
+class NeuralStackCell(tf.compat.v1.nn.rnn_cell.RNNCell):
   """An RNN cell base class that can implement a stack or queue.
   """
 
@@ -185,7 +185,7 @@ class NeuralStackCell(tf.nn.rnn_cell.RNNCell):
     bias = self.add_variable(
         name + "_projection_bias",
         shape=[size],
-        initializer=tf.zeros_initializer(dtype=self.dtype))
+        initializer=tf.compat.v1.zeros_initializer(dtype=self.dtype))
     return weights, bias
 
   def add_vector_projection(self, name, size):
@@ -207,13 +207,13 @@ class NeuralStackCell(tf.nn.rnn_cell.RNNCell):
     bias = self.add_variable(
         name + "_projection_bias",
         shape=[size * self._embedding_size],
-        initializer=tf.zeros_initializer(dtype=self.dtype))
+        initializer=tf.compat.v1.zeros_initializer(dtype=self.dtype))
     return weights, bias
 
   def build_controller(self):
     """Create the RNN and output projections for controlling the stack.
     """
-    with tf.name_scope("controller"):
+    with tf.compat.v1.name_scope("controller"):
       self.rnn = contrib.rnn().BasicRNNCell(self._num_units)
       self._input_proj = self.add_variable(
           "input_projection_weights",
@@ -223,7 +223,7 @@ class NeuralStackCell(tf.nn.rnn_cell.RNNCell):
       self._input_bias = self.add_variable(
           "input_projection_bias",
           shape=[self._num_units],
-          initializer=tf.zeros_initializer(dtype=self.dtype))
+          initializer=tf.compat.v1.zeros_initializer(dtype=self.dtype))
       self._push_proj, self._push_bias = self.add_scalar_projection(
           "push", self._num_write_heads)
       self._pop_proj, self._pop_bias = self.add_scalar_projection(
@@ -277,7 +277,7 @@ class NeuralStackCell(tf.nn.rnn_cell.RNNCell):
     Returns:
       A tuple of outputs and the new NeuralStackControllerInterface.
     """
-    with tf.name_scope("controller"):
+    with tf.compat.v1.name_scope("controller"):
       # Concatenate the current input value with the read values from the
       # previous timestep before feeding them into the controller.
       controller_inputs = tf.concat([
@@ -360,7 +360,7 @@ class NeuralStackCell(tf.nn.rnn_cell.RNNCell):
     # of read weights.
     new_read_strengths += tf.reduce_sum(
         controller_output.push_strengths * prev_state.write_strengths,
-        axis=1, keep_dims=True)
+        axis=1, keepdims=True)
 
     # Calculate the "top" value of the stack by looking at read strengths.
     # See Equation-3 in Grefenstette et al., 2015.
@@ -523,8 +523,8 @@ class NeuralStackModel(t2t_model.T2TModel):
     """
     layers = [self.cell(layer_size)
               for layer_size in self._hparams.controller_layer_sizes]
-    with tf.variable_scope(name):
-      return tf.nn.dynamic_rnn(
+    with tf.compat.v1.variable_scope(name):
+      return tf.compat.v1.nn.dynamic_rnn(
           contrib.rnn().MultiRNNCell(layers),
           inputs,
           initial_state=initial_state,

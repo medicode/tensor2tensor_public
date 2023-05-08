@@ -26,7 +26,7 @@ from tensor2tensor.layers import modalities  # pylint: disable=unused-import
 from tensor2tensor.models import slicenet
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -49,7 +49,7 @@ class SliceNetTest(tf.test.TestCase):
       model = slicenet.SliceNet(hparams, tf_estimator.ModeKeys.TRAIN,
                                 p_hparams)
       logits, _ = model(features)
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       res = session.run(logits)
     self.assertEqual(res.shape, (3, 1, 1, 1, 10))
 
@@ -70,7 +70,7 @@ class SliceNetTest(tf.test.TestCase):
       model = slicenet.SliceNet(hparams, tf_estimator.ModeKeys.TRAIN,
                                 p_hparams)
       logits, _ = model(features)
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       res = session.run(logits)
     self.assertEqual(res.shape, (3, 5, 1, 1, 258))
 

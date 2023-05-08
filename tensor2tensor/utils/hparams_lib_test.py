@@ -23,7 +23,7 @@ import os
 
 from tensor2tensor.utils import hparams_lib
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 class HparamsLibTest(tf.test.TestCase):

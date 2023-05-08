@@ -27,7 +27,7 @@ from tensor2tensor.models.transformer import transformer_encoder
 from tensor2tensor.models.transformer import transformer_prepare_encoder
 from tensor2tensor.utils import learning_rate as lr
 from tensor2tensor.utils import mlperf_log
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -40,7 +40,7 @@ def _mixed_precision_is_enabled(hparams):
 
 def encoder(name, hparams, inputs, target_space):
   """Compute encoder outputs and attention bias."""
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     (encoder_input,
      encoder_self_attention_bias,
      encoder_decoder_attention_bias) = (
@@ -58,10 +58,10 @@ def transformer_decoder_layers(name,
                                decoder_input,
                                **kwargs):
   """A transformation block composed of transformer decoder layers."""
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     hparams = kwargs["hparams"]
     outputs = decoder_input
-    with tf.variable_scope("decoder", reuse=tf.AUTO_REUSE):
+    with tf.compat.v1.variable_scope("decoder", reuse=tf.compat.v1.AUTO_REUSE):
       for layer_idx in range(n_layers):
         outputs = transformer_decoder_layer(
             decoder_input=outputs,
@@ -75,7 +75,7 @@ def posterior(
     name, hparams, targets, targets_mask, decoder_self_attention_bias,
     **kwargs):
   """Compute mu and sigma for diagonal normal posterior q(z|x,y)."""
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     decoder_input = drop_2d(targets, hparams.mode, hparams.posterior_2d_dropout)
     decoder_input = common_attention.add_timing_signal_1d(decoder_input)
     decoder_input = tf.nn.dropout(decoder_input,
@@ -97,7 +97,7 @@ def cond_prior(
     name, hparams, decoder_input, targets_mask, output_size,
     decoder_self_attention_bias, init_scale=0.0, **kwargs):
   """Compute hidden states for parameters for conditional prior."""
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     decoder_input = common_attention.add_timing_signal_1d(decoder_input)
     decoder_input = tf.nn.dropout(decoder_input,
                                   rate=hparams.layer_prepostprocess_dropout)
@@ -116,7 +116,7 @@ def cond_prior(
 
 def decoder(name, latents, hparams, decoder_self_attention_bias, **kwargs):
   """Compute final hidden states for p(y|z,x)."""
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     decoder_input = drop_2d(latents, hparams.mode, hparams.decoder_2d_dropout)
     if hparams.pos_attn:
       decoder_input = gops.positional_attention(
@@ -143,11 +143,11 @@ def drop_2d(targets, mode, dropout_p):
   """Dropout in 2D."""
   if dropout_p > 0 and mode == tf_estimator.ModeKeys.TRAIN:
     batch_size, targets_length, hidden_size = common_layers.shape_list(targets)
-    mask_prob = tf.random_uniform(
+    mask_prob = tf.random.uniform(
         shape=(batch_size, targets_length), minval=0.0, maxval=1.0)
     mask_prob = tf.tile(mask_prob[..., tf.newaxis], [1, 1, hidden_size])
     scale = 1 / (1 - dropout_p)
-    targets_noisy = tf.where(
+    targets_noisy = tf.compat.v1.where(
         mask_prob > dropout_p, targets * scale, tf.zeros_like(targets))
     return targets_noisy
   return targets
@@ -175,12 +175,12 @@ def get_dtype(hparams):
 
 
 def lenpred_mlp(name, logits, hidden_size, bound):
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
-    logits = tf.layers.dense(logits, hidden_size)
+  with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
+    logits = tf.compat.v1.layers.dense(logits, hidden_size)
     logits = tf.nn.elu(logits)
-    logits = tf.layers.dense(logits, hidden_size)
+    logits = tf.compat.v1.layers.dense(logits, hidden_size)
     logits = tf.nn.elu(logits)
-    logits = tf.layers.dense(logits, bound * 2 + 1)
+    logits = tf.compat.v1.layers.dense(logits, bound * 2 + 1)
   return logits
 
 
@@ -207,7 +207,7 @@ def predict_target_lengths(
     targets_length = inputs_length + diff_pred
     targets_length = tf.maximum(targets_length, 1)
   divi = 4
-  targets_length = tf.ceil(targets_length / divi) * divi
+  targets_length = tf.math.ceil(targets_length / divi) * divi
   targets_length = tf.cast(targets_length, tf.int32)
   return targets_length, loss
 
@@ -275,12 +275,12 @@ def get_anneal_mask(hparams):
   """Get anneal and kl mask."""
   startup = hparams.kl_startup_steps
   anneal = hparams.kl_anneal_steps
-  global_step = tf.train.get_global_step()
+  global_step = tf.compat.v1.train.get_global_step()
   min_value = hparams.anneal_min_value
   step = tf.maximum(global_step - startup, 0)
   anneal = common_layers.inverse_lin_decay(
       anneal, min_value=min_value, step=step)
-  kl_mask = tf.less(startup, tf.to_int32(global_step))
+  kl_mask = tf.less(startup, tf.cast(global_step, dtype=tf.int32))
   kl_mask = tf.cast(kl_mask, tf.float32)
   return anneal, kl_mask
 
@@ -292,19 +292,19 @@ def embedding_to_non_padding(emb, dtype=tf.float32):
 
 
 def save_summary(monitor, name):
-  with tf.name_scope(name):
+  with tf.compat.v1.name_scope(name):
     for key in list(monitor.keys()):
-      tf.summary.scalar(key, monitor[key])
+      tf.compat.v1.summary.scalar(key, monitor[key])
 
 
 def _global_step(hparams):
   """Adjust global step if a multi-step optimizer is used."""
-  step = tf.cast(tf.train.get_or_create_global_step(), tf.float32)
+  step = tf.cast(tf.compat.v1.train.get_or_create_global_step(), tf.float32)
   multiplier = hparams.optimizer_multistep_accumulate_steps
   if not multiplier:
     return step
 
-  tf.logging.info("Dividing global step by %d for multi-step optimizer."
+  tf.compat.v1.logging.info("Dividing global step by %d for multi-step optimizer."
                   % multiplier)
   return step / tf.cast(multiplier, tf.float32)
 
@@ -319,7 +319,7 @@ def learning_rate_schedule(hparams):
   # Simulate pretraining the encoder, decoder and posterior with the same
   # learning rate schedule, and then restoring the parameters.
   # using `warm_start_from` is not compatible with actnorm DDI on TPUs.
-  step_num = tf.where(
+  step_num = tf.compat.v1.where(
       step_num < hparams.kl_startup_steps,
       step_num,
       step_num - hparams.kl_startup_steps)

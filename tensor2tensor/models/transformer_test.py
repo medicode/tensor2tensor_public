@@ -24,7 +24,7 @@ from tensor2tensor.data_generators import librispeech
 from tensor2tensor.data_generators import problem_hparams
 from tensor2tensor.models import transformer
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -103,7 +103,7 @@ class TransformerTest(tf.test.TestCase):
       model, features = get_model(transformer.transformer_small())
     logits, _ = model(features)
     with self.test_session() as session:
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       res = session.run(logits)
     self.assertEqual(res.shape, (BATCH_SIZE, TARGET_LENGTH, 1, 1, VOCAB_SIZE))
 
@@ -126,7 +126,7 @@ class TransformerTest(tf.test.TestCase):
     model, features = get_model(transformer.transformer_relative_tiny())
     logits, _ = model(features)
     with self.test_session() as session:
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       res = session.run(logits)
     self.assertEqual(res.shape, (BATCH_SIZE, TARGET_LENGTH, 1, 1, VOCAB_SIZE))
 
@@ -144,16 +144,16 @@ class TransformerTest(tf.test.TestCase):
         logits=tf.reshape(out_logits, [-1, VOCAB_SIZE]),
         labels=tf.reshape(features["targets"], [-1]))
     loss = tf.reduce_mean(loss)
-    apply_grad = tf.train.AdamOptimizer(0.001).minimize(loss)
+    apply_grad = tf.compat.v1.train.AdamOptimizer(0.001).minimize(loss)
 
     with self.test_session():
-      tf.global_variables_initializer().run()
+      tf.compat.v1.global_variables_initializer().run()
       for _ in range(100):
         apply_grad.run()
 
     model.set_mode(tf_estimator.ModeKeys.PREDICT)
 
-    with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+    with tf.compat.v1.variable_scope(tf.compat.v1.get_variable_scope(), reuse=True):
       greedy_result = model._slow_greedy_infer(
           features, decode_length)["outputs"]
       greedy_result = tf.squeeze(greedy_result, axis=[2, 3])
@@ -179,16 +179,16 @@ class TransformerTest(tf.test.TestCase):
         logits=tf.reshape(out_logits, [-1, VOCAB_SIZE]),
         labels=tf.reshape(features["targets"], [-1]))
     loss = tf.reduce_mean(loss)
-    apply_grad = tf.train.AdamOptimizer(0.001).minimize(loss)
+    apply_grad = tf.compat.v1.train.AdamOptimizer(0.001).minimize(loss)
 
     with self.test_session():
-      tf.global_variables_initializer().run()
+      tf.compat.v1.global_variables_initializer().run()
       for _ in range(100):
         apply_grad.run()
 
     model.set_mode(tf_estimator.ModeKeys.PREDICT)
 
-    with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+    with tf.compat.v1.variable_scope(tf.compat.v1.get_variable_scope(), reuse=True):
       slow_result = model._slow_greedy_infer(
           features, decode_length)["outputs"]
       slow_result = tf.squeeze(slow_result, axis=[2, 3])
@@ -212,7 +212,7 @@ class TransformerTest(tf.test.TestCase):
         alpha=1.0)["outputs"]
 
     with self.test_session():
-      tf.global_variables_initializer().run()
+      tf.compat.v1.global_variables_initializer().run()
       beam_result.eval()
 
     # TODO(petershaw): This test is flaky because the decode may hit EOS before
@@ -231,16 +231,16 @@ class TransformerTest(tf.test.TestCase):
         logits=tf.reshape(out_logits, [-1, VOCAB_SIZE]),
         labels=tf.reshape(features["targets"], [-1]))
     loss = tf.reduce_mean(loss)
-    apply_grad = tf.train.AdamOptimizer(0.001).minimize(loss)
+    apply_grad = tf.compat.v1.train.AdamOptimizer(0.001).minimize(loss)
 
     with self.test_session():
-      tf.global_variables_initializer().run()
+      tf.compat.v1.global_variables_initializer().run()
       for _ in range(100):
         apply_grad.run()
 
     model.set_mode(tf_estimator.ModeKeys.PREDICT)
 
-    with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+    with tf.compat.v1.variable_scope(tf.compat.v1.get_variable_scope(), reuse=True):
       beam_result = model._beam_decode_slow(
           features,
           decode_length,
@@ -290,7 +290,7 @@ class TransformerTest(tf.test.TestCase):
         expected_attention_weights, dtype=tf.float32)
     _, extra_loss = model(features)
     with self.test_session() as session:
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       res = session.run(extra_loss["attention_loss"])
     self.assertEqual(res.shape, ())
 
@@ -309,10 +309,10 @@ class TransformerTest(tf.test.TestCase):
         logits=tf.reshape(out_logits, [-1, VOCAB_SIZE]),
         labels=tf.reshape(features["targets"], [-1]))
     loss = tf.reduce_mean(loss)
-    apply_grad = tf.train.AdamOptimizer(0.001).minimize(loss)
+    apply_grad = tf.compat.v1.train.AdamOptimizer(0.001).minimize(loss)
 
     with self.test_session():
-      tf.global_variables_initializer().run()
+      tf.compat.v1.global_variables_initializer().run()
       for _ in range(100):
         apply_grad.run()
 
@@ -325,7 +325,7 @@ class TransformerTest(tf.test.TestCase):
 
     model, features = self._create_greedy_infer_model()
 
-    with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+    with tf.compat.v1.variable_scope(tf.compat.v1.get_variable_scope(), reuse=True):
       slow_result_non_tpu = model._slow_greedy_infer(
           features, decode_length)["outputs"]
       slow_result_non_tpu = tf.squeeze(slow_result_non_tpu, axis=[2, 3])
@@ -347,7 +347,7 @@ class TransformerTest(tf.test.TestCase):
 
     model, features = self._create_greedy_infer_model()
 
-    with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+    with tf.compat.v1.variable_scope(tf.compat.v1.get_variable_scope(), reuse=True):
       fast_result_non_tpu = model._greedy_infer(
           features, decode_length, use_tpu=False)["outputs"]
 
@@ -367,7 +367,7 @@ class TransformerTest(tf.test.TestCase):
 
     model, features = self._create_greedy_infer_model()
 
-    with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+    with tf.compat.v1.variable_scope(tf.compat.v1.get_variable_scope(), reuse=True):
       slow_result = model._slow_greedy_infer_tpu(
           features, decode_length)["outputs"]
       slow_result = tf.squeeze(slow_result, axis=[2, 3])
@@ -395,7 +395,7 @@ class TransformerScorerTest(tf.test.TestCase):
     self.assertTrue("scores" in infer_out)
 
     with self.test_session() as session:
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       infer_out = session.run(infer_out)
       self.assertEqual((BATCH_SIZE,), infer_out["scores"].shape)
       self.assertEqual((BATCH_SIZE, TARGET_LENGTH), infer_out["outputs"].shape)
@@ -406,21 +406,21 @@ class TransformerScorerTest(tf.test.TestCase):
           mode=tf_estimator.ModeKeys.PREDICT,
           model_cls=transformer.TransformerScorer)
       _ = model.infer(features)
-      scorer_vars = [v.name for v in tf.global_variables()]
+      scorer_vars = [v.name for v in tf.compat.v1.global_variables()]
 
     with tf.Graph().as_default():
       model, features = get_model(
           mode=tf_estimator.ModeKeys.EVAL,
           model_cls=transformer.TransformerScorer)
       _ = model(features)
-      scorer_eval_vars = [v.name for v in tf.global_variables()]
+      scorer_eval_vars = [v.name for v in tf.compat.v1.global_variables()]
 
     with tf.Graph().as_default():
       model, features = get_model(
           mode=tf_estimator.ModeKeys.EVAL,
           model_cls=transformer.Transformer)
       _ = model(features)
-      transformer_vars = [v.name for v in tf.global_variables()]
+      transformer_vars = [v.name for v in tf.compat.v1.global_variables()]
 
     self.assertEqual(sorted(scorer_vars), sorted(transformer_vars))
     self.assertEqual(sorted(scorer_eval_vars), sorted(transformer_vars))

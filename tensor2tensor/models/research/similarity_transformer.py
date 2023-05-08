@@ -19,7 +19,7 @@ from tensor2tensor.layers import common_layers
 from tensor2tensor.models import transformer
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import t2t_model
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -41,10 +41,10 @@ class SimilarityTransformer(t2t_model.T2TModel):
     if self.hparams.mode != tf_estimator.ModeKeys.PREDICT:
       # In training mode we need to embed both the queries and the code
       # using the inputs and targets respectively.
-      with tf.variable_scope('string_embedding'):
+      with tf.compat.v1.variable_scope('string_embedding'):
         string_embedding = self.encode(features, 'inputs')
 
-      with tf.variable_scope('code_embedding'):
+      with tf.compat.v1.variable_scope('code_embedding'):
         code_embedding = self.encode(features, 'targets')
 
       string_embedding_norm = tf.nn.l2_normalize(string_embedding, axis=1)
@@ -72,12 +72,12 @@ class SimilarityTransformer(t2t_model.T2TModel):
     # be different
     # Define predicates to be used with tf.cond
     def embed_string():
-      with tf.variable_scope('string_embedding'):
+      with tf.compat.v1.variable_scope('string_embedding'):
         string_embedding = self.encode(features, 'inputs')
       return string_embedding
 
     def embed_code():
-      with tf.variable_scope('code_embedding'):
+      with tf.compat.v1.variable_scope('code_embedding'):
         code_embedding = self.encode(features, 'inputs')
       return code_embedding
 
@@ -102,7 +102,7 @@ class SimilarityTransformer(t2t_model.T2TModel):
                                                 hparams))
 
     encoder_input = tf.nn.dropout(encoder_input,
-                                  1.0 - hparams.layer_prepostprocess_dropout)
+                                  rate=1 - (1.0 - hparams.layer_prepostprocess_dropout))
     encoder_output = transformer.transformer_encoder(
         encoder_input,
         encoder_self_attention_bias,

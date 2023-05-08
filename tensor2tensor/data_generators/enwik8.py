@@ -27,7 +27,7 @@ from tensor2tensor.data_generators import problem
 from tensor2tensor.data_generators import text_problems
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 def _maybe_download_corpus(tmp_dir):
@@ -96,7 +96,7 @@ class Enwik8L65k(text_problems.Text2SelfProblem):
     with tf.io.gfile.GFile(filepath, mode=self.READ_MODE) as f:
       data = f.read()
 
-    tf.logging.info("Length of enwik8 = %d", len(data))
+    tf.compat.v1.logging.info("Length of enwik8 = %d", len(data))
 
     num_test_chars = 5000000
 
@@ -109,7 +109,7 @@ class Enwik8L65k(text_problems.Text2SelfProblem):
     else:
       raise ValueError("Undefined dataset_split")
 
-    tf.logging.info("Length of split '%s' = %d", dataset_split, len(part))
+    tf.compat.v1.logging.info("Length of split '%s' = %d", dataset_split, len(part))
 
     # TODO(kitaev): Better handling of evaluation data, to ensure that there is
     # always context available.

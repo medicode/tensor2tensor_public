@@ -41,7 +41,7 @@ from tensor2tensor.utils import hparam
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import trainer_lib
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 flags = tf.flags
@@ -288,7 +288,7 @@ def collect_frames_for_random_starts(
   """Collects frames from real env for random starts of simulated env."""
   del frame_stack_size
   storage_env.start_new_epoch(0)
-  tf.logging.info(
+  tf.compat.v1.logging.info(
       "Collecting %d frames for random starts.", random_starts_step_limit
   )
   rl_utils.run_rollouts(
@@ -417,13 +417,13 @@ def evaluate(
   if report_fn:
     assert report_metric is not None
 
-  eval_metrics_writer = tf.summary.FileWriter(eval_metrics_dir)
+  eval_metrics_writer = tf.compat.v1.summary.FileWriter(eval_metrics_dir)
   video_writers = ()
   kwargs = {}
   if eval_mode in ["agent_real", "agent_simulated"]:
     if not eval_with_learner:
       if debug_video_path:
-        tf.gfile.MakeDirs(debug_video_path)
+        tf.io.gfile.makedirs(debug_video_path)
         video_writers = [
             common_video.WholeVideoWriter(  # pylint: disable=g-complex-comprehension
                 fps=10,
@@ -477,7 +477,7 @@ def get_game_for_worker(map_name, directory_id):
     raise ValueError("Unknown worker to game map name: %s" % map_name)
   games.sort()
   game_id = (directory_id - 1) // worker_per_game
-  tf.logging.info("Getting game %d from %s." % (game_id, games))
+  tf.compat.v1.logging.info("Getting game %d from %s." % (game_id, games))
   return games[game_id]
 
 
@@ -485,7 +485,7 @@ def evaluate_all_epochs(
     loop_hparams, planner_hparams, policy_dir, model_dir, eval_metrics_dir,
     *args, **kwargs
 ):
-  epoch_policy_dirs = tf.gfile.Glob(os.path.join(policy_dir, "epoch_*"))
+  epoch_policy_dirs = tf.io.gfile.glob(os.path.join(policy_dir, "epoch_*"))
   for epoch_policy_dir in epoch_policy_dirs:
     epoch_metrics_dir = os.path.join(eval_metrics_dir, "epoch_{}".format(
         epoch_policy_dir.split("_")[-1]
@@ -505,7 +505,7 @@ def main(_):
   if FLAGS.worker_to_game_map and FLAGS.total_num_workers > 1:
     loop_hparams.game = get_game_for_worker(
         FLAGS.worker_to_game_map, FLAGS.worker_id + 1)
-    tf.logging.info("Set game to %s." % loop_hparams.game)
+    tf.compat.v1.logging.info("Set game to %s." % loop_hparams.game)
   loop_hparams.eval_rl_env_max_episode_steps = FLAGS.eval_step_limit
   loop_hparams.eval_batch_size = FLAGS.eval_batch_size
   planner_hparams = trainer_lib.create_hparams(
@@ -527,9 +527,9 @@ def main(_):
       eval_dir_basename = FLAGS.planner_hparams_set + "_"
     eval_metrics_dir = os.path.join(cur_dir, eval_dir_basename + now_tag)
     debug_video_path = eval_metrics_dir
-    tf.logging.info("Writing metrics to %s." % eval_metrics_dir)
-    if not tf.gfile.Exists(eval_metrics_dir):
-      tf.gfile.MkDir(eval_metrics_dir)
+    tf.compat.v1.logging.info("Writing metrics to %s." % eval_metrics_dir)
+    if not tf.io.gfile.exists(eval_metrics_dir):
+      tf.io.gfile.mkdir(eval_metrics_dir)
     if FLAGS.all_epochs:
       evaluate_fn = evaluate_all_epochs
   evaluate_fn(
@@ -543,5 +543,5 @@ def main(_):
 
 
 if __name__ == "__main__":
-  tf.logging.set_verbosity(tf.logging.INFO)
-  tf.app.run()
+  tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
+  tf.compat.v1.app.run()

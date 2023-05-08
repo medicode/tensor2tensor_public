@@ -27,7 +27,7 @@ from tensor2tensor import problems
 from tensor2tensor.data_generators import cifar  # pylint: disable=unused-import
 from tensor2tensor.models.research import glow
 from tensor2tensor.utils import registry  # pylint: disable=unused-import
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 MODES = tf_estimator.ModeKeys
@@ -55,16 +55,16 @@ class GlowModelTest(tf.test.TestCase):
       hparams.problem = cifar_problem
       model = glow.Glow(hparams, tf_estimator.ModeKeys.TRAIN)
       train_dataset = cifar_problem.dataset(MODES.TRAIN)
-      one_shot = train_dataset.make_one_shot_iterator()
+      one_shot = tf.compat.v1.data.make_one_shot_iterator(train_dataset)
       x_batch, y_batch = self.batch(one_shot)
       features = {'inputs': x_batch, 'targets': y_batch}
       _, obj_dict = model.body(features)
       objective = obj_dict['training']
-      with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
+      with tf.compat.v1.Session() as sess:
+        sess.run(tf.compat.v1.global_variables_initializer())
 
         # Run initialization.
-        init_op = tf.get_collection('glow_init_op')
+        init_op = tf.compat.v1.get_collection('glow_init_op')
         sess.run(init_op)
 
         # Run forward pass.
@@ -88,17 +88,17 @@ class GlowModelTest(tf.test.TestCase):
       hparams.problem = cifar_problem
       model = glow.Glow(hparams, tf_estimator.ModeKeys.TRAIN)
       train_dataset = cifar_problem.dataset(MODES.TRAIN)
-      one_shot = train_dataset.make_one_shot_iterator()
+      one_shot = tf.compat.v1.data.make_one_shot_iterator(train_dataset)
       x_batch, y_batch = self.batch(one_shot)
       features = {'inputs': x_batch, 'targets': y_batch}
       model_path = os.path.join(curr_dir, 'model')
       model(features)
 
-      with tf.Session() as session:
-        saver = tf.train.Saver()
-        session.run(tf.global_variables_initializer())
+      with tf.compat.v1.Session() as session:
+        saver = tf.compat.v1.train.Saver()
+        session.run(tf.compat.v1.global_variables_initializer())
 
-        init_op = tf.get_collection('glow_init_op')
+        init_op = tf.compat.v1.get_collection('glow_init_op')
         session.run(init_op)
         z = session.run([model.z])
         mean_z = np.mean(z)
@@ -112,14 +112,14 @@ class GlowModelTest(tf.test.TestCase):
       hparams.problem = cifar_problem
       model = glow.Glow(hparams, tf_estimator.ModeKeys.PREDICT)
       test_dataset = cifar_problem.dataset(MODES.EVAL)
-      one_shot = test_dataset.make_one_shot_iterator()
+      one_shot = tf.compat.v1.data.make_one_shot_iterator(test_dataset)
       x_batch, y_batch = self.batch(one_shot)
       features = {'inputs': x_batch, 'targets': y_batch}
       model_path = os.path.join(curr_dir, 'model')
 
       predictions = model.infer(features)
-      with tf.Session() as session:
-        saver = tf.train.Saver()
+      with tf.compat.v1.Session() as session:
+        saver = tf.compat.v1.train.Saver()
         saver.restore(session, model_path)
         predictions_np = session.run(predictions)
         self.assertTrue(np.all(predictions_np <= 255))

@@ -27,13 +27,13 @@ from tensor2tensor.data_generators import problem
 from tensor2tensor.data_generators import text_problems
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 def concat_generator(filename, up_threshold, low_threshold=10):
   """Generate concatenated lines from file upto up_threshold characters."""
   txt = ""
-  for line in tf.gfile.Open(filename):
+  for line in tf.io.gfile.GFile(filename):
     line = line.strip()
     if len(txt) + len(line) + 1 >= up_threshold:
       ret = txt
@@ -134,7 +134,7 @@ class LanguagemodelEnWiki32k(text_problems.Text2SelfProblem):
       download_path = generator_utils.maybe_download_from_drive(
           tmp_dir, fname, url)
       wiki_file = os.path.join(tmp_dir, fname[:-3])
-      if not tf.gfile.Exists(wiki_file):
+      if not tf.io.gfile.exists(wiki_file):
         generator_utils.gunzip_file(download_path, wiki_file)
       wiki_generators.append(
           concat_generator(wiki_file, self.combine_characters_threshold))

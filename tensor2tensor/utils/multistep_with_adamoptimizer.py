@@ -39,14 +39,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.ops import resource_variable_ops
 from tensorflow.python.training import training_ops
 # pylint: enable=g-direct-tensorflow-import
 
 
-class MultistepAdamOptimizer(tf.train.Optimizer):
+class MultistepAdamOptimizer(tf.compat.v1.train.Optimizer):
   """Adam with SGD updates every n steps with accumulated gradients."""
 
   def __init__(self,
@@ -76,7 +76,7 @@ class MultistepAdamOptimizer(tf.train.Optimizer):
       if tf.executing_eagerly():
         graph = None
       else:
-        graph = tf.get_default_graph()
+        graph = tf.compat.v1.get_default_graph()
       return (self._get_non_slot_variable("beta1_power", graph=graph),
               self._get_non_slot_variable("beta2_power", graph=graph))
 
@@ -100,7 +100,7 @@ class MultistepAdamOptimizer(tf.train.Optimizer):
       self._zeros_slot(v, "grad_acc", self._name)
 
   def _get_iter_variable(self):
-    graph = (None if tf.executing_eagerly() else tf.get_default_graph())
+    graph = (None if tf.executing_eagerly() else tf.compat.v1.get_default_graph())
     return self._get_non_slot_variable("iter", graph=graph)
 
   def _prepare(self):
@@ -127,7 +127,7 @@ class MultistepAdamOptimizer(tf.train.Optimizer):
       return tf.group(adam_op, grad_acc_to_zero_op)
 
     def accumulate_gradient(grad_acc, grad):
-      assign_op = tf.assign_add(grad_acc, grad, use_locking=self._use_locking)
+      assign_op = tf.compat.v1.assign_add(grad_acc, grad, use_locking=self._use_locking)
       return tf.group(assign_op)  # Strip return value
 
     return tf.cond(
@@ -187,28 +187,28 @@ class MultistepAdamOptimizer(tf.train.Optimizer):
     # m_t = beta1 * m + (1 - beta1) * g_t
     m = self.get_slot(var, "m")
     m_scaled_g_values = grad * (1 - beta1_t)
-    m_t = tf.assign(m, m * beta1_t, use_locking=self._use_locking)
+    m_t = tf.compat.v1.assign(m, m * beta1_t, use_locking=self._use_locking)
     with tf.control_dependencies([m_t]):
       m_t = scatter_add(m, indices, m_scaled_g_values)
     # v_t = beta2 * v + (1 - beta2) * (g_t * g_t)
     v = self.get_slot(var, "v")
     v_scaled_g_values = (grad * grad) * (1 - beta2_t)
-    v_t = tf.assign(v, v * beta2_t, use_locking=self._use_locking)
+    v_t = tf.compat.v1.assign(v, v * beta2_t, use_locking=self._use_locking)
     with tf.control_dependencies([v_t]):
       v_t = scatter_add(v, indices, v_scaled_g_values)
     v_sqrt = tf.sqrt(v_t)
-    var_update = tf.assign_sub(
+    var_update = tf.compat.v1.assign_sub(
         var, lr * m_t / (v_sqrt + epsilon_t), use_locking=self._use_locking)
     return tf.group(*[var_update, m_t, v_t])
 
   def _apply_sparse(self, grad, var):
     # TODO(fstahlberg): Implement a sparse version
-    tf.logging.warning("MultistepAdamOptimizer does not support sparse updates")
+    tf.compat.v1.logging.warning("MultistepAdamOptimizer does not support sparse updates")
     dense_grad = tf.convert_to_tensor(grad)
     return self._apply_cond(self._apply_dense_in_action, dense_grad, var)
 
   def _resource_apply_sparse_duplicate_indices(self, grad, var, indices):
-    tf.logging.warning("MultistepAdamOptimizer does not support sparse updates")
+    tf.compat.v1.logging.warning("MultistepAdamOptimizer does not support sparse updates")
     # Note that conversion to a dense Tensor handles duplicate `indices`
     # correctly (summing them). A real sparse implementation will probably want
     # to override _resource_apply_sparse instead so it gets them de-duplicated
@@ -233,7 +233,7 @@ class MultistepAdamOptimizer(tf.train.Optimizer):
     iter_ = self._get_iter_variable()
     beta1_power, beta2_power = self._get_beta_accumulators()
     with tf.control_dependencies(update_ops):
-      with tf.colocate_with(iter_):
+      with tf.compat.v1.colocate_with(iter_):
 
         def update_beta_op():
           update_beta1 = beta1_power.assign(
@@ -249,7 +249,7 @@ class MultistepAdamOptimizer(tf.train.Optimizer):
           # (float to int, and then int to float)
           update_iter = iter_.assign(
               tf.cast(
-                  tf.mod(tf.cast(iter_ + 1.0, tf.int32), self._n_t),
+                  tf.math.floormod(tf.cast(iter_ + 1.0, tf.int32), self._n_t),
                   tf.float32),
               use_locking=self._use_locking)
     return tf.group(

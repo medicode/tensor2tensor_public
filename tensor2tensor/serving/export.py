@@ -25,7 +25,7 @@ from tensor2tensor.utils import t2t_model
 from tensor2tensor.utils import trainer_lib
 from tensor2tensor.utils import usr_dir
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow_hub as hub
 
@@ -61,15 +61,15 @@ def _get_hparams_path():
 
   # Check if hparams_path really exists
   if hparams_path:
-    if tf.gfile.Exists(hparams_path):
-      tf.logging.info("hparams file %s exists", hparams_path)
+    if tf.io.gfile.exists(hparams_path):
+      tf.compat.v1.logging.info("hparams file %s exists", hparams_path)
     else:
-      tf.logging.info("hparams file %s does not exist", hparams_path)
+      tf.compat.v1.logging.info("hparams file %s does not exist", hparams_path)
       hparams_path = None
 
   # Can't find hparams_path
   if not hparams_path:
-    tf.logging.warning(
+    tf.compat.v1.logging.warning(
         "--output_dir not specified or file hparams.json does not exists. "
         "Hyper-parameters will be infered from --hparams_set and "
         "--hparams only. These may not match training time hyper-parameters.")
@@ -115,9 +115,9 @@ def export_module_spec_with_checkpoint(module_spec,
     assign_map = {
         scope_prefix + name: value for name, value in m.variable_map.items()
     }
-    tf.train.init_from_checkpoint(checkpoint_path, assign_map)
-    init_op = tf.initializers.global_variables()
-    with tf.Session() as session:
+    tf.compat.v1.train.init_from_checkpoint(checkpoint_path, assign_map)
+    init_op = tf.compat.v1.initializers.global_variables()
+    with tf.compat.v1.Session() as session:
       session.run(init_op)
       m.export(export_path, session)
 
@@ -163,8 +163,8 @@ def export_as_tfhub_module(model_name,
         outputs=spec.export_outputs["serving_default"].outputs)
 
   # TFHub doesn't support the following collections.
-  drop_collections = [tf.GraphKeys.LOSSES,
-                      tf.GraphKeys.SUMMARIES, tf.GraphKeys.LOCAL_VARIABLES]
+  drop_collections = [tf.compat.v1.GraphKeys.LOSSES,
+                      tf.compat.v1.GraphKeys.SUMMARIES, tf.compat.v1.GraphKeys.LOCAL_VARIABLES]
   module_spec = hub.create_module_spec(
       hub_module_fn, drop_collections=drop_collections)
   # Loads the weights from the checkpoint using the model above
@@ -177,7 +177,7 @@ def export_as_tfhub_module(model_name,
 
 
 def main(_):
-  tf.logging.set_verbosity(tf.logging.INFO)
+  tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
   trainer_lib.set_random_seed(FLAGS.random_seed)
   usr_dir.import_usr_dir(FLAGS.t2t_usr_dir)
 
@@ -219,5 +219,5 @@ def main(_):
 
 
 if __name__ == "__main__":
-  tf.logging.set_verbosity(tf.logging.INFO)
-  tf.app.run()
+  tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
+  tf.compat.v1.app.run()

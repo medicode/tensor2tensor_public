@@ -32,7 +32,7 @@ from tensor2tensor.data_generators import text_problems
 from tensor2tensor.data_generators.text_problems import VocabType
 from tensor2tensor.layers import modalities
 from tensor2tensor.utils import metrics
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 # End-of-sentence marker.
 EOS = text_encoder.EOS_ID
@@ -335,8 +335,8 @@ class DialogAbstract(text_problems.Text2TextProblem):
     t_path = os.path.join(data_dir, self.mode[data_split] + 'Target.txt')
 
     # Open the files and yield source-target lines.
-    with tf.gfile.GFile(s_path, mode='r') as source_file:
-      with tf.gfile.GFile(t_path, mode='r') as target_file:
+    with tf.io.gfile.GFile(s_path, mode='r') as source_file:
+      with tf.io.gfile.GFile(t_path, mode='r') as target_file:
         source, target = source_file.readline(), target_file.readline()
         while source and target:
           yield {'inputs': source.strip(), 'targets': target.strip()}

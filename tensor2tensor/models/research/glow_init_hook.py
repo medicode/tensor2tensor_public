@@ -19,10 +19,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
-class GlowInitHook(tf.train.SessionRunHook):
+class GlowInitHook(tf.estimator.SessionRunHook):
   """
   Hook that runs data-dependent initialization once before the first step.
 
@@ -32,9 +32,9 @@ class GlowInitHook(tf.train.SessionRunHook):
 
   def after_create_session(self, session, coord):
     del coord
-    global_step = session.run(tf.train.get_global_step())
+    global_step = session.run(tf.compat.v1.train.get_global_step())
     if global_step == 0:
-      ddi = tf.get_collection("glow_init_op")
+      ddi = tf.compat.v1.get_collection("glow_init_op")
       # In-case of a multi-GPU system, this just runs the first op in the
       # collection.
       if ddi:

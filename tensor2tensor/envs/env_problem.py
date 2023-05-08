@@ -33,7 +33,7 @@ from tensor2tensor.envs import gym_spaces_utils
 from tensor2tensor.envs import trajectory
 from tensor2tensor.layers import modalities
 from tensor2tensor.utils import contrib
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 # Names for data fields in stored tf.Examples.
 TIMESTEP_FIELD = "timestep"
@@ -465,10 +465,10 @@ class EnvProblem(Env, problem.Problem):
       processed_reward_type = tf.int64
 
     data_fields = {
-        TIMESTEP_FIELD: tf.FixedLenFeature((1,), tf.int64),
-        RAW_REWARD_FIELD: tf.FixedLenFeature((1,), tf.float32),
-        PROCESSED_REWARD_FIELD: tf.FixedLenFeature((1,), processed_reward_type),
-        DONE_FIELD: tf.FixedLenFeature((1,), tf.int64),  # we wrote this as int.
+        TIMESTEP_FIELD: tf.io.FixedLenFeature((1,), tf.int64),
+        RAW_REWARD_FIELD: tf.io.FixedLenFeature((1,), tf.float32),
+        PROCESSED_REWARD_FIELD: tf.io.FixedLenFeature((1,), processed_reward_type),
+        DONE_FIELD: tf.io.FixedLenFeature((1,), tf.int64),  # we wrote this as int.
 
         # Special treatment because we need to determine type and shape, also
         # enables classes to override.

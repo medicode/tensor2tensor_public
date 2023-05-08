@@ -25,7 +25,7 @@ import numpy as np
 from tensor2tensor.data_generators import problem_hparams
 from tensor2tensor.models import mtf_image_transformer
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 # Constants shared between all functions.
@@ -87,7 +87,7 @@ class MtfImageTransformerTest(tf.test.TestCase):
     tf_logits = lowering.export_to_tf_tensor(logits)
 
     with self.test_session() as session:
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       session.run(tf_group)
       res = session.run(tf_logits)
     self.assertEqual(res.shape,
@@ -109,7 +109,7 @@ class MtfImageTransformerTest(tf.test.TestCase):
     tf_logits = lowering.export_to_tf_tensor(logits)
 
     with self.test_session() as session:
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       session.run(tf_group)
       res = session.run(tf_logits)
     self.assertEqual(res.shape,
@@ -131,7 +131,7 @@ class MtfImageTransformerTest(tf.test.TestCase):
     tf_logits = lowering.export_to_tf_tensor(logits)
 
     with self.test_session() as session:
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       session.run(tf_group)
       res = session.run(tf_logits)
     self.assertEqual(

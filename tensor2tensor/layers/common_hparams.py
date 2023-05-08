@@ -22,7 +22,7 @@ from six.moves import zip  # pylint: disable=redefined-builtin
 from tensor2tensor.utils import hparam
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 @registry.register_hparams("basic_1")
@@ -377,7 +377,7 @@ class RangedHParams(object):
     """Check if name is in orig_ctr or in one of the other type containers."""
     # Resetting a hyperparameter
     if name in orig_ctr:
-      tf.logging.warning("Overwriting hparam %s", name)
+      tf.compat.v1.logging.warning("Overwriting hparam %s", name)
 
     ctr_names = [
         (self._categorical_params, "categorical"),

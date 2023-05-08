@@ -32,7 +32,7 @@ from tensor2tensor.layers import modalities
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import t2t_model
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -52,9 +52,9 @@ class Imagetransformer(t2t_model.T2TModel):
         hparams.num_channels != 1):
       raise ValueError("When using DMOL for the likelihood, bottom function "
                        " must be identity and num_channels must be 1.")
-    if (not tf.get_variable_scope().reuse and
+    if (not tf.compat.v1.get_variable_scope().reuse and
         hparams.mode != tf_estimator.ModeKeys.PREDICT):
-      tf.summary.image("targets", tf.to_float(targets), max_outputs=1)
+      tf.compat.v1.summary.image("targets", tf.cast(targets, dtype=tf.float32), max_outputs=1)
 
     # Extra losses list if we want to use moe.
     losses = []

@@ -25,7 +25,7 @@ from tensor2tensor.data_generators import problem_hparams
 from tensor2tensor.layers import modalities
 from tensor2tensor.models import xception
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -51,7 +51,7 @@ class XceptionTest(tf.test.TestCase):
       }
       model = xception.Xception(hparams, tf_estimator.ModeKeys.TRAIN, p_hparams)
       logits, _ = model(features)
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       res = session.run(logits)
     self.assertEqual(res.shape, (batch_size, 1, 1, 1, vocab_size))
 

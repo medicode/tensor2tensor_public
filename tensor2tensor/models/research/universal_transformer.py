@@ -35,7 +35,7 @@ from tensor2tensor.models.research import universal_transformer_util
 from tensor2tensor.utils import contrib
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 @registry.register_model
@@ -78,7 +78,7 @@ class UniversalTransformer(transformer.Transformer):
             inputs, target_space, hparams, features=features))
 
     encoder_input = tf.nn.dropout(encoder_input,
-                                  1.0 - hparams.layer_prepostprocess_dropout)
+                                  rate=1 - (1.0 - hparams.layer_prepostprocess_dropout))
 
     (encoder_output, encoder_extra_output) = (
         universal_transformer_util.universal_transformer_encoder(
@@ -137,7 +137,7 @@ class UniversalTransformer(transformer.Transformer):
     del cache
 
     decoder_input = tf.nn.dropout(decoder_input,
-                                  1.0 - hparams.layer_prepostprocess_dropout)
+                                  rate=1 - (1.0 - hparams.layer_prepostprocess_dropout))
 
     # No caching in Universal Transformers!
     (decoder_output, dec_extra_output) = (
@@ -307,7 +307,7 @@ class UniversalTransformerEncoder(transformer.Transformer):
         transformer.transformer_prepare_encoder(inputs, target_space, hparams))
 
     encoder_input = tf.nn.dropout(encoder_input,
-                                  1.0 - hparams.layer_prepostprocess_dropout)
+                                  rate=1 - (1.0 - hparams.layer_prepostprocess_dropout))
 
     (encoder_output, encoder_extra_output) = (
         universal_transformer_util.universal_transformer_encoder(

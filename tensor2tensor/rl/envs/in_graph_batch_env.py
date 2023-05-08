@@ -24,7 +24,7 @@ from __future__ import print_function
 
 import gym
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 class InGraphBatchEnv(object):

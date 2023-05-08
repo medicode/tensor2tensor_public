@@ -26,7 +26,7 @@ from tensor2tensor.data_generators import text_problems
 from tensor2tensor.layers import modalities
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 @modalities.is_pointwise
@@ -113,9 +113,9 @@ class Seq2editsGec(text_problems.Text2TextProblem):
 
   def example_reading_spec(self):
     data_fields, _ = super(Seq2editsGec, self).example_reading_spec()
-    data_fields["targets_start_token"] = tf.VarLenFeature(tf.int64)
-    data_fields["targets_end_token"] = tf.VarLenFeature(tf.int64)
-    data_fields["targets_error_tag"] = tf.VarLenFeature(tf.int64)
+    data_fields["targets_start_token"] = tf.io.VarLenFeature(tf.int64)
+    data_fields["targets_end_token"] = tf.io.VarLenFeature(tf.int64)
+    data_fields["targets_error_tag"] = tf.io.VarLenFeature(tf.int64)
     return data_fields, None
 
 

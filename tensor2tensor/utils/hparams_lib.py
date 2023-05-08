@@ -25,7 +25,7 @@ from tensor2tensor.data_generators import problem as problem_lib
 from tensor2tensor.utils import hparam
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 def copy_hparams(hparams):
@@ -46,12 +46,12 @@ def create_hparams(hparams_set,
                    hparams_path=None):
   """Create HParams with data_dir and problem hparams, if kwargs provided."""
   hparams = registry.hparams(hparams_set)
-  if hparams_path and tf.gfile.Exists(hparams_path):
+  if hparams_path and tf.io.gfile.exists(hparams_path):
     hparams = create_hparams_from_json(hparams_path, hparams)
   if data_dir:
     hparams.add_hparam("data_dir", data_dir)
   if hparams_overrides_str:
-    tf.logging.info("Overriding hparams in %s with %s", hparams_set,
+    tf.compat.v1.logging.info("Overriding hparams in %s with %s", hparams_set,
                     hparams_overrides_str)
     hparams = hparams.parse(hparams_overrides_str)
   if problem_name:
@@ -61,8 +61,8 @@ def create_hparams(hparams_set,
 
 def create_hparams_from_json(json_path, hparams=None):
   """Loading hparams from json; can also start from hparams if specified."""
-  tf.logging.info("Loading hparams from existing json %s" % json_path)
-  with tf.gfile.Open(json_path, "r") as f:
+  tf.compat.v1.logging.info("Loading hparams from existing json %s" % json_path)
+  with tf.io.gfile.GFile(json_path, "r") as f:
     hparams_values = json.load(f)
     # Prevent certain keys from overwriting the passed-in hparams.
     # TODO(trandustin): Remove this hack after registries are available to avoid
@@ -82,7 +82,7 @@ def create_hparams_from_json(json_path, hparams=None):
           value = getattr(hparams, key)
           new_value = getattr(new_hparams, key)
           if value != new_value:  # Different values
-            tf.logging.info("Overwrite key %s: %s -> %s" % (
+            tf.compat.v1.logging.info("Overwrite key %s: %s -> %s" % (
                 key, value, new_value))
             setattr(hparams, key, new_value)
     else:

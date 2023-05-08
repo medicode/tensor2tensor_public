@@ -50,7 +50,7 @@ from tensor2tensor.data_generators import problem
 from tensor2tensor.data_generators import text_problems
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 _URL = ("https://art.wangperawong.com/mathematical_language_understanding"
@@ -67,8 +67,8 @@ def _download_mlu_data(tmp_dir, data_dir):
   Returns:
     tmp_dir: temp directory containing the raw data.
   """
-  if not tf.gfile.Exists(data_dir):
-    tf.gfile.MakeDirs(data_dir)
+  if not tf.io.gfile.exists(data_dir):
+    tf.io.gfile.makedirs(data_dir)
 
   filename = os.path.basename(_URL)
   file_path = os.path.join(tmp_dir, filename)
@@ -118,11 +118,11 @@ class AlgorithmicMathTwoVariables(text_problems.Text2TextProblem):
     Yields:
       The data examples.
     """
-    if not tf.gfile.Exists(tmp_dir):
-      tf.gfile.MakeDirs(tmp_dir)
+    if not tf.io.gfile.exists(tmp_dir):
+      tf.io.gfile.makedirs(tmp_dir)
 
-    if not tf.gfile.Exists(data_dir):
-      tf.gfile.MakeDirs(data_dir)
+    if not tf.io.gfile.exists(data_dir):
+      tf.io.gfile.makedirs(data_dir)
 
     # Download and extract.
     download_path = _download_mlu_data(tmp_dir, data_dir)

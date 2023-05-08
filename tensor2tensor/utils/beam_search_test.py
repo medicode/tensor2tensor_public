@@ -21,7 +21,7 @@ from __future__ import print_function
 import numpy as np
 from tensor2tensor.utils import beam_search
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 class BeamSearchTest(tf.test.TestCase):
@@ -36,7 +36,7 @@ class BeamSearchTest(tf.test.TestCase):
 
     def symbols_to_logits(_):
       # Just return random logits
-      return tf.random_uniform((batch_size * beam_size, vocab_size))
+      return tf.random.uniform((batch_size * beam_size, vocab_size))
 
     final_ids, final_probs, _ = beam_search.beam_search(
         symbols_to_logits, initial_ids, beam_size, decode_length, vocab_size,
@@ -111,7 +111,7 @@ class BeamSearchTest(tf.test.TestCase):
 
     def symbols_to_logits(ids):
       pos = tf.shape(ids)[1]
-      logits = tf.to_float(tf.log(probabilities[pos - 1, :]))
+      logits = tf.cast(tf.math.log(probabilities[pos - 1, :]), dtype=tf.float32)
       return logits
 
     final_ids, final_probs, _ = beam_search.beam_search(
@@ -142,7 +142,7 @@ class BeamSearchTest(tf.test.TestCase):
 
     def symbols_to_logits(ids):
       pos = tf.shape(ids)[1]
-      logits = tf.to_float(tf.log(probabilities[pos - 1, :]))
+      logits = tf.cast(tf.math.log(probabilities[pos - 1, :]), dtype=tf.float32)
       return logits
 
     final_ids, final_probs, _ = beam_search.beam_search(
@@ -179,7 +179,7 @@ class BeamSearchTest(tf.test.TestCase):
 
     def symbols_to_logits(ids):
       pos = tf.shape(ids)[1]
-      logits = tf.to_float(tf.log(probabilities[pos - 1, :]))
+      logits = tf.cast(tf.math.log(probabilities[pos - 1, :]), dtype=tf.float32)
       return logits
 
     final_ids, final_probs, _ = beam_search.beam_search(
@@ -211,7 +211,7 @@ class BeamSearchTest(tf.test.TestCase):
 
     def symbols_to_logits(ids):
       pos = tf.shape(ids)[1]
-      logits = tf.to_float(tf.log(probabilities[pos - 1, :]))
+      logits = tf.cast(tf.math.log(probabilities[pos - 1, :]), dtype=tf.float32)
       return logits
 
     final_ids, final_probs, _ = beam_search.beam_search(
@@ -251,7 +251,7 @@ class BeamSearchTest(tf.test.TestCase):
 
     def symbols_to_logits(ids):
       pos = tf.shape(ids)[1]
-      logits = tf.to_float(tf.log(probabilities[pos - 1, :]))
+      logits = tf.cast(tf.math.log(probabilities[pos - 1, :]), dtype=tf.float32)
       return logits
 
     final_ids, final_scores, _ = beam_search.beam_search(
@@ -293,7 +293,7 @@ class BeamSearchTest(tf.test.TestCase):
 
     def symbols_to_logits(ids):
       pos = tf.shape(ids)[1]
-      logits = tf.to_float(tf.log(probabilities[pos - 1, :]))
+      logits = tf.cast(tf.math.log(probabilities[pos - 1, :]), dtype=tf.float32)
       return logits
 
     # Disable early stopping
@@ -331,8 +331,8 @@ class BeamSearchTest(tf.test.TestCase):
       # We have to assert the values of state inline here since we can't fetch
       # them out of the loop!
       with tf.control_dependencies(
-          [tf.assert_equal(states["state"], expected_states[pos])]):
-        logits = tf.to_float(tf.log(probabilities[pos, :]))
+          [tf.compat.v1.assert_equal(states["state"], expected_states[pos])]):
+        logits = tf.cast(tf.math.log(probabilities[pos, :]), dtype=tf.float32)
 
       states["state"] += 1
       return logits, states
@@ -340,7 +340,7 @@ class BeamSearchTest(tf.test.TestCase):
     states = {
         "state": tf.zeros((batch_size, 1)),
     }
-    states["state"] = tf.placeholder_with_default(
+    states["state"] = tf.compat.v1.placeholder_with_default(
         states["state"], shape=(None, 1))
 
     final_ids, _, _ = beam_search.beam_search(
@@ -371,14 +371,14 @@ class BeamSearchTest(tf.test.TestCase):
 
     def symbols_to_logits(ids, _, states):
       pos = tf.shape(ids)[1] - 1
-      logits = tf.to_float(tf.log(probabilities[pos, :]))
+      logits = tf.cast(tf.math.log(probabilities[pos, :]), dtype=tf.float32)
       states["state"] += 1
       return logits, states
 
     states = {
         "state": tf.zeros((batch_size, 1)),
     }
-    states["state"] = tf.placeholder_with_default(
+    states["state"] = tf.compat.v1.placeholder_with_default(
         states["state"], shape=(None, 1))
 
     _, _, final_states = beam_search.beam_search(
@@ -416,8 +416,8 @@ class BeamSearchTest(tf.test.TestCase):
       # We have to assert the values of state inline here since we can't fetch
       # them out of the loop!
       with tf.control_dependencies(
-          [tf.assert_equal(states["state"], expected_states[pos])]):
-        logits = tf.to_float(tf.log(probabilities[pos, :]))
+          [tf.compat.v1.assert_equal(states["state"], expected_states[pos])]):
+        logits = tf.cast(tf.math.log(probabilities[pos, :]), dtype=tf.float32)
 
       states["state"] += tf.constant([[3.], [7.]])
       return logits, states
@@ -425,7 +425,7 @@ class BeamSearchTest(tf.test.TestCase):
     states = {
         "state": tf.zeros((batch_size, 1)),
     }
-    states["state"] = tf.placeholder_with_default(
+    states["state"] = tf.compat.v1.placeholder_with_default(
         states["state"], shape=(None, 1))
 
     final_ids, _, _ = beam_search.beam_search(
@@ -464,8 +464,8 @@ class BeamSearchTest(tf.test.TestCase):
       # We have to assert the values of state inline here since we can't fetch
       # them out of the loop!
       with tf.control_dependencies(
-          [tf.assert_equal(states["state"], expected_states[i])]):
-        logits = tf.to_float(tf.log(probabilities[i, :]))
+          [tf.compat.v1.assert_equal(states["state"], expected_states[i])]):
+        logits = tf.cast(tf.math.log(probabilities[i, :]), dtype=tf.float32)
 
       states["state"] += tf.constant([[3.], [7.]])
       return logits, states
@@ -473,7 +473,7 @@ class BeamSearchTest(tf.test.TestCase):
     states = {
         "state": tf.zeros((batch_size, 1)),
     }
-    states["state"] = tf.placeholder_with_default(
+    states["state"] = tf.compat.v1.placeholder_with_default(
         states["state"], shape=(None, 1))
 
     final_ids, _, _ = beam_search.beam_search(

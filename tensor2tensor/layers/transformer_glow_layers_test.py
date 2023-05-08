@@ -41,7 +41,7 @@ from tensor2tensor.layers import common_attention
 from tensor2tensor.layers import transformer_glow_layers as glow
 from tensor2tensor.layers import transformer_glow_layers_ops as gops
 from tensor2tensor.models import transformer
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 BATCH_SIZE = 20
 INPUT_LENGTH = 3
@@ -94,7 +94,7 @@ class TransformerGlowLayersTest(parameterized.TestCase, tf.test.TestCase):
     return hparams
 
   def get_data(self):
-    x = tf.random_normal(
+    x = tf.random.normal(
         (BATCH_SIZE, TARGET_LENGTH, N_CHANNELS), dtype=DTYPE)
     x_lengths = np.random.randint(
         low=1, high=TARGET_LENGTH+1, size=BATCH_SIZE)
@@ -120,14 +120,14 @@ class TransformerGlowLayersTest(parameterized.TestCase, tf.test.TestCase):
 
   def test_actnorm(self):
     _, x_mask, _ = self.get_data()
-    x = tf.random_normal((BATCH_SIZE, TARGET_LENGTH, N_CHANNELS),
+    x = tf.random.normal((BATCH_SIZE, TARGET_LENGTH, N_CHANNELS),
                          mean=50.0, stddev=10.0, dtype=DTYPE)
     x_act, logabsdet = glow.actnorm(
         "actnorm", x, x_mask, inverse=False, init=True)
 
     x_act_nopad = tf.boolean_mask(x_act, x_mask)
     x_mean, x_var = tf.nn.moments(x_act_nopad, axes=[0])
-    self.evaluate(tf.global_variables_initializer())
+    self.evaluate(tf.compat.v1.global_variables_initializer())
     x, x_act, logabsdet, x_mean, x_var = (
         self.evaluate([x, x_act, logabsdet, x_mean, x_var]))
     self.assertEqual(x_act.shape, (BATCH_SIZE, TARGET_LENGTH, N_CHANNELS))
@@ -143,7 +143,7 @@ class TransformerGlowLayersTest(parameterized.TestCase, tf.test.TestCase):
         name, x, x_mask, inverse=False, init=False)
     x_inv_inv, logabsdet_inv = glow.actnorm(
         name, x_inv, x_mask, inverse=True, init=False)
-    self.evaluate(tf.global_variables_initializer())
+    self.evaluate(tf.compat.v1.global_variables_initializer())
     x, x_inv, x_inv_inv, x_mask, logabsdet, logabsdet_inv = (
         self.evaluate(
             [x, x_inv, x_inv_inv, x_mask, logabsdet, logabsdet_inv]))
@@ -168,7 +168,7 @@ class TransformerGlowLayersTest(parameterized.TestCase, tf.test.TestCase):
         name, x, x_mask, multihead_split, inverse=False, dtype=DTYPE)
     x_inv_inv, logabsdet_inv = func(
         name, x_inv, x_mask, multihead_split, inverse=True, dtype=DTYPE)
-    self.evaluate(tf.global_variables_initializer())
+    self.evaluate(tf.compat.v1.global_variables_initializer())
     x, x_mask, x_inv, x_inv_inv, logabsdet, logabsdet_inv = (
         self.evaluate(
             [x, x_mask, x_inv, x_inv_inv, logabsdet, logabsdet_inv]))
@@ -200,7 +200,7 @@ class TransformerGlowLayersTest(parameterized.TestCase, tf.test.TestCase):
         name, x_inv, x_mask, split_dim=split_dim,
         identity_first=True, inverse=True, init=False, disable_dropout=True,
         **kwargs)
-    self.evaluate(tf.global_variables_initializer())
+    self.evaluate(tf.compat.v1.global_variables_initializer())
     x, x_mask, x_inv, x_inv_inv, logabsdet, logabsdet_inv = (
         self.evaluate(
             [x, x_mask, x_inv, x_inv_inv, logabsdet, logabsdet_inv]))
@@ -216,7 +216,7 @@ class TransformerGlowLayersTest(parameterized.TestCase, tf.test.TestCase):
         "split", x, x_mask, inverse=False)
     x_inv_inv, _, log_p_inv = glow.split(
         "split", x_inv, x_mask, z=z, inverse=True)
-    self.evaluate(tf.global_variables_initializer())
+    self.evaluate(tf.compat.v1.global_variables_initializer())
     x, x_inv, x_inv_inv, z, log_p, log_p_inv = self.evaluate(
         [x, x_inv, x_inv_inv, z, log_p, log_p_inv])
     diff = x - x_inv_inv
@@ -239,7 +239,7 @@ class TransformerGlowLayersTest(parameterized.TestCase, tf.test.TestCase):
     x_inv_inv, logabsdet_inv = glow.flow_step_glow(
         name, x_inv, x_mask, split_dims, inverse=True, init=False,
         dtype=DTYPE, disable_dropout=True, **kwargs)
-    self.evaluate(tf.global_variables_initializer())
+    self.evaluate(tf.compat.v1.global_variables_initializer())
     x, x_mask, x_inv, x_inv_inv, logabsdet, logabsdet_inv = (
         self.evaluate(
             [x, x_mask, x_inv, x_inv_inv, logabsdet, logabsdet_inv]))
@@ -256,7 +256,7 @@ class TransformerGlowLayersTest(parameterized.TestCase, tf.test.TestCase):
   def test_aaa_glow_training(self, depths, split_plans, prior_type):
     with tf.Graph().as_default():
       _, x_mask, _ = self.get_data()
-      x = tf.random_normal((BATCH_SIZE, TARGET_LENGTH, N_CHANNELS),
+      x = tf.random.normal((BATCH_SIZE, TARGET_LENGTH, N_CHANNELS),
                            mean=10.0, stddev=3.0, dtype=DTYPE)
       bias = common_attention.attention_bias_ignore_padding(1.0 - x_mask)
       hparams = self.get_hparams()
@@ -273,15 +273,15 @@ class TransformerGlowLayersTest(parameterized.TestCase, tf.test.TestCase):
       curr_dir = tempfile.mkdtemp()
       model_path = os.path.join(curr_dir, "model")
 
-      with tf.Session() as session:
-        saver = tf.train.Saver()
-        session.run(tf.global_variables_initializer())
+      with tf.compat.v1.Session() as session:
+        saver = tf.compat.v1.train.Saver()
+        session.run(tf.compat.v1.global_variables_initializer())
         session.run(x_inv)
         saver.save(session, model_path)
 
     with tf.Graph().as_default():
       _, x_mask, _ = self.get_data()
-      x = tf.random_normal((BATCH_SIZE, TARGET_LENGTH, N_CHANNELS),
+      x = tf.random.normal((BATCH_SIZE, TARGET_LENGTH, N_CHANNELS),
                            mean=10.0, stddev=3.0, dtype=DTYPE)
       bias = common_attention.attention_bias_ignore_padding(1.0 - x_mask)
       hparams = self.get_hparams()
@@ -305,8 +305,8 @@ class TransformerGlowLayersTest(parameterized.TestCase, tf.test.TestCase):
       log_ps = tf.reduce_sum(log_ps, axis=0) / tf.reduce_sum(x_mask)
       log_ps_inv = tf.reduce_sum(log_ps_inv, axis=0) / tf.reduce_sum(x_mask)
 
-      with tf.Session() as session:
-        saver = tf.train.Saver()
+      with tf.compat.v1.Session() as session:
+        saver = tf.compat.v1.train.Saver()
         saver.restore(session, model_path)
         (x, x_inv, x_inv_inv, log_q_z, logabsdets, log_ps,
          logabsdets_inv, log_ps_inv) = session.run([

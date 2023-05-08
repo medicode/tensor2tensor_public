@@ -23,7 +23,7 @@ import collections
 
 import numpy as np
 from tensor2tensor.utils import sari_hook
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 class SariHookTest(tf.test.TestCase):
@@ -139,7 +139,7 @@ class SariHookTest(tf.test.TestCase):
               "inputs": tf.constant(inputs, dtype=tf.int32),
           })
       a = tf.reduce_mean(scores)
-      session.run(tf.global_variables_initializer())
+      session.run(tf.compat.v1.global_variables_initializer())
       session.run(a)
 
 

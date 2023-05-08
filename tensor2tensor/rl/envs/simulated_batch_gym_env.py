@@ -25,7 +25,7 @@ import numpy as np
 
 from tensor2tensor.rl.envs.simulated_batch_env import SimulatedBatchEnv
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 class FlatBatchEnv(Env):
@@ -54,17 +54,17 @@ class SimulatedBatchGymEnv(Env):
     with tf.Graph().as_default():
       self._batch_env = SimulatedBatchEnv(*args, **kwargs)
 
-      self._actions_t = tf.placeholder(shape=(self.batch_size,), dtype=tf.int32)
+      self._actions_t = tf.compat.v1.placeholder(shape=(self.batch_size,), dtype=tf.int32)
       self._rewards_t, self._dones_t = self._batch_env.simulate(self._actions_t)
       with tf.control_dependencies([self._rewards_t]):
         self._obs_t = self._batch_env.observ
-      self._indices_t = tf.placeholder(shape=(self.batch_size,), dtype=tf.int32)
+      self._indices_t = tf.compat.v1.placeholder(shape=(self.batch_size,), dtype=tf.int32)
       self._reset_op = self._batch_env.reset(
           tf.range(self.batch_size, dtype=tf.int32)
       )
 
-      self._sess = tf.Session()
-      self._sess.run(tf.global_variables_initializer())
+      self._sess = tf.compat.v1.Session()
+      self._sess.run(tf.compat.v1.global_variables_initializer())
       self._batch_env.initialize(self._sess)
 
   @property

@@ -26,7 +26,7 @@ from tensor2tensor.data_generators import problem
 from tensor2tensor.data_generators import text_encoder
 from tensor2tensor.data_generators import text_problems
 from tensor2tensor.utils import registry
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 EOS = text_encoder.EOS
 
@@ -70,7 +70,7 @@ class QuoraQuestionPairs(text_problems.TextConcat2ClassProblem):
   def _maybe_download_corpora(self, tmp_dir):
     qqp_filename = "QQP.zip"
     qqp_finalpath = os.path.join(tmp_dir, "QQP")
-    if not tf.gfile.Exists(qqp_finalpath):
+    if not tf.io.gfile.exists(qqp_finalpath):
       zip_filepath = generator_utils.maybe_download(
           tmp_dir, qqp_filename, self._QQP_URL)
       zip_ref = zipfile.ZipFile(zip_filepath, "r")
@@ -81,13 +81,13 @@ class QuoraQuestionPairs(text_problems.TextConcat2ClassProblem):
 
   def example_generator(self, filename):
     skipped = 0
-    for idx, line in enumerate(tf.gfile.Open(filename, "rb")):
+    for idx, line in enumerate(tf.io.gfile.GFile(filename, "rb")):
       if idx == 0: continue  # skip header
       line = text_encoder.to_unicode_utf8(line.strip())
       split_line = line.split("\t")
       if len(split_line) < 6:
         skipped += 1
-        tf.logging.info("Skipping %d" % skipped)
+        tf.compat.v1.logging.info("Skipping %d" % skipped)
         continue
       s1, s2, l = split_line[3:]
       # A neat data augmentation trick from Radford et al. (2018)

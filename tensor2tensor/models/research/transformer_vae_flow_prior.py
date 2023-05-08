@@ -35,7 +35,7 @@ from tensor2tensor.utils import contrib
 from tensor2tensor.utils import optimize
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import t2t_model
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -76,11 +76,11 @@ class TransformerVaeFlowPrior(t2t_model.T2TModel):
 
         n, d = losses[k]
         if common_layers.should_generate_summaries():
-          tf.summary.scalar(k + "_loss", n / d)
-          tf.summary.scalar(k + "_loss_num", n)
-          tf.summary.scalar(k + "_loss_den", d)
+          tf.compat.v1.summary.scalar(k + "_loss", n / d)
+          tf.compat.v1.summary.scalar(k + "_loss_num", n)
+          tf.compat.v1.summary.scalar(k + "_loss_den", d)
           if getattr(self.hparams, "visualize_logits_histogram", False):
-            hist = tf.summary.histogram
+            hist = tf.compat.v1.summary.histogram
             hist(k + "_predict", tf.argmax(tf.squeeze(v), axis=-1))
             hist(k + "_targets", features[k])
 
@@ -164,7 +164,7 @@ class TransformerVaeFlowPrior(t2t_model.T2TModel):
       )
 
       for key, val in summaries:
-        tf.summary.scalar(key, val)
+        tf.compat.v1.summary.scalar(key, val)
 
     return loss_num, loss_den
 
@@ -265,11 +265,11 @@ class TransformerVaeFlowPrior(t2t_model.T2TModel):
     z_shape = [batch_size, targets_max_length, hparams.latent_size]
     iw_z_shape = [n_samples*batch_size, targets_max_length, hparams.latent_size]
     if n_samples == 1:
-      noise = tf.random_normal(z_shape, stddev=temp)
+      noise = tf.random.normal(z_shape, stddev=temp)
       z_q = loc + scale * noise
       log_q_z = q_dist.log_prob(z_q)  # [B, L, C]
     else:
-      noise = tf.random_normal([n_samples] + z_shape, stddev=temp)
+      noise = tf.random.normal([n_samples] + z_shape, stddev=temp)
       z_q = loc[tf.newaxis, ...] + scale[tf.newaxis, ...] * noise
       log_q_z = q_dist.log_prob(z_q)  # [K, B, L, C]
       z_q = tf.reshape(z_q, iw_z_shape)
@@ -370,7 +370,7 @@ class TransformerVaeFlowPrior(t2t_model.T2TModel):
       elif self.is_training:
         disable_dropout = False
         init = tf.equal(hparams.kl_startup_steps,
-                        tf.cast(tf.train.get_global_step(), tf.int32))
+                        tf.cast(tf.compat.v1.train.get_global_step(), tf.int32))
       else:
         raise ValueError("compute_prior shouldn't be used in decoding.")
 
@@ -384,7 +384,7 @@ class TransformerVaeFlowPrior(t2t_model.T2TModel):
             inverse=True, split_zs=zs, init=False, hparams=self._fparams,
             disable_dropout=True, **kwargs)
         z_diff = z_q - z_inv_inv
-        tf.summary.scalar("flow_recon_forward", tf.reduce_max(tf.abs(z_diff)))
+        tf.compat.v1.summary.scalar("flow_recon_forward", tf.reduce_max(tf.abs(z_diff)))
     return log_p_z_base, log_abs_det
 
   def sample_p(
@@ -414,7 +414,7 @@ class TransformerVaeFlowPrior(t2t_model.T2TModel):
       divi = max(1, hparams.factor**(n_levels-1))
       flow_prior_shape = [
           batch_size, targets_max_length//divi, hparams.latent_size]
-      noise = tf.random_normal(flow_prior_shape, stddev=temp)
+      noise = tf.random.normal(flow_prior_shape, stddev=temp)
       z_p, _, _, _ = glow.glow(
           "glow", noise, targets_mask, decoder_self_attention_bias,
           inverse=True, init=False, hparams=self._fparams,
@@ -425,7 +425,7 @@ class TransformerVaeFlowPrior(t2t_model.T2TModel):
             inverse=False, init=False, hparams=self._fparams,
             disable_dropout=True, **kwargs)
         z_diff = noise - noise_inv
-        tf.summary.scalar("flow_recon_inverse", tf.reduce_max(tf.abs(z_diff)))
+        tf.compat.v1.summary.scalar("flow_recon_inverse", tf.reduce_max(tf.abs(z_diff)))
     return z_p, p_dist
 
   def optimize(self, loss, num_async_replicas=1, use_tpu=False, variables=None):
@@ -456,16 +456,16 @@ class TransformerVaeFlowPrior(t2t_model.T2TModel):
 
     # logits, _ = self(features)
     t2t_model.set_custom_getter_compose(self._custom_getter)
-    tf.get_variable_scope().set_initializer(
+    tf.compat.v1.get_variable_scope().set_initializer(
         optimize.get_variable_initializer(self.hparams))
     with self._eager_var_store.as_default():
       self._fill_problem_hparams_features(features)
       # intentionally disable sharding during inference (in multi GPU)
-      with tf.variable_scope(self.name):
+      with tf.compat.v1.variable_scope(self.name):
         logits, _, _, targets_mask = self.model_fn(features)
 
     samples = tf.argmax(logits, axis=-1)
-    samples = tf.where(
+    samples = tf.compat.v1.where(
         tf.cast(targets_mask[..., tf.newaxis, tf.newaxis], tf.bool),
         samples, tf.ones_like(samples))
     if inputs_old is not None:  # Restore to not confuse Estimator.
@@ -473,8 +473,8 @@ class TransformerVaeFlowPrior(t2t_model.T2TModel):
     return samples
 
   def model_fn(self, features):
-    with tf.variable_scope(
-        tf.get_variable_scope(), use_resource=True, reuse=tf.AUTO_REUSE):
+    with tf.compat.v1.variable_scope(
+        tf.compat.v1.get_variable_scope(), use_resource=True, reuse=tf.compat.v1.AUTO_REUSE):
       transformed_features = self.bottom(features)
 
       if self.hparams.activation_dtype == "bfloat16":

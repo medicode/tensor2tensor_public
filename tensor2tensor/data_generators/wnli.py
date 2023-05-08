@@ -26,7 +26,7 @@ from tensor2tensor.data_generators import problem
 from tensor2tensor.data_generators import text_encoder
 from tensor2tensor.data_generators import text_problems
 from tensor2tensor.utils import registry
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 EOS = text_encoder.EOS
 
@@ -75,7 +75,7 @@ class WinogradNLI(text_problems.TextConcat2ClassProblem):
   def _maybe_download_corpora(self, tmp_dir):
     wnli_filename = "WNLI.zip"
     wnli_finalpath = os.path.join(tmp_dir, "WNLI")
-    if not tf.gfile.Exists(wnli_finalpath):
+    if not tf.io.gfile.exists(wnli_finalpath):
       zip_filepath = generator_utils.maybe_download(
           tmp_dir, wnli_filename, self._WNLI_URL)
       zip_ref = zipfile.ZipFile(zip_filepath, "r")
@@ -85,7 +85,7 @@ class WinogradNLI(text_problems.TextConcat2ClassProblem):
     return wnli_finalpath
 
   def example_generator(self, filename):
-    for idx, line in enumerate(tf.gfile.Open(filename, "rb")):
+    for idx, line in enumerate(tf.io.gfile.GFile(filename, "rb")):
       if idx == 0: continue  # skip header
       line = text_encoder.to_unicode_utf8(line.strip())
       _, s1, s2, l = line.split("\t")

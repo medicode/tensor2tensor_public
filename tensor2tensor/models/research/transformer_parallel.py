@@ -24,7 +24,7 @@ from tensor2tensor.layers import common_layers
 from tensor2tensor.models import transformer
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -45,7 +45,7 @@ class TransformerBlockParallel(transformer.Transformer):
         common_layers.comma_separated_string_to_integer_list(
             getattr(self._hparams, "relu_dropout_broadcast_dims", "")))
 
-    with tf.variable_scope("block_size_%d" % self._hparams.block_size):
+    with tf.compat.v1.variable_scope("block_size_%d" % self._hparams.block_size):
       block_output = common_layers.dense_relu_dense(
           decoder_output,
           self._hparams.block_size * self._hparams.filter_size,
@@ -72,7 +72,7 @@ class TransformerBlockParallel(transformer.Transformer):
     if (self._hparams.mode == tf_estimator.ModeKeys.TRAIN or
         self._hparams.mode == tf_estimator.ModeKeys.EVAL):
       if self._hparams.mode == tf_estimator.ModeKeys.TRAIN:
-        features["block_index"] = tf.random_uniform(
+        features["block_index"] = tf.random.uniform(
             shape=[], minval=0, maxval=self._hparams.block_size, dtype=tf.int64)
       else:
         features["block_index"] = 0
@@ -113,7 +113,7 @@ class TransformerBlockParallel(transformer.Transformer):
         # the previous value without a connecting line. This is used here to
         # separate out the training losses by block index.
         one_or_nan = tf.cond(tf.equal(k, i), lambda: 1.0, lambda: float("nan"))
-        tf.summary.scalar(
+        tf.compat.v1.summary.scalar(
             "block_index_%d" % i, one_or_nan * loss_val, family="losses")
 
     return loss
@@ -156,7 +156,7 @@ class TransformerBlockParallel(transformer.Transformer):
 
       def print_info(result, length, new_length):
         vocab = self.problem_hparams.vocabulary["targets"]
-        tf.logging.info(
+        tf.compat.v1.logging.info(
             "length=%s new_length=%s length_diff=%s new_suffix=%s",
             length,
             new_length,
@@ -174,21 +174,21 @@ class TransformerBlockParallel(transformer.Transformer):
           logits[:, :-1, :1, :, :],
           k=self._decode_hparams.guess_and_check_top_k)
       in_top_k = tf.reduce_any(
-          tf.equal(tf.to_int64(top_k_indices), tf.expand_dims(result, 4)),
+          tf.equal(tf.cast(top_k_indices, dtype=tf.int64), tf.expand_dims(result, 4)),
           axis=4)
 
       eos_cumsum = tf.cumsum(
-          tf.to_int32(tf.equal(result, text_encoder.EOS_ID)), axis=1)
+          tf.cast(tf.equal(result, text_encoder.EOS_ID), dtype=tf.int32), axis=1)
       after_eos = tf.greater(common_layers.shift_right(eos_cumsum), 0)
 
       correct = tf.logical_and(in_top_k, tf.logical_not(after_eos))
-      correct_cumsum = tf.cumsum(tf.to_int32(correct), axis=1)
+      correct_cumsum = tf.cumsum(tf.cast(correct, dtype=tf.int32), axis=1)
       perfect_cumsum = 1 + tf.range(tf.shape(correct)[1])
       for axis in [0, 2, 3]:
         perfect_cumsum = tf.expand_dims(perfect_cumsum, axis=axis)
 
       new_length = tf.reduce_sum(
-          tf.to_int32(tf.equal(correct_cumsum, perfect_cumsum)), axis=1)
+          tf.cast(tf.equal(correct_cumsum, perfect_cumsum), dtype=tf.int32), axis=1)
       new_length = tf.squeeze(new_length, axis=[0, 1, 2])
       new_length = tf.minimum(new_length, decode_length)
 
@@ -199,7 +199,7 @@ class TransformerBlockParallel(transformer.Transformer):
       ], axis=1)
 
       with tf.control_dependencies([
-          tf.py_func(print_info, [result, length, new_length], [])
+          tf.compat.v1.py_func(print_info, [result, length, new_length], [])
       ]):
         new_result = tf.identity(new_result)
 
@@ -209,9 +209,9 @@ class TransformerBlockParallel(transformer.Transformer):
     length = tf.squeeze(tf.zeros(1, dtype=tf.int32))
 
     result, length = tf.while_loop(
-        while_exit_cond,
-        infer_step,
-        [result, length],
+        cond=while_exit_cond,
+        body=infer_step,
+        loop_vars=[result, length],
         shape_invariants=[
             tf.TensorShape([1, None, 1, 1]),
             tf.TensorShape([]),

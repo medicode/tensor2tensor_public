@@ -33,7 +33,7 @@ from tensor2tensor.models.research.shuffle_network import reverse_shuffle_layer
 from tensor2tensor.models.research.shuffle_network import shuffle_layer
 from tensor2tensor.models.research.shuffle_network import ShuffleNetwork
 from tensor2tensor.utils import registry
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
@@ -61,7 +61,7 @@ class LayerNormalization(tf.keras.layers.Layer):
     """
     num_units = input_shape.as_list()[-1]
     self.bias = self.add_weight(
-        "bias", [1, 1, num_units], initializer=tf.zeros_initializer)
+        "bias", [1, 1, num_units], initializer=tf.compat.v1.zeros_initializer)
     super(LayerNormalization, self).build(input_shape)
 
   def call(self, inputs, **kwargs):
@@ -127,7 +127,7 @@ class RSU(tf.keras.layers.Layer):
     in_units = input_shape[-1]
     middle_units = in_units * 4
     out_units = in_units * 2
-    init = tf.variance_scaling_initializer(
+    init = tf.compat.v1.variance_scaling_initializer(
         scale=1.0, mode="fan_avg", distribution="uniform")
 
     self.first_linear = tf.keras.layers.Dense(
@@ -140,7 +140,7 @@ class RSU(tf.keras.layers.Layer):
         out_units, kernel_initializer=init, name=self.prefix + "/cand2")
     self.layer_norm = LayerNormalization()
 
-    init = tf.constant_initializer(self.init_value)
+    init = tf.compat.v1.constant_initializer(self.init_value)
     self.residual_scale = self.add_weight(
         self.prefix + "/residual", [out_units], initializer=init)
     super(RSU, self).build(input_shape)
@@ -161,7 +161,7 @@ class RSU(tf.keras.layers.Layer):
     length = input_shape[1]
     num_units = inputs.shape.as_list()[2]
 
-    n_bits = tf.log(tf.cast(length - 1, tf.float32)) / tf.log(2.0)
+    n_bits = tf.math.log(tf.cast(length - 1, tf.float32)) / tf.math.log(2.0)
     n_bits = tf.floor(n_bits) + 1
 
     reshape_shape = [batch_size, length // 2, num_units * 2]
@@ -179,7 +179,7 @@ class RSU(tf.keras.layers.Layer):
     if self.dropout > 0:
       candidate = tf.nn.dropout(candidate, rate=self.dropout / n_bits)
     if self.dropout != 0.0 and self.mode == tf_estimator.ModeKeys.TRAIN:
-      noise = tf.random_normal(tf.shape(candidate), mean=1.0, stddev=0.001)
+      noise = tf.random.normal(tf.shape(candidate), mean=1.0, stddev=0.001)
       candidate = candidate * noise
 
     return candidate
@@ -197,13 +197,13 @@ def residual_shuffle_network(inputs, hparams):
     tf.Tensor: Outputs of the Shuffle-Exchange last layer
   """
   input_shape = tf.shape(inputs)
-  n_bits = tf.log(tf.cast(input_shape[1] - 1, tf.float32)) / tf.log(2.0)
+  n_bits = tf.math.log(tf.cast(input_shape[1] - 1, tf.float32)) / tf.math.log(2.0)
   n_bits = tf.cast(n_bits, tf.int32) + 1
 
   block_out = inputs
 
   for k in range(hparams.num_hidden_layers):
-    with tf.variable_scope("benes_block_" + str(k), reuse=tf.AUTO_REUSE):
+    with tf.compat.v1.variable_scope("benes_block_" + str(k), reuse=tf.compat.v1.AUTO_REUSE):
       forward_output = forward_part(block_out, hparams, n_bits)
       block_out = reverse_part(forward_output, hparams, n_bits)
 
@@ -227,7 +227,7 @@ def reverse_part(inputs, hparams, n_bits):
   reverse_rsu = RSU("reverse_switch", hparams.dropout, hparams.mode)
 
   def reverse_step(state, _):
-    with tf.variable_scope("reverse"):
+    with tf.compat.v1.variable_scope("reverse"):
       new_state = reverse_rsu(state)
       return reverse_shuffle_layer(new_state)
 
@@ -258,7 +258,7 @@ def forward_part(block_out, hparams, n_bits):
   forward_rsu = RSU("switch", hparams.dropout, hparams.mode)
 
   def forward_step(state, _):
-    with tf.variable_scope("forward"):
+    with tf.compat.v1.variable_scope("forward"):
       new_state = forward_rsu(state)
       return shuffle_layer(new_state)
 

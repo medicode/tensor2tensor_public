@@ -26,7 +26,7 @@ from tensor2tensor.data_generators import problem
 from tensor2tensor.data_generators import text_encoder
 from tensor2tensor.data_generators import text_problems
 from tensor2tensor.utils import registry
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 EOS = text_encoder.EOS
 
@@ -71,7 +71,7 @@ class Cola(text_problems.Text2ClassProblem):
   def _maybe_download_corpora(self, tmp_dir):
     cola_filename = "CoLA.zip"
     cola_finalpath = os.path.join(tmp_dir, "CoLA")
-    if not tf.gfile.Exists(cola_finalpath):
+    if not tf.io.gfile.exists(cola_finalpath):
       zip_filepath = generator_utils.maybe_download(
           tmp_dir, cola_filename, self._COLA_URL)
       zip_ref = zipfile.ZipFile(zip_filepath, "r")
@@ -81,7 +81,7 @@ class Cola(text_problems.Text2ClassProblem):
     return cola_finalpath
 
   def example_generator(self, filename):
-    for line in tf.gfile.Open(filename, "rb"):
+    for line in tf.io.gfile.GFile(filename, "rb"):
       line = text_encoder.to_unicode_utf8(line.strip())
       _, label, _, sent = line.split("\t")
       yield {

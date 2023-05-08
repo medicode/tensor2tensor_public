@@ -39,7 +39,7 @@ from tensor2tensor.utils import registry
 from tensor2tensor.utils import t2t_model
 from tensor2tensor.utils import trainer_lib
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow_probability as tfp
 
@@ -311,10 +311,10 @@ def get_policy(observations, hparams, action_space,
   # TODO(afrozm): We have these dummy problems mainly for hparams, so cleanup
   # when possible and do this properly.
   if hparams.policy_problem_name == "dummy_policy_problem_ttt":
-    tf.logging.info("Using DummyPolicyProblemTTT for the policy.")
+    tf.compat.v1.logging.info("Using DummyPolicyProblemTTT for the policy.")
     policy_problem = tic_tac_toe_env.DummyPolicyProblemTTT()
   else:
-    tf.logging.info("Using DummyPolicyProblem for the policy.")
+    tf.compat.v1.logging.info("Using DummyPolicyProblem for the policy.")
     policy_problem = DummyPolicyProblem(action_space, frame_height, frame_width)
 
   trainer_lib.add_problem_hparams(hparams, policy_problem)
@@ -346,7 +346,7 @@ def get_policy(observations, hparams, action_space,
   }
   model.distributional_value_size = max(distributional_size, 1)
   model.use_epochs = hparams.use_epochs
-  with tf.variable_scope(tf.get_variable_scope(), reuse=tf.AUTO_REUSE):
+  with tf.compat.v1.variable_scope(tf.compat.v1.get_variable_scope(), reuse=tf.compat.v1.AUTO_REUSE):
     t2t_model.create_dummy_vars()
     (targets, _) = model(features)
   target_values = targets["target_value"][:, 0]
@@ -695,35 +695,35 @@ def feed_forward_gaussian_fun(action_space, config, observations):
   if not isinstance(action_space, gym.spaces.box.Box):
     raise ValueError("Expecting continuous action space.")
 
-  mean_weights_initializer = tf.initializers.variance_scaling(
+  mean_weights_initializer = tf.compat.v1.initializers.variance_scaling(
       scale=config.init_mean_factor)
-  logstd_initializer = tf.random_normal_initializer(config.init_logstd, 1e-10)
+  logstd_initializer = tf.compat.v1.random_normal_initializer(config.init_logstd, 1e-10)
 
   flat_observations = tf.reshape(observations, [
       tf.shape(observations)[0], tf.shape(observations)[1],
       functools.reduce(operator.mul, observations.shape.as_list()[2:], 1)])
 
-  with tf.variable_scope("network_parameters"):
-    with tf.variable_scope("policy"):
+  with tf.compat.v1.variable_scope("network_parameters"):
+    with tf.compat.v1.variable_scope("policy"):
       x = flat_observations
       for size in config.policy_layers:
-        x = tf.layers.dense(x, size, activation=tf.nn.relu)
-      mean = tf.layers.dense(
+        x = tf.compat.v1.layers.dense(x, size, activation=tf.nn.relu)
+      mean = tf.compat.v1.layers.dense(
           x, action_space.shape[0], activation=tf.tanh,
           kernel_initializer=mean_weights_initializer)
-      logstd = tf.get_variable(
+      logstd = tf.compat.v1.get_variable(
           "logstd", mean.shape[2:], tf.float32, logstd_initializer)
       logstd = tf.tile(
           logstd[None, None],
           [tf.shape(mean)[0], tf.shape(mean)[1]] + [1] * (mean.shape.ndims - 2))
-    with tf.variable_scope("value"):
+    with tf.compat.v1.variable_scope("value"):
       x = flat_observations
       for size in config.value_layers:
-        x = tf.layers.dense(x, size, activation=tf.nn.relu)
-      value = tf.layers.dense(x, 1)[..., 0]
-  mean = tf.check_numerics(mean, "mean")
-  logstd = tf.check_numerics(logstd, "logstd")
-  value = tf.check_numerics(value, "value")
+        x = tf.compat.v1.layers.dense(x, size, activation=tf.nn.relu)
+      value = tf.compat.v1.layers.dense(x, 1)[..., 0]
+  mean = tf.debugging.check_numerics(mean, "mean")
+  logstd = tf.debugging.check_numerics(logstd, "logstd")
+  value = tf.debugging.check_numerics(value, "value")
 
   policy = tfp.distributions.MultivariateNormalDiag(mean, tf.exp(logstd))
 
@@ -746,18 +746,18 @@ class FeedForwardCategoricalPolicy(PolicyBase):
   def body(self, features):
     observations = features["inputs_raw"]
     observations = tf.cast(observations, tf.float32)
-    flat_observations = tf.layers.flatten(observations)
-    with tf.variable_scope("policy"):
+    flat_observations = tf.compat.v1.layers.flatten(observations)
+    with tf.compat.v1.variable_scope("policy"):
       x = flat_observations
       for size in self.hparams.policy_layers:
-        x = tf.layers.dense(x, size, activation=tf.nn.relu)
-      logits = tf.layers.dense(x, self.hparams.problem.num_actions)
+        x = tf.compat.v1.layers.dense(x, size, activation=tf.nn.relu)
+      logits = tf.compat.v1.layers.dense(x, self.hparams.problem.num_actions)
       logits = tf.expand_dims(logits, axis=1)
-    with tf.variable_scope("value"):
+    with tf.compat.v1.variable_scope("value"):
       x = flat_observations
       for size in self.hparams.value_layers:
-        x = tf.layers.dense(x, size, activation=tf.nn.relu)
-      value = tf.layers.dense(x, 1)
+        x = tf.compat.v1.layers.dense(x, size, activation=tf.nn.relu)
+      value = tf.compat.v1.layers.dense(x, 1)
     logits = clip_logits(logits, self.hparams)
     return {"target_policy": logits, "target_value": value}
 
@@ -776,31 +776,31 @@ class FeedForwardCnnSmallCategoricalPolicy(PolicyBase):
     x_shape = common_layers.shape_list(x)
     x = tf.reshape(x, x_shape[:-2] + [-1])
     dropout = getattr(self.hparams, "dropout_ppo", 0.0)
-    with tf.variable_scope("feed_forward_cnn_small"):
+    with tf.compat.v1.variable_scope("feed_forward_cnn_small"):
       x = tf.cast(x, tf.float32) / 255.0
-      x = tf.layers.conv2d(x, 32, (5, 5), strides=(2, 2),
+      x = tf.compat.v1.layers.conv2d(x, 32, (5, 5), strides=(2, 2),
                            activation=tf.nn.relu, padding="same")
-      x = tf.layers.conv2d(x, 32, (5, 5), strides=(2, 2),
+      x = tf.compat.v1.layers.conv2d(x, 32, (5, 5), strides=(2, 2),
                            activation=tf.nn.relu, padding="same")
 
-      flat_x = tf.layers.flatten(x)
+      flat_x = tf.compat.v1.layers.flatten(x)
       if self.use_epochs:
         epoch = features["epoch"] + tf.zeros([x_shape[0]], dtype=tf.int32)
         # Randomly set epoch to 0 in some cases as that's the inference value.
         rand = tf.random.uniform([x_shape[0]])
-        epoch = tf.where(rand < 0.1, tf.zeros_like(epoch), epoch)
+        epoch = tf.compat.v1.where(rand < 0.1, tf.zeros_like(epoch), epoch)
         # Embed the epoch number.
         emb_epoch = common_layers.embedding(epoch, 32, 32)  # [batch, 32]
         flat_x = tf.concat([flat_x, emb_epoch], axis=1)
-      flat_x = tf.layers.dropout(flat_x, rate=dropout)
-      x = tf.layers.dense(flat_x, 128, activation=tf.nn.relu)
+      flat_x = tf.compat.v1.layers.dropout(flat_x, rate=dropout)
+      x = tf.compat.v1.layers.dense(flat_x, 128, activation=tf.nn.relu)
 
-      logits = tf.layers.dense(
+      logits = tf.compat.v1.layers.dense(
           x, self.hparams.problem.num_actions, name="dense2"
       )
       logits = clip_logits(logits, self.hparams)
       logits = tf.expand_dims(logits, axis=1)
-      value = tf.layers.dense(x, self.distributional_value_size)
+      value = tf.compat.v1.layers.dense(x, self.distributional_value_size)
     return {"target_policy": logits, "target_value": value}
 
 
@@ -814,32 +814,32 @@ class FeedForwardCnnSmallCategoricalPolicyNew(PolicyBase):
     x_shape = common_layers.shape_list(x)
     x = tf.reshape(x, x_shape[:-2] + [-1])
     dropout = getattr(self.hparams, "dropout_ppo", 0.0)
-    with tf.variable_scope("feed_forward_cnn_small"):
+    with tf.compat.v1.variable_scope("feed_forward_cnn_small"):
       x = tf.cast(x, tf.float32) / 255.0
       x = tf.nn.dropout(x, rate=dropout)
-      x = tf.layers.conv2d(
+      x = tf.compat.v1.layers.conv2d(
           x, 32, (4, 4), strides=(2, 2), name="conv1",
           activation=common_layers.belu, padding="SAME")
       x = tf.nn.dropout(x, rate=dropout)
-      x = tf.layers.conv2d(
+      x = tf.compat.v1.layers.conv2d(
           x, 64, (4, 4), strides=(2, 2), name="conv2",
           activation=common_layers.belu, padding="SAME")
       x = tf.nn.dropout(x, rate=dropout)
-      x = tf.layers.conv2d(
+      x = tf.compat.v1.layers.conv2d(
           x, 128, (4, 4), strides=(2, 2), name="conv3",
           activation=common_layers.belu, padding="SAME")
 
-      flat_x = tf.layers.flatten(x)
+      flat_x = tf.compat.v1.layers.flatten(x)
       flat_x = tf.nn.dropout(flat_x, rate=dropout)
-      x = tf.layers.dense(flat_x, 128, activation=tf.nn.relu, name="dense1")
+      x = tf.compat.v1.layers.dense(flat_x, 128, activation=tf.nn.relu, name="dense1")
 
-      logits = tf.layers.dense(
+      logits = tf.compat.v1.layers.dense(
           x, self.hparams.problem.num_actions, name="dense2"
       )
       logits = tf.expand_dims(logits, axis=1)
       logits = clip_logits(logits, self.hparams)
 
-      value = tf.layers.dense(x, 1, name="value")
+      value = tf.compat.v1.layers.dense(x, 1, name="value")
     return {"target_policy": logits, "target_value": value}
 
 
@@ -849,16 +849,16 @@ class DenseBitwiseCategoricalPolicy(PolicyBase):
 
   def body(self, features):
     observations = features["inputs"]
-    flat_x = tf.layers.flatten(observations)
-    with tf.variable_scope("dense_bitwise"):
+    flat_x = tf.compat.v1.layers.flatten(observations)
+    with tf.compat.v1.variable_scope("dense_bitwise"):
       flat_x = discretization.int_to_bit_embed(flat_x, 8, 32)
 
-      x = tf.layers.dense(flat_x, 256, activation=tf.nn.relu)
-      x = tf.layers.dense(flat_x, 128, activation=tf.nn.relu)
+      x = tf.compat.v1.layers.dense(flat_x, 256, activation=tf.nn.relu)
+      x = tf.compat.v1.layers.dense(flat_x, 128, activation=tf.nn.relu)
 
-      logits = tf.layers.dense(x, self.hparams.problem.num_actions)
+      logits = tf.compat.v1.layers.dense(x, self.hparams.problem.num_actions)
 
-      value = tf.layers.dense(x, 1)[..., 0]
+      value = tf.compat.v1.layers.dense(x, 1)[..., 0]
 
     return {"target_policy": logits, "target_value": value}
 
@@ -871,7 +871,7 @@ class RandomPolicy(PolicyBase):
     observations = features["inputs"]
     obs_shape = observations.shape.as_list()
     # Just so Saver doesn't complain because of no variables.
-    tf.get_variable("dummy_var", initializer=0.0)
+    tf.compat.v1.get_variable("dummy_var", initializer=0.0)
     num_actions = self.hparams.problem.num_actions
     logits = tf.constant(
         1. / float(num_actions),

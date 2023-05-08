@@ -42,7 +42,7 @@ from tensor2tensor.utils import registry
 from tensor2tensor.utils import trainer_lib
 from tensor2tensor.utils import usr_dir
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 mpl.use("Agg")
@@ -55,7 +55,7 @@ flags.DEFINE_string("output_gif", None, "Output path to save the gif.")
 
 
 def main(_):
-  tf.logging.set_verbosity(tf.logging.INFO)
+  tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
   trainer_lib.set_random_seed(FLAGS.random_seed)
   usr_dir.import_usr_dir(FLAGS.t2t_usr_dir)
 
@@ -88,19 +88,19 @@ def main(_):
       hparams=hparams)
 
   dataset = dataset.batch(num_agents, drop_remainder=True)
-  data = dataset.make_one_shot_iterator().get_next()
+  data = tf.compat.v1.data.make_one_shot_iterator(dataset).get_next()
   # Setup input placeholders
   input_size = [num_agents, hparams.video_num_input_frames]
   if num_actions is None:
     placeholders = {
-        "inputs": tf.placeholder(tf.float32, input_size + frame_shape)
+        "inputs": tf.compat.v1.placeholder(tf.float32, input_size + frame_shape)
     }
   else:
     placeholders = {
-        "inputs": tf.placeholder(tf.float32, input_size + frame_shape),
-        "input_action": tf.placeholder(tf.int64, input_size + [1]),
-        "input_reward": tf.placeholder(tf.int64, input_size + [1]),
-        "reset_internal_states": tf.placeholder(tf.float32, []),
+        "inputs": tf.compat.v1.placeholder(tf.float32, input_size + frame_shape),
+        "input_action": tf.compat.v1.placeholder(tf.int64, input_size + [1]),
+        "input_reward": tf.compat.v1.placeholder(tf.int64, input_size + [1]),
+        "reset_internal_states": tf.compat.v1.placeholder(tf.float32, []),
     }
   # Create model.
   model_cls = registry.model(FLAGS.model)
@@ -118,8 +118,8 @@ def main(_):
   writer = common_video.WholeVideoWriter(
       fps=FLAGS.fps, output_path=FLAGS.output_gif)
 
-  saver = tf.train.Saver(tf.trainable_variables())
-  with tf.train.SingularMonitoredSession() as sess:
+  saver = tf.compat.v1.train.Saver(tf.compat.v1.trainable_variables())
+  with tf.compat.v1.train.SingularMonitoredSession() as sess:
     # Load latest checkpoint
     ckpt = tf.train.get_checkpoint_state(FLAGS.output_dir).model_checkpoint_path
     saver.restore(sess.raw_session(), ckpt)
@@ -197,4 +197,4 @@ def main(_):
     writer.finish_to_disk()
 
 if __name__ == "__main__":
-  tf.app.run()
+  tf.compat.v1.app.run()

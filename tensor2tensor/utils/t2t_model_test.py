@@ -24,8 +24,8 @@ from tensor2tensor.utils import hparam
 from tensor2tensor.utils import t2t_model
 from tensor2tensor.utils import test_utils
 
-import tensorflow.compat.v1 as tf
-tf.enable_eager_execution()
+import tensorflow as tf
+tf.compat.v1.enable_eager_execution()
 
 
 class T2TModelTest(tf.test.TestCase):
@@ -34,12 +34,12 @@ class T2TModelTest(tf.test.TestCase):
   def testSummarizeLosses(self):
     with tf.Graph().as_default():
       model = t2t_model.T2TModel(hparam.HParams())
-      losses = {"training": tf.random_normal([]),
-                "extra": tf.random_normal([])}
+      losses = {"training": tf.random.normal([]),
+                "extra": tf.random.normal([])}
       outputs = model._summarize_losses(losses)
       self.assertIsNone(outputs, None)
       self.assertEqual(
-          len(tf.get_collection(tf.GraphKeys.SUMMARIES, scope="losses")),
+          len(tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.SUMMARIES, scope="losses")),
           len(losses))
 
   def testLossSingleWeights(self):

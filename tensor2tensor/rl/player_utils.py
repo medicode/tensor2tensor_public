@@ -35,7 +35,7 @@ from tensor2tensor.utils import hparam
 from tensor2tensor.utils import trainer_lib
 from tensor2tensor.utils.misc_utils import camelcase_to_snakecase
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 flags = tf.flags
@@ -318,15 +318,15 @@ class PPOPolicyInferencer(object):
     self._frame_stack = np.zeros(frame_stack_shape, dtype=np.uint8)
 
     with tf.Graph().as_default():
-      self.obs_t = tf.placeholder(shape=self.frame_stack_shape, dtype=np.uint8)
+      self.obs_t = tf.compat.v1.placeholder(shape=self.frame_stack_shape, dtype=np.uint8)
       self.logits_t, self.value_function_t = get_policy(
           self.obs_t, ppo_hparams, action_space
       )
-      model_saver = tf.train.Saver(
-          tf.global_variables(scope=ppo_hparams.policy_network + "/.*")  # pylint: disable=unexpected-keyword-arg
+      model_saver = tf.compat.v1.train.Saver(
+          tf.compat.v1.global_variables(scope=ppo_hparams.policy_network + "/.*")  # pylint: disable=unexpected-keyword-arg
       )
-      self.sess = tf.Session()
-      self.sess.run(tf.global_variables_initializer())
+      self.sess = tf.compat.v1.Session()
+      self.sess.run(tf.compat.v1.global_variables_initializer())
       trainer_lib.restore_checkpoint(policy_dir, model_saver,
                                      self.sess)
 

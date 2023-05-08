@@ -25,7 +25,7 @@ import zipfile
 from tensor2tensor.data_generators import generator_utils
 from tensor2tensor.data_generators import image_utils
 from tensor2tensor.utils import registry
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 _LSUN_URL = "http://lsun.cs.princeton.edu/htbin/download.cgi?tag=latest&category=%s&set=%s"
@@ -76,12 +76,12 @@ class ImageLsunBedrooms(image_utils.ImageProblem):
     data_file = os.path.join(tmp_dir,
                              "%s_%s_lmdb/data.mdb" % (category, split_name))
 
-    filename_queue = tf.train.string_input_producer([data_file], num_epochs=1)
-    reader = tf.LMDBReader()
+    filename_queue = tf.compat.v1.train.string_input_producer([data_file], num_epochs=1)
+    reader = tf.compat.v1.LMDBReader()
     _, webp_image_tensor = reader.read(filename_queue)
 
     object_count = 0
-    with tf.train.MonitoredTrainingSession() as session:
+    with tf.compat.v1.train.MonitoredTrainingSession() as session:
       while True:
         webp_image = session.run(webp_image_tensor)
         object_count += 1

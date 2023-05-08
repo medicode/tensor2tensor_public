@@ -25,8 +25,8 @@ import numpy as np
 from tensor2tensor.layers import common_video
 from tensor2tensor.utils import test_utils
 
-import tensorflow.compat.v1 as tf
-tf.enable_eager_execution()
+import tensorflow as tf
+tf.compat.v1.enable_eager_execution()
 
 
 class CommonVideoTest(parameterized.TestCase, tf.test.TestCase):
@@ -117,7 +117,7 @@ class CommonVideoTest(parameterized.TestCase, tf.test.TestCase):
             "gif", tf.convert_to_tensor(images), fps=10)
         summary_string = summary.eval()
 
-      summary = tf.Summary()
+      summary = tf.compat.v1.Summary()
       summary.ParseFromString(summary_string)
 
       self.assertEqual(1, len(summary.value))
@@ -141,10 +141,10 @@ class CommonVideoTest(parameterized.TestCase, tf.test.TestCase):
     with tf.Graph().as_default():
       state = None
       for _ in range(10):
-        inputs = tf.random_uniform(shape=(32, 16))
+        inputs = tf.random.uniform(shape=(32, 16))
         _, state = common_video.basic_lstm(
             inputs, state, num_units=100, name="basic")
-      num_params = np.sum([np.prod(v.shape) for v in tf.trainable_variables()])
+      num_params = np.sum([np.prod(v.shape) for v in tf.compat.v1.trainable_variables()])
       # 4 * ((100 + 16)*100 + 100) => 4 * (W_{xh} + W_{hh} + b)
       self.assertEqual(num_params, 46800)
 
@@ -157,7 +157,7 @@ class CommonVideoTest(parameterized.TestCase, tf.test.TestCase):
       video = tf.convert_to_tensor(video_np)
       video_patch = common_video.extract_random_video_patch(
           video, num_frames=num_frames)
-      with tf.Session() as sess:
+      with tf.compat.v1.Session() as sess:
         video_patch_np = sess.run(video_patch)
         if num_frames != -1:
           self.assertEqual(video_patch_np.shape, (12, num_frames, 256, 256, 3))

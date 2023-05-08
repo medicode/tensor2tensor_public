@@ -19,7 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 from tensor2tensor.utils import expert_utils as eu
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.python.util import tf_inspect as inspect
 
 
@@ -73,9 +73,9 @@ def data_parallelism(daisy_chain_variables=True,
                      worker_job="/job:localhost",
                      no_data_parallelism=False):
   """See data_parallelism_from_flags."""
-  tf.logging.info("schedule=%s" % schedule)
-  tf.logging.info("worker_gpu=%s" % worker_gpu)
-  tf.logging.info("sync=%s" % sync)
+  tf.compat.v1.logging.info("schedule=%s" % schedule)
+  tf.compat.v1.logging.info("worker_gpu=%s" % worker_gpu)
+  tf.compat.v1.logging.info("sync=%s" % sync)
   def _ps_replicas(all_workers=False):
     if all_workers:
       return list(range(ps_replicas))
@@ -125,7 +125,7 @@ def data_parallelism(daisy_chain_variables=True,
   def _replica_device_setter(worker_device):
     if ps_replicas == 0:
       return worker_device
-    return tf.train.replica_device_setter(
+    return tf.compat.v1.train.replica_device_setter(
         worker_device=worker_device,
         ps_tasks=ps_replicas,
         ps_device=ps_job + "/GPU:0" if ps_gpu > 0 else ps_job)
@@ -136,7 +136,7 @@ def data_parallelism(daisy_chain_variables=True,
     datashard_devices = [""]
     caching_devices = None
   elif is_single_machine:
-    tf.logging.warn(
+    tf.compat.v1.logging.warn(
         "Schedule=%s. Assuming that training is running on a single machine.",
         schedule)
     datashard_devices = ["gpu:%d" % d for d in _gpu_order(worker_gpu)]
@@ -167,9 +167,9 @@ def data_parallelism(daisy_chain_variables=True,
     else:
       datashard_devices = [_replica_device_setter(worker_job)]
       caching_devices = None
-  tf.logging.info("datashard_devices: %s", datashard_devices)
-  tf.logging.info("caching_devices: %s", caching_devices)
-  tf.logging.info("ps_devices: %s", ps_devices(all_workers=all_workers))
+  tf.compat.v1.logging.info("datashard_devices: %s", datashard_devices)
+  tf.compat.v1.logging.info("caching_devices: %s", caching_devices)
+  tf.compat.v1.logging.info("ps_devices: %s", ps_devices(all_workers=all_workers))
   return eu.Parallelism(
       datashard_devices,
       caching_devices=caching_devices,

@@ -45,7 +45,7 @@ from tensor2tensor.layers import modalities
 from tensor2tensor.utils import metrics
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 _DIR_NAME = "tasks_1-20_v1-2"
@@ -105,8 +105,8 @@ def _prepare_babi_data(tmp_dir, data_dir):
   Returns:
     tmp_dir: temp directory containing the raw data.
   """
-  if not tf.gfile.Exists(data_dir):
-    tf.gfile.MakeDirs(data_dir)
+  if not tf.io.gfile.exists(data_dir):
+    tf.io.gfile.makedirs(data_dir)
 
   file_path = os.path.join(tmp_dir, _TAR)
   headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_1) "
@@ -135,7 +135,7 @@ def _build_vocab(generator, vocab_dir, vocab_name):
     text encoder.
   """
   vocab_path = os.path.join(vocab_dir, vocab_name)
-  if not tf.gfile.Exists(vocab_path):
+  if not tf.io.gfile.exists(vocab_path):
     data = []
     for line in generator:
       data.extend(line.split())
@@ -192,7 +192,7 @@ def _babi_parser(tmp_dir,
       dataset_split: dataset split
     """
 
-    tf.logging.info("Preparing dataset of all task together")
+    tf.compat.v1.logging.info("Preparing dataset of all task together")
     globe_name = ("*_{}.txt")
     mode_name = "test"
     if dataset_split == problem.DatasetSplit.TRAIN:
@@ -200,12 +200,12 @@ def _babi_parser(tmp_dir,
     files_name = os.path.join(
         tmp_dir, _DIR_NAME, subset,
         globe_name.format(mode_name))
-    with tf.gfile.GFile(data_file, "wb") as outfile:
-      for filename in tf.gfile.Glob(files_name):
+    with tf.io.gfile.GFile(data_file, "wb") as outfile:
+      for filename in tf.io.gfile.glob(files_name):
         if filename == data_file:
           # don"t want to copy the output into the output
           continue
-        with tf.gfile.GFile(filename, "rb") as readfile:
+        with tf.io.gfile.GFile(filename, "rb") as readfile:
           shutil.copyfileobj(readfile, outfile)
 
   def _parse_answer(answer):
@@ -222,13 +222,13 @@ def _babi_parser(tmp_dir,
     data_file = os.path.join(tmp_dir, _data_file("test", babi_task_id))
 
   if ((babi_task_id == "qa0" or joint_training) and
-      not tf.gfile.Exists(os.path.join(tmp_dir, data_file))):
+      not tf.io.gfile.exists(os.path.join(tmp_dir, data_file))):
     _all_task_raw_data_generator(tmp_dir, data_file, dataset_split)
 
-  tf.logging.info("Parsing %s into training/testing instances...", data_file)
+  tf.compat.v1.logging.info("Parsing %s into training/testing instances...", data_file)
 
   babi_instances = []
-  with tf.gfile.GFile(data_file, mode="r") as f:
+  with tf.io.gfile.GFile(data_file, mode="r") as f:
     story = []
     for line in f:
       line_num, line = line.strip().split(" ", 1)
@@ -431,7 +431,7 @@ class BabiQa(text_problems.QuestionAndContext2TextProblem):
   def example_reading_spec(self):
     data_fields, data_items_to_decoders = (
         super(BabiQa, self).example_reading_spec())
-    data_fields["targets"] = tf.FixedLenFeature([1], tf.int64)
+    data_fields["targets"] = tf.io.FixedLenFeature([1], tf.int64)
     return (data_fields, data_items_to_decoders)
 
   def eval_metrics(self):

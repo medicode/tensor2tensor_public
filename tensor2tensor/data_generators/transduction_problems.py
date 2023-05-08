@@ -40,7 +40,7 @@ from tensor2tensor.data_generators import text_encoder
 from tensor2tensor.data_generators import text_problems
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 MAX_GENERATOR_ATTEMPTS = 100
@@ -127,7 +127,7 @@ class TransductionProblem(text_problems.Text2TextProblem):
 
   def get_or_create_vocab(self, data_dir, tmp_dir, force_get=False):
     vocab_filename = os.path.join(data_dir, self.vocab_filename)
-    if not tf.gfile.Exists(vocab_filename):
+    if not tf.io.gfile.exists(vocab_filename):
       encoder = text_encoder.TokenTextEncoder(None,
                                               vocab_list=sorted(self.vocab))
       encoder.store_to_file(vocab_filename)

@@ -44,7 +44,7 @@ from tensor2tensor.utils import contrib
 from tensor2tensor.utils import metrics
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 _BASE_EXAMPLE_IMAGE_SIZE = 64
 
@@ -98,7 +98,7 @@ def _get_case_file_paths(tmp_dir, case, training_fraction=0.95):
       leave no examples for eval.
   """
 
-  paths = tf.gfile.Glob("%s/*.jpg" % tmp_dir)
+  paths = tf.io.gfile.glob("%s/*.jpg" % tmp_dir)
 
   if not paths:
     raise ValueError("Search of tmp_dir (%s) " % tmp_dir,
@@ -130,7 +130,7 @@ def maybe_download_image_dataset(image_ids, target_dir):
     target_dir: str, a directory to which to download the images.
   """
 
-  tf.gfile.MakeDirs(target_dir)
+  tf.io.gfile.makedirs(target_dir)
 
   num_images = len(image_ids)
 
@@ -142,14 +142,14 @@ def maybe_download_image_dataset(image_ids, target_dir):
     source_url = ("http://api.brain-map.org/api/v2/"
                   "section_image_download/%s" % image_id)
 
-    if tf.gfile.Exists(destination):
-      tf.logging.info("Image with ID already present, "
+    if tf.io.gfile.exists(destination):
+      tf.compat.v1.logging.info("Image with ID already present, "
                       "skipping download (%s of %s)." % (
                           i+1, num_images
                       ))
       continue
 
-    tf.logging.info("Downloading image with id %s (%s of %s)" % (
+    tf.compat.v1.logging.info("Downloading image with id %s (%s of %s)" % (
         image_id, i+1, num_images
     ))
 
@@ -157,11 +157,11 @@ def maybe_download_image_dataset(image_ids, target_dir):
 
     response.raise_for_status()
 
-    with tf.gfile.Open(tmp_destination, "w") as f:
+    with tf.io.gfile.GFile(tmp_destination, "w") as f:
       for block in response.iter_content(1024):
         f.write(block)
 
-    tf.gfile.Rename(tmp_destination, destination)
+    tf.io.gfile.rename(tmp_destination, destination)
 
 
 def random_square_mask(shape, fraction):
@@ -221,7 +221,7 @@ def _generator(tmp_dir, training, size=_BASE_EXAMPLE_IMAGE_SIZE,
 
   image_obj = PIL_Image()
 
-  tf.logging.info("Loaded case file paths (n=%s)" % len(image_files))
+  tf.compat.v1.logging.info("Loaded case file paths (n=%s)" % len(image_files))
   height = size
   width = size
 
@@ -312,7 +312,7 @@ class Img2imgAllenBrain(problem.Problem):
     # Crop to target shape instead of down-sampling target, leaving target
     # of maximum available resolution.
     target_shape = (self.output_dim, self.output_dim, self.num_channels)
-    example["targets"] = tf.random_crop(example["targets"], target_shape)
+    example["targets"] = tf.image.random_crop(example["targets"], target_shape)
 
     example["inputs"] = image_utils.resize_by_area(example["targets"],
                                                    self.input_dim)
@@ -345,8 +345,8 @@ class Img2imgAllenBrain(problem.Problem):
 
   def example_reading_spec(self):
     data_fields = {
-        "image/encoded": tf.FixedLenFeature((), tf.string),
-        "image/format": tf.FixedLenFeature((), tf.string),
+        "image/encoded": tf.io.FixedLenFeature((), tf.string),
+        "image/format": tf.io.FixedLenFeature((), tf.string),
     }
 
     data_items_to_decoders = {

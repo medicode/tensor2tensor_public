@@ -23,7 +23,7 @@ from tensor2tensor.layers import common_attention
 from tensor2tensor.layers import common_layers
 from tensor2tensor.utils import contrib
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 from tensorflow.contrib import slim
 from tensorflow.contrib.slim.python.slim.nets.resnet_v1 import resnet_v1_152
@@ -43,7 +43,7 @@ def summarize_tensors(tensor_dict, tag=None):
 
   for t_name in list(tensor_dict):
     t = tensor_dict[t_name]
-    tf.summary.histogram(tag + t_name, t)
+    tf.compat.v1.summary.histogram(tag + t_name, t)
 
 
 def image_embedding(images,
@@ -73,14 +73,14 @@ def image_embedding(images,
   else:
     weights_regularizer = None
 
-  with tf.variable_scope(model_fn.__name__, [images], reuse=reuse) as scope:
+  with tf.compat.v1.variable_scope(model_fn.__name__, [images], reuse=reuse) as scope:
     with slim.arg_scope(
         [slim.conv2d],
         weights_regularizer=weights_regularizer,
         trainable=trainable):
       with slim.arg_scope(
           [slim.conv2d],
-          weights_initializer=slim.variance_scaling_initializer(),
+          weights_initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=2.0),
           activation_fn=tf.nn.relu,
           normalizer_fn=slim.batch_norm,
           normalizer_params=batch_norm_params):
@@ -209,7 +209,7 @@ def multihead_attention(query_antecedent,
     raise ValueError("Value depth (%d) must be divisible by the number of "
                      "attention heads (%d)." % (total_value_depth, num_heads))
   vars_3d_num_heads = num_heads if vars_3d else 0
-  with tf.variable_scope(name, default_name="multihead_attention",
+  with tf.compat.v1.variable_scope(name, default_name="multihead_attention",
                          values=[query_antecedent, memory_antecedent]):
 
     if cache is None or memory_antecedent is None:
@@ -335,7 +335,7 @@ def multihead_attention(query_antecedent,
     x.set_shape(x.shape.as_list()[:-1] + [total_value_depth])
 
     if vars_3d:
-      o_var = tf.get_variable(
+      o_var = tf.compat.v1.get_variable(
           "o", [num_heads, total_value_depth // num_heads, output_depth])
       o_var = tf.cast(o_var, x.dtype)
       o_var = tf.reshape(o_var, [total_value_depth, output_depth])

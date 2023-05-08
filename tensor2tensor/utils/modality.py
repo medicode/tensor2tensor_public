@@ -22,7 +22,7 @@ from tensor2tensor.layers import common_attention
 from tensor2tensor.layers import common_layers
 from tensor2tensor.utils import misc_utils
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 class Modality(object):
@@ -81,7 +81,7 @@ class Modality(object):
         Returns:
           A float32 Tensor with shape [batch, p0, p1, body_input_depth]
         """
-        with tf.variable_scope("targets_bottom"):
+        with tf.compat.v1.variable_scope("targets_bottom"):
             return cls.bottom(x, model_hparams, vocab_size)
 
     @staticmethod

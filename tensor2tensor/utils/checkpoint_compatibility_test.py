@@ -38,7 +38,7 @@ from tensor2tensor import problems  # pylint: disable=unused-import
 from tensor2tensor.utils import data_reader
 from tensor2tensor.utils import trainer_lib
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 def get_data_dir():
@@ -75,7 +75,7 @@ class CheckpointCompatibilityTest(tf.test.TestCase):
                                              shapes)
     dataset = dataset.padded_batch(self.BATCH_SIZE, shapes)
     dataset = dataset.map(data_reader.standardize_shapes)
-    features = dataset.make_one_shot_iterator().get_next()
+    features = tf.compat.v1.data.make_one_shot_iterator(dataset).get_next()
     return features
 
   def input_generator(self):

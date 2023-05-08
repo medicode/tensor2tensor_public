@@ -19,7 +19,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 def run_in_graph_and_eager_modes(func=None,
@@ -120,5 +120,5 @@ def run_in_graph_mode_only(func=None, config=None, use_gpu=True):
 
 
 def test_main():
-  tf.enable_eager_execution()
+  tf.compat.v1.enable_eager_execution()
   tf.test.main()

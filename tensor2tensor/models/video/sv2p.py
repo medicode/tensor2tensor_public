@@ -34,7 +34,7 @@ from tensor2tensor.models.video import base_vae
 from tensor2tensor.utils import contrib
 from tensor2tensor.utils import registry
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 tfl = tf.layers
 tfcl = contrib.layers()
@@ -190,7 +190,7 @@ class NextFrameSv2p(base.NextFrameBase, base_vae.NextFrameBaseVae):
     del mid_outputs
     conv_size = self.tinyify([32, 32, 16, 8])
 
-    with tf.variable_scope("reward_pred", reuse=tf.AUTO_REUSE):
+    with tf.compat.v1.variable_scope("reward_pred", reuse=tf.compat.v1.AUTO_REUSE):
       x = tf.concat(input_images, axis=3)
       x = tfcl.layer_norm(x)
 
@@ -241,13 +241,13 @@ class NextFrameSv2p(base.NextFrameBase, base_vae.NextFrameBaseVae):
     lstm_size = self.tinyify([32, 32, 64, 64, 128, 64, 32])
     conv_size = self.tinyify([32])
 
-    with tf.variable_scope("main", reuse=tf.AUTO_REUSE):
+    with tf.compat.v1.variable_scope("main", reuse=tf.compat.v1.AUTO_REUSE):
       hidden5, skips, layer_id = self.bottom_part_tower(
           input_image, input_reward, action, latent,
           lstm_state, lstm_size, conv_size, concat_latent=concat_latent)
       enc0, enc1 = skips
 
-      with tf.variable_scope("upsample1", reuse=tf.AUTO_REUSE):
+      with tf.compat.v1.variable_scope("upsample1", reuse=tf.compat.v1.AUTO_REUSE):
         enc4 = common_layers.cyclegan_upsample(
             hidden5, num_outputs=hidden5.shape.as_list()[-1],
             stride=[2, 2], method=upsample_method)
@@ -265,7 +265,7 @@ class NextFrameSv2p(base.NextFrameBase, base_vae.NextFrameBaseVae):
       hidden6 = tf.concat(axis=3, values=[hidden6, enc1])  # both 16x16
       layer_id += 1
 
-      with tf.variable_scope("upsample2", reuse=tf.AUTO_REUSE):
+      with tf.compat.v1.variable_scope("upsample2", reuse=tf.compat.v1.AUTO_REUSE):
         enc5 = common_layers.cyclegan_upsample(
             hidden6, num_outputs=hidden6.shape.as_list()[-1],
             stride=[2, 2], method=upsample_method)
@@ -283,7 +283,7 @@ class NextFrameSv2p(base.NextFrameBase, base_vae.NextFrameBaseVae):
       # Skip connection.
       hidden7 = tf.concat(axis=3, values=[hidden7, enc0])  # both 32x32
 
-      with tf.variable_scope("upsample3", reuse=tf.AUTO_REUSE):
+      with tf.compat.v1.variable_scope("upsample3", reuse=tf.compat.v1.AUTO_REUSE):
         enc6 = common_layers.cyclegan_upsample(
             hidden7, num_outputs=hidden7.shape.as_list()[-1],
             stride=[2, 2], method=upsample_method)
@@ -349,7 +349,7 @@ class NextFrameSv2p(base.NextFrameBase, base_vae.NextFrameBaseVae):
 
       # Map to softmax digits
       if self.is_per_pixel_softmax:
-        output = tf.layers.dense(
+        output = tf.compat.v1.layers.dense(
             output, self.hparams.problem.num_channels * 256, name="logits")
 
       mid_outputs = [enc0, enc1, enc4, enc5, enc6]
@@ -406,7 +406,7 @@ class NextFrameSv2pDiscrete(NextFrameSv2p):
   def basic_conv_net(self, images, conv_size, scope):
     """Simple multi conv ln relu."""
     conv_size = self.tinyify(conv_size)
-    with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
+    with tf.compat.v1.variable_scope(scope, reuse=tf.compat.v1.AUTO_REUSE):
       x = images
       for i, c in enumerate(conv_size):
         if i > 0:
@@ -422,8 +422,8 @@ class NextFrameSv2pDiscrete(NextFrameSv2p):
 
     if self.is_predicting:
       batch_size = common_layers.shape_list(input_image)[0]
-      rand = tf.random_uniform([batch_size, hparams.bottleneck_bits])
-      bits = 2.0 * tf.to_float(tf.less(0.5, rand)) - 1.0
+      rand = tf.random.uniform([batch_size, hparams.bottleneck_bits])
+      bits = 2.0 * tf.cast(tf.less(0.5, rand), dtype=tf.float32) - 1.0
       return bits
 
     conv_size = self.tinyify([64, 32, 32, 1])
@@ -479,14 +479,14 @@ class NextFrameSv2pAtari(NextFrameSv2p):
               (batch_size, 27, 20, 16),
               (batch_size, 53, 40, 8)]
 
-    with tf.variable_scope("clean_scope"):
+    with tf.compat.v1.variable_scope("clean_scope"):
       # Initialize conv-lstm states with zeros
-      init = tf.zeros_initializer()
+      init = tf.compat.v1.zeros_initializer()
       states = []
       for i, shape in enumerate(shapes):
         # every lstm-conv state has two variables named c and h.
-        c = tf.get_variable("c%d" % i, shape, trainable=False, initializer=init)
-        h = tf.get_variable("h%d" % i, shape, trainable=False, initializer=init)
+        c = tf.compat.v1.get_variable("c%d" % i, shape, trainable=False, initializer=init)
+        h = tf.compat.v1.get_variable("h%d" % i, shape, trainable=False, initializer=init)
         states.append((c, h))
       return states
 
@@ -500,7 +500,7 @@ class NextFrameSv2pAtari(NextFrameSv2p):
     return ops
 
   def save_internal_states_ops(self, internal_states):
-    ops = [[tf.assign(x[0], y[0]), tf.assign(x[1], y[1])]
+    ops = [[tf.compat.v1.assign(x[0], y[0]), tf.compat.v1.assign(x[1], y[1])]
            for x, y in zip(self.internal_states, internal_states)]
     return ops
 
@@ -523,7 +523,7 @@ class NextFrameSv2pLegacy(NextFrameSv2p):
     if self.is_per_pixel_softmax:
       frames_pd_shape = common_layers.shape_list(frames_pd)
       frames_pd = tf.reshape(frames_pd, [-1, 256])
-      frames_pd = tf.to_float(tf.argmax(frames_pd, axis=-1))
+      frames_pd = tf.cast(tf.argmax(frames_pd, axis=-1), dtype=tf.float32)
       frames_pd = tf.reshape(frames_pd, frames_pd_shape[:-1] + [3])
 
     frames_gd = concat_on_y_axis(frames_gd)
@@ -535,7 +535,7 @@ class NextFrameSv2pLegacy(NextFrameSv2p):
       side_by_side_video = tf.concat([frames_gd, frames_pd, actions], axis=2)
     else:
       side_by_side_video = tf.concat([frames_gd, frames_pd], axis=2)
-    tf.summary.image("full_video", side_by_side_video)
+    tf.compat.v1.summary.image("full_video", side_by_side_video)
 
   def get_input_if_exists(self, features, key, batch_size, num_frames):
     if key in features:
@@ -676,7 +676,7 @@ class NextFrameSv2pLegacy(NextFrameSv2p):
       x = tf.reshape(x, x_shape[:-1])
     else:
       x = tf.squeeze(x, axis=-1)
-      x = tf.to_int64(tf.round(x))
+      x = tf.cast(tf.round(x), dtype=tf.int64)
     output["targets"] = x
     if self.hparams.reward_prediction:
       output["target_reward"] = tf.argmax(output["target_reward"], axis=-1)

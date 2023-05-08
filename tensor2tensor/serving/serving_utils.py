@@ -29,7 +29,7 @@ from tensor2tensor import problems as problems_lib  # pylint: disable=unused-imp
 from tensor2tensor.data_generators import text_encoder
 from tensor2tensor.utils import cloud_mlengine as cloud
 from tensor2tensor.utils import contrib
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 from tensorflow_serving.apis import predict_pb2
 from tensorflow_serving.apis import prediction_service_pb2_grpc
@@ -62,7 +62,7 @@ def _make_example(input_ids, problem, input_feature_name="inputs"):
   for fname, ftype in data_fields.items():
     if fname == input_feature_name:
       continue
-    if not isinstance(ftype, tf.FixedLenFeature):
+    if not isinstance(ftype, tf.io.FixedLenFeature):
       # Only FixedLenFeatures are required
       continue
     if ftype.default_value is not None:
@@ -78,7 +78,7 @@ def _make_example(input_ids, problem, input_feature_name="inputs"):
     if ftype.dtype == tf.bytes:
       value = tf.train.Feature(
           bytes_list=tf.train.BytesList(value=[""] * num_elements))
-    tf.logging.info("Adding dummy value for feature %s as it is required by "
+    tf.compat.v1.logging.info("Adding dummy value for feature %s as it is required by "
                     "the Problem.", fname)
     features[fname] = value
   return tf.train.Example(features=tf.train.Features(feature=features))

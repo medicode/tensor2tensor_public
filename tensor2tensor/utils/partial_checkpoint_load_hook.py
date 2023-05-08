@@ -18,10 +18,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
-class PartialCheckpointLoad(tf.train.SessionRunHook):
+class PartialCheckpointLoad(tf.estimator.SessionRunHook):
   """Partially load train_variables from a checkpoint.
 
   Hook used to load each variable saved in checkpoint into the graph. It
@@ -46,10 +46,10 @@ class PartialCheckpointLoad(tf.train.SessionRunHook):
 
   def begin(self):
     # TODO(karishmamalkan): Add logging for when variables are loaded
-    variable_references = {var.name: var for var in tf.all_variables()}
+    variable_references = {var.name: var for var in tf.compat.v1.all_variables()}
     variable_mappings = {}
     vars_in_chk = tf.train.list_variables(self.checkpoint_path)
     for (var, _) in vars_in_chk:
       variable_mappings[var] = variable_references[
           var.replace(self.chk_scopename, self.graph_scopename) + ":0"]
-    tf.train.init_from_checkpoint(self.checkpoint_path, variable_mappings)
+    tf.compat.v1.train.init_from_checkpoint(self.checkpoint_path, variable_mappings)

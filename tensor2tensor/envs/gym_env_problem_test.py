@@ -30,18 +30,18 @@ from tensor2tensor.envs import env_problem
 from tensor2tensor.envs import env_problem_utils
 from tensor2tensor.envs import gym_env_problem
 from tensor2tensor.layers import modalities
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 
 class GymEnvProblemTest(tf.test.TestCase):
 
   def setUp(self):
-    self.tmp_dir = os.path.join(tf.test.get_temp_dir(), "tmp_dir")
-    tf.gfile.MakeDirs(self.tmp_dir)
+    self.tmp_dir = os.path.join(tf.compat.v1.test.get_temp_dir(), "tmp_dir")
+    tf.io.gfile.makedirs(self.tmp_dir)
 
   def tearDown(self):
-    tf.gfile.DeleteRecursively(self.tmp_dir)
+    tf.io.gfile.rmtree(self.tmp_dir)
 
   def test_setup(self):
     ep = gym_env_problem.GymEnvProblem(
@@ -330,9 +330,9 @@ class GymEnvProblemTest(tf.test.TestCase):
     last_timestep = -1
     dev_timesteps_ds = 0
     dev_trajectories_ds = 0
-    iterator = dev_dataset.make_one_shot_iterator()
+    iterator = tf.compat.v1.data.make_one_shot_iterator(dev_dataset)
     next_element = iterator.get_next()
-    with tf.Session() as session:
+    with tf.compat.v1.Session() as session:
       while True:
         try:
           tf_example_dict = session.run(next_element)

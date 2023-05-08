@@ -36,7 +36,7 @@ import re
 
 from tensor2tensor.data_generators import text_encoder
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 _RE_GOOD_S_START = re.compile(r'^["“”]?[A-Z]')
@@ -81,7 +81,7 @@ def paracrawl_v3_pairs(paracrawl_file):
       if s_en and s_xx:  # Prevent empty string examples.
         yield s_en, s_xx
     except StopIteration:
-      tf.logging.error(
+      tf.compat.v1.logging.error(
           'Unmatched final sentence while reading in sentence pairs: [%s]',
           s_en)
 

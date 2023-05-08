@@ -24,7 +24,7 @@ import os
 from tensor2tensor.data_generators import text_encoder
 from tensor2tensor.data_generators import text_problems
 from tensor2tensor.utils import registry
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 @registry.register_problem
@@ -70,10 +70,10 @@ class Text2textCopyableTokens(text_problems.Text2textTmpdirTokens):
 
   def example_reading_spec(self):
     data_fields = {
-        "inputs": tf.VarLenFeature(tf.int64),
-        "inputs_extend": tf.VarLenFeature(tf.int64),
-        "targets": tf.VarLenFeature(tf.int64),
-        "targets_extend": tf.VarLenFeature(tf.int64)
+        "inputs": tf.io.VarLenFeature(tf.int64),
+        "inputs_extend": tf.io.VarLenFeature(tf.int64),
+        "targets": tf.io.VarLenFeature(tf.int64),
+        "targets_extend": tf.io.VarLenFeature(tf.int64)
     }
     data_items_to_decoders = None
     return (data_fields, data_items_to_decoders)

@@ -39,7 +39,7 @@ from tensor2tensor.models import transformer
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import t2t_model
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 def maybe_flatten4d3d(x):
@@ -77,7 +77,7 @@ def features_to_nonpadding(features, inputs_or_targets="inputs"):
   """See transformer.features_to_nonpadding."""
   key = inputs_or_targets + "_segmentation"
   if features and key in features:
-    return tf.minimum(tf.to_float(features[key]), 1.0)
+    return tf.minimum(tf.cast(features[key], dtype=tf.float32), 1.0)
   return None
 
 
@@ -257,7 +257,7 @@ class TransformerSeq2edits(t2t_model.T2TModel):
         decoder_output=decoder_output)
 
     if hparams.middle_prediction:
-      with tf.variable_scope("after_prediction"):
+      with tf.compat.v1.variable_scope("after_prediction"):
         decoder_output = self.decode(
             decoder_input + decoder_output,
             encoder_output,
@@ -327,7 +327,7 @@ class TransformerSeq2edits(t2t_model.T2TModel):
       loss_num, loss_den = super(TransformerSeq2edits,
                                  self)._loss_single(logits, feature_name,
                                                     feature, weights)
-    tf.summary.scalar("loss/%s" % feature_name, loss_num / loss_den)
+    tf.compat.v1.summary.scalar("loss/%s" % feature_name, loss_num / loss_den)
     return loss_num, loss_den
 
   def top(self, body_output, features):
@@ -374,8 +374,8 @@ def transformer_edit_ops_layer(decoder_input,
   """Layer that conditions on the error tag and start and end token pointers."""
   if isinstance(encoder_output, list):  # Select forward encoder
     encoder_output = encoder_output[0]
-  with tf.variable_scope("edit_ops_layer"):
-    with tf.variable_scope("ffn"):
+  with tf.compat.v1.variable_scope("edit_ops_layer"):
+    with tf.compat.v1.variable_scope("ffn"):
       x = decoder_input
       # Shorthand for layer preprocessing
       # pylint: disable=g-long-lambda
@@ -424,9 +424,9 @@ def transformer_between_predictions_layer(x,
                                           losses=None,
                                           layer_collection=None):
   """Stack between prediction layers."""
-  with tf.variable_scope(name):
+  with tf.compat.v1.variable_scope(name):
     for i in range(hparams.ffn_in_prediction_cascade):
-      with tf.variable_scope("layer_%d" % i):
+      with tf.compat.v1.variable_scope("layer_%d" % i):
         y = transformer_layers.transformer_ffn_layer(
             common_layers.layer_preprocess(
                 x, hparams, layer_collection=layer_collection),
@@ -443,7 +443,7 @@ def transformer_between_predictions_layer(x,
 
 def get_error_tag_embedding_matrix():
   candidates = [
-      var for var in tf.global_variables() if "targets_error_tag" in var.op.name
+      var for var in tf.compat.v1.global_variables() if "targets_error_tag" in var.op.name
   ]
   if len(candidates) != 1:
     raise ValueError("Could not identify error tag embedding matrix! "
@@ -458,11 +458,11 @@ def transformer_error_tag_prediction_layer(x,
                                            loss_mask,
                                            layer_collection=None):
   """Layer that predicts the error tag."""
-  with tf.variable_scope("error_tag_prediction"):
+  with tf.compat.v1.variable_scope("error_tag_prediction"):
     x = maybe_flatten4d3d(x)
     vocab_size = hparams.problem.feature_info["targets_error_tag"].vocab_size
     labels = features["targets_error_tag_raw"]
-    with tf.variable_scope("projection"):
+    with tf.compat.v1.variable_scope("projection"):
       bottleneck = common_layers.dense(
           x,
           hparams.error_tag_embed_size,
@@ -477,7 +477,7 @@ def transformer_error_tag_prediction_layer(x,
       xent = tf.nn.sparse_softmax_cross_entropy_with_logits(
           logits=logits, labels=labels)
       loss = tf.reduce_sum(xent * loss_mask)
-    with tf.variable_scope("embedding"):
+    with tf.compat.v1.variable_scope("embedding"):
       embed_mat = get_error_tag_embedding_matrix()
       y = common_layers.layer_preprocess(
           common_layers.embedding(
@@ -518,7 +518,7 @@ def transformer_pointer_prediction_layer(feature_name,
     encoder_output = sum(encoder_output)
   else:
     pointer_encoder_output = encoder_output
-  with tf.variable_scope("%s_prediction" % feature_name):
+  with tf.compat.v1.variable_scope("%s_prediction" % feature_name):
     x = maybe_flatten4d3d(x)
     encoder_decoder_attention_bias = common_layers.flatten4d3d(
         encoder_decoder_attention_bias)
@@ -526,7 +526,7 @@ def transformer_pointer_prediction_layer(feature_name,
     k = common_attention.compute_attention_component(encoder_output,
                                                      hparams.hidden_size)
     # Scaled dot-product attention
-    scalar = tf.rsqrt(tf.to_float(common_layers.shape_list(q)[2]))
+    scalar = tf.math.rsqrt(tf.cast(common_layers.shape_list(q)[2], dtype=tf.float32))
     logits = tf.matmul(q * scalar, k, transpose_b=True)
 
     logits += encoder_decoder_attention_bias

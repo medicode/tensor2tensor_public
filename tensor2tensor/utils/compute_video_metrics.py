@@ -24,7 +24,7 @@ import os
 from six.moves import range
 from tensor2tensor.bin import t2t_decoder
 from tensor2tensor.utils import video_metrics
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 FLAGS = tf.flags.FLAGS
@@ -51,4 +51,4 @@ def main(_):
 
 
 if __name__ == "__main__":
-  tf.app.run(main)
+  tf.compat.v1.app.run(main)

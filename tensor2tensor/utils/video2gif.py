@@ -41,7 +41,7 @@ from tensor2tensor.data_generators import problem  # pylint: disable=unused-impo
 from tensor2tensor.utils import decoding
 from tensor2tensor.utils import trainer_lib
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
 flags = tf.flags
@@ -69,12 +69,12 @@ def main(_):
       problem_name=problem_name)
 
   dataset = hparams.problem.input_fn(mode, hparams)
-  features = dataset.make_one_shot_iterator().get_next()
+  features = tf.compat.v1.data.make_one_shot_iterator(dataset).get_next()
 
-  tf.gfile.MakeDirs(FLAGS.output_dir)
+  tf.io.gfile.makedirs(FLAGS.output_dir)
   base_template = os.path.join(FLAGS.output_dir, FLAGS.problem)
   count = 0
-  with tf.train.MonitoredTrainingSession() as sess:
+  with tf.compat.v1.train.MonitoredTrainingSession() as sess:
     while not sess.should_stop():
       # TODO(mbz): figure out what the second output is.
       data, _ = sess.run(features)
@@ -91,4 +91,4 @@ def main(_):
           sys.exit(0)
 
 if __name__ == "__main__":
-  tf.app.run()
+  tf.compat.v1.app.run()

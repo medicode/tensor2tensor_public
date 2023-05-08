@@ -34,7 +34,7 @@ from __future__ import print_function
 from tensor2tensor.data_generators import text_encoder
 from tensor2tensor.data_generators import tokenizer
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 tf.flags.DEFINE_string('output_filename', '/tmp/my.subword_text_encoder',
                        'where to store the SubwordTextEncoder')
@@ -76,4 +76,4 @@ def main(unused_argv):
 
 
 if __name__ == '__main__':
-  tf.app.run()
+  tf.compat.v1.app.run()

@@ -24,7 +24,7 @@ from __future__ import division
 from __future__ import print_function
 
 import mesh_tensorflow as mtf
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 def transformer_moe_layer_v1(inputs, output_dim, hparams, train,
@@ -672,7 +672,7 @@ def _split_into_groups(n, max_group_size, mesh_dim_size):
   while (num_groups % mesh_dim_size != 0 or n % num_groups != 0):
     num_groups += 1
   group_size = n // num_groups
-  tf.logging.info(
+  tf.compat.v1.logging.info(
       "_split_into_groups(n=%d, max_group_size=%d, mesh_dim_size=%d)"
       " = (num_groups=%d group_size=%d)" %
       (n, max_group_size, mesh_dim_size, num_groups, group_size))

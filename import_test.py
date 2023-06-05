@@ -3,11 +3,22 @@ import types
 import sys
 from typing import Set
 
-T2T_PREFIX = "tensor2tensor."
-FH_T2T = "fathomt2t"
-FH_T2T_DEPS = "fathomt2t_dependencies"
+T2T_PREFIXES = {
+    "tensor2tensor.",
+}
+DT_PREFIXES = {
+    "fh_platform",
+    "fathomt2t",
+    "fathomt2t_dependencies",
+    "pretrained_models",
+    "fathomtf",
+    "fathomairflow"
+}
+ALL_PREFIXES = T2T_PREFIXES.union(DT_PREFIXES)
 
-TOTAL_NUM_IMPORTS = 106
+TOTAL_NUM_IMPORTS = 339
+TOTAL_T2T_IMPORTS = 175
+TOTAL_DT_IMPORTS = TOTAL_NUM_IMPORTS - TOTAL_T2T_IMPORTS
 
 
 def global_imports():
@@ -16,7 +27,7 @@ def global_imports():
             yield val.__name__
 
 
-def module_imports(prefixes: Set[str]=set()):
+def module_imports(prefixes: Set[str] = set()):
     return [
         key for key in
         sys.modules.keys()
@@ -30,21 +41,31 @@ def test_import(command: str, prefixes: Set[str], total_num_modules: int):
     try:
         exec(command)
     except Exception:
-        imports = sorted(set(module_imports(prefixes)))
-        pct = len(imports) / total_num_modules * 100
+        print("Failure!")
         traceback.print_exc()
-        print(f"Imported {len(imports)}/{total_num_modules} ({pct}%) modules")
-        print(imports)
     else:
         print("Success!")
+    finally:
+        imports = sorted(set(module_imports(prefixes)))
+        pct = len(imports) / total_num_modules * 100
+        print(f"Imported {len(imports)}/{total_num_modules} ({pct}%) modules")
+        # print(imports)
 
 
 test_import(
     command="from tensor2tensor.bin import t2t_trainer",
-    prefixes={T2T_PREFIX, FH_T2T, FH_T2T_DEPS},
-    total_num_modules=TOTAL_NUM_IMPORTS
+    prefixes=T2T_PREFIXES,
+    total_num_modules=TOTAL_T2T_IMPORTS
 )
 
+test_import(
+    command="from tensor2tensor.bin import t2t_trainer",
+    prefixes=DT_PREFIXES,
+    total_num_modules=TOTAL_DT_IMPORTS
+)
 
-
-def find_all_imports
+test_import(
+    command="from tensor2tensor.bin import t2t_trainer",
+    prefixes=ALL_PREFIXES,
+    total_num_modules=TOTAL_NUM_IMPORTS
+)

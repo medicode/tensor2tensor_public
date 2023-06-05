@@ -20,7 +20,6 @@ from __future__ import print_function
 # pylint: disable=unused-import
 
 from tensor2tensor.layers import modalities  # pylint: disable=g-import-not-at-top
-from tensor2tensor.models import basic
 from tensor2tensor.models import bytenet
 from tensor2tensor.models import distillation
 from tensor2tensor.models import lstm

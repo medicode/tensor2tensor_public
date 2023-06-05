@@ -37,10 +37,10 @@ from tensor2tensor.utils import registry
 
 import tensorflow as tf
 
-from tensorflow.contrib.framework.python.ops import arg_scope
-from tensorflow.contrib.slim.python.slim.nets import vgg
+from tf_slim.ops.arg_scope import arg_scope
+from tf_slim.nets import vgg
 
-tfl = tf.layers
+tfl = tf.compat.v1.layers
 # tfcl = tf.contrib.layers
 
 IMG_WIDTH = 64

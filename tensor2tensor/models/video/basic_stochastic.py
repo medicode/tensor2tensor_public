@@ -32,7 +32,7 @@ from tensor2tensor.utils import registry
 
 import tensorflow as tf
 
-tfl = tf.layers
+tfl = tf.compat.v1.layers
 
 
 @registry.register_model

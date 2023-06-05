@@ -1520,7 +1520,7 @@ class T2TModel(base.Layer):
                 shape=[-1, hparams.max_target_seq_length, 1, 1])
 
           # FATHOM
-          # NOTE: right now the tf.logging.warning will not trigger.
+          # NOTE: right now the tf.compat.v1.logging.warning will not trigger.
           # ...consider if we should add
           eval_metrics[metric_name] = metric_fn(logits, features,
                                                 features["targets"])
@@ -1937,7 +1937,7 @@ def _eager_log(level, *args):
   if tf.eagerly_executing() and args in _already_logged:
     return
   _already_logged.add(args)
-  getattr(tf.logging, level)(*args)
+  getattr(tf.compat.v1.logging, level)(*args)
 
 
 def log_info(*args):

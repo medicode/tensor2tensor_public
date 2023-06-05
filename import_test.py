@@ -1,8 +1,12 @@
 import traceback
 import types
 import sys
+from typing import Set
 
 T2T_PREFIX = "tensor2tensor."
+FH_T2T = "fathomt2t"
+FH_T2T_DEPS = "fathomt2t_dependencies"
+
 TOTAL_NUM_IMPORTS = 106
 
 
@@ -12,19 +16,21 @@ def global_imports():
             yield val.__name__
 
 
-def module_imports(prefix: str):
+def module_imports(prefixes: Set[str]=set()):
     return [
         key for key in
         sys.modules.keys()
-        if not prefix or key.startswith(prefix)
+        if not prefixes or any(
+            key.startswith(prefix) for prefix in prefixes
+        )
     ]
 
 
-def test_import(command: str, prefix: str, total_num_modules: int):
+def test_import(command: str, prefixes: Set[str], total_num_modules: int):
     try:
         exec(command)
     except Exception:
-        imports = sorted(list(module_imports(prefix)))
+        imports = sorted(set(module_imports(prefixes)))
         pct = len(imports) / total_num_modules * 100
         traceback.print_exc()
         print(f"Imported {len(imports)}/{total_num_modules} ({pct}%) modules")
@@ -35,6 +41,10 @@ def test_import(command: str, prefix: str, total_num_modules: int):
 
 test_import(
     command="from tensor2tensor.bin import t2t_trainer",
-    prefix=T2T_PREFIX,
+    prefixes={T2T_PREFIX, FH_T2T, FH_T2T_DEPS},
     total_num_modules=TOTAL_NUM_IMPORTS
 )
+
+
+
+def find_all_imports

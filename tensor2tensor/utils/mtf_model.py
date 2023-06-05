@@ -126,7 +126,7 @@ class MtfModel(t2t_model.T2TModel):
     if mode == tf.estimator.ModeKeys.TRAIN:
       tf_update_ops = [lowering.lowered_operation(op) for op in update_ops]
       tf_update_ops.append(tf.compat.v1.assign_add(global_step, 1))
-      # tf.logging.info("tf_update_ops: {}".format(tf_update_ops))
+      # tf.compat.v1.logging.info("tf_update_ops: {}".format(tf_update_ops))
       train_op = tf.group(tf_update_ops)
 
     with mtf.utils.outside_all_rewrites():

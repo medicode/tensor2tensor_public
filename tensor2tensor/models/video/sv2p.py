@@ -34,7 +34,7 @@ from tensor2tensor.utils import registry
 
 import tensorflow as tf
 
-tfl = tf.layers
+tfl = tf.compat.v1.layers
 # tfcl = tf.contrib.layers
 
 

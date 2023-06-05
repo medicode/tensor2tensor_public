@@ -34,7 +34,7 @@ from tensor2tensor.utils import registry
 
 import tensorflow as tf
 
-logger = tf.logging
+logger = tf.compat.v1.logging
 
 """
 Modern-Shakespeare corpus is consisted of:

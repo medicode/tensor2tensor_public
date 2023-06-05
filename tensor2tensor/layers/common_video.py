@@ -26,7 +26,7 @@ import tensorflow as tf
 
 from tensorflow.python.ops import summary_op_util
 
-# tfl = tf.layers
+# tfl = tf.compat.v1.layers
 # tfcl = tf.contrib.layers
 
 

@@ -1,6 +1,7 @@
 import traceback
 import types
 import sys
+from pprint import pprint
 from typing import Set
 
 T2T_PREFIXES = {
@@ -12,7 +13,7 @@ DT_PREFIXES = {
     "fathomt2t_dependencies",
     "pretrained_models",
     "fathomtf",
-    "fathomairflow"
+    # "fathomairflow"
 }
 ALL_PREFIXES = T2T_PREFIXES.union(DT_PREFIXES)
 
@@ -49,7 +50,7 @@ def test_import(command: str, prefixes: Set[str], total_num_modules: int):
         imports = sorted(set(module_imports(prefixes)))
         pct = len(imports) / total_num_modules * 100
         print(f"Imported {len(imports)}/{total_num_modules} ({pct}%) modules")
-        # print(imports)
+        # pprint(imports)
 
 
 test_import(

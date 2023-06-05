@@ -34,9 +34,8 @@ from tensor2tensor.utils import usr_dir
 import tensorflow as tf
 
 # Fathom
-import fathomt2t_dependencies.t2t_trainer_utils as fathom
+from tensorflow.compat.v1.estimator.tpu import InputPipelineConfig
 
-from tensorflow.contrib.tpu.python.tpu import tpu_config
 
 flags = tf.compat.v1.flags
 FLAGS = flags.FLAGS
@@ -231,7 +230,7 @@ def create_run_config(hp, output_dir=None):
     save_ckpt_secs = None  # Disable the default saver
     tpu_config_extra_kwargs = {
         "num_cores_per_replica": 1,
-        "per_host_input_for_training": tpu_config.InputPipelineConfig.BROADCAST,
+        "per_host_input_for_training": InputPipelineConfig.BROADCAST,
     }
 
   # the various custom getters we have written do not play well together yet.

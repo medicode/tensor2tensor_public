@@ -23,12 +23,8 @@ import re
 
 MODULES = [
     "tensor2tensor.data_generators.algorithmic",
-    "tensor2tensor.data_generators.celeba",
-    "tensor2tensor.data_generators.cifar",
     # FATHOM
     # remove h5py and gym dependencies
-    "tensor2tensor.data_generators.librispeech",
-    "tensor2tensor.data_generators.mnist",
     "tensor2tensor.data_generators.problem_hparams",
 ]
 ALL_MODULES = list(MODULES)

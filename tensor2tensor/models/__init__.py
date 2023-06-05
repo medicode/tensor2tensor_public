@@ -23,10 +23,7 @@ from tensor2tensor.layers import modalities  # pylint: disable=g-import-not-at-t
 from tensor2tensor.models import basic
 from tensor2tensor.models import bytenet
 from tensor2tensor.models import distillation
-from tensor2tensor.models import image_transformer
-from tensor2tensor.models import image_transformer_2d
 from tensor2tensor.models import lstm
-from tensor2tensor.models import mtf_image_transformer
 from tensor2tensor.models import mtf_resnet
 from tensor2tensor.models import mtf_transformer
 from tensor2tensor.models import neural_gpu
@@ -38,14 +35,11 @@ from tensor2tensor.models import transformer
 from tensor2tensor.models import vanilla_gan
 from tensor2tensor.models import xception
 
-from tensor2tensor.models.research import adafactor_experiments
 from tensor2tensor.models.research import aligned
 from tensor2tensor.models.research import attention_lm
 from tensor2tensor.models.research import attention_lm_moe
 from tensor2tensor.models.research import autoencoders
 from tensor2tensor.models.research import cycle_gan
-from tensor2tensor.models.research import gene_expression
-from tensor2tensor.models.research import glow
 from tensor2tensor.models.research import lm_experiments
 from tensor2tensor.models.research import moe_experiments
 # FATHOM
@@ -56,7 +50,6 @@ from tensor2tensor.models.research import super_lm
 from tensor2tensor.models.research import transformer_moe
 from tensor2tensor.models.research import transformer_nat
 from tensor2tensor.models.research import transformer_revnet
-from tensor2tensor.models.research import transformer_sketch
 from tensor2tensor.models.research import transformer_symshard
 from tensor2tensor.models.research import transformer_vae
 from tensor2tensor.models.research import universal_transformer
@@ -64,17 +57,6 @@ from tensor2tensor.models.research import vqa_attention
 from tensor2tensor.models.research import vqa_recurrent_self_attention
 from tensor2tensor.models.research import vqa_self_attention
 
-from tensor2tensor.models.video import basic_deterministic
-from tensor2tensor.models.video import basic_recurrent
-from tensor2tensor.models.video import basic_stochastic
-from tensor2tensor.models.video import emily
-from tensor2tensor.models.video import epva
-# Fathom BEGIN
-# removed because gan packages were split off into tensorflow-gan
-# rather than supporting gans, we simply do not import gan models
-# from tensor2tensor.models.video import savp
-# Fathom END
-from tensor2tensor.models.video import sv2p
 
 from tensor2tensor.utils import registry
 

@@ -23,8 +23,6 @@ from tensor2tensor.layers import modalities  # pylint: disable=g-import-not-at-t
 from tensor2tensor.models import bytenet
 from tensor2tensor.models import distillation
 from tensor2tensor.models import lstm
-from tensor2tensor.models import mtf_resnet
-from tensor2tensor.models import mtf_transformer
 from tensor2tensor.models import neural_gpu
 from tensor2tensor.models import resnet
 from tensor2tensor.models import revnet
@@ -32,12 +30,6 @@ from tensor2tensor.models import transformer
 from tensor2tensor.models import vanilla_gan
 from tensor2tensor.models import xception
 
-from tensor2tensor.models.research import aligned
-from tensor2tensor.models.research import attention_lm
-from tensor2tensor.models.research import attention_lm_moe
-from tensor2tensor.models.research import cycle_gan
-from tensor2tensor.models.research import lm_experiments
-from tensor2tensor.models.research import moe_experiments
 # FATHOM
 # comment out so gym not required
 #from tensor2tensor.models.research import rl

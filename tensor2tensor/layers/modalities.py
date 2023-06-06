@@ -19,8 +19,8 @@ from __future__ import division
 from __future__ import print_function
 from six.moves import range  # pylint: disable=redefined-builtin
 
-# commmon_audio is effectively removed from t2t-lite, but if i remove this import,
-# there is an error that pops up with eager execution.
+# commmon_audio is effectively removed from t2t-lite, but if i remove this
+# import, there is an error that pops up with eager execution.
 from tensor2tensor.layers import common_audio  # pylint: disable=unused-import
 from tensor2tensor.layers import common_layers
 from tensor2tensor.utils import modality

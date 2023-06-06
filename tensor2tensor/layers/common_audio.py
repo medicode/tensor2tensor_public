@@ -25,7 +25,7 @@ import scipy.signal
 import tensorflow as tf
 
 
-# NOTE: removing this function causes an error with eager execution to appear....
+# NOTE: removing this function causes an error with eager execution...
 # but it looks like this function is not even being used anywhere.
 # so keeping it in t2t-lite but this func is not used/can be hacked for tf2
 def compute_mel_filterbank_features(

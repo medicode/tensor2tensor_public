@@ -19,11 +19,10 @@ from __future__ import division
 from __future__ import print_function
 from six.moves import range  # pylint: disable=redefined-builtin
 
-# from tensor2tensor.layers import common_attention
-# from tensor2tensor.layers import common_audio
+# commmon_audio is effectively removed from t2t-lite, but if i remove this
+# import, there is an error that pops up with eager execution.
+from tensor2tensor.layers import common_audio  # pylint: disable=unused-import
 from tensor2tensor.layers import common_layers
-# from tensor2tensor.layers import common_video
-from tensor2tensor.layers import discretization
 from tensor2tensor.utils import modality
 from tensor2tensor.utils import registry
 
@@ -224,6 +223,7 @@ class CTCSymbolModality(SymbolModality):
       return tf.reduce_sum(xent), tf.reduce_sum(weights)
 
 
+<<<<<<< HEAD
 class ImageModality(modality.Modality):
   """Modality for images."""
   PIXEL_EMBEDDING_SIZE = 64
@@ -789,6 +789,8 @@ class VideoModalityL1Raw(VideoModalityL2Raw):
     return loss, tf.constant(1.0)
 
 
+=======
+>>>>>>> nikhil/t2t-lite
 class ClassLabelModality(modality.Modality):
   """Used for label data."""
 
@@ -1099,32 +1101,6 @@ def create_modality(modality_spec, model_hparams):
         "one_hot": SymbolModalityOneHot,
         "ctc": CTCSymbolModality,
     }
-  elif modality_type == registry.Modalities.IMAGE:
-    modality_collection = {
-        "default": ImageModality,
-        "identity": IdentityModality,
-        "image_channel_compress": ImageChannelCompressModality,
-        "image_channel_bottom_identity": ImageChannelBottomIdentityModality,
-        "channel_embeddings_bottom": ImageChannelEmbeddingsBottom,
-    }
-  elif modality_type == registry.Modalities.AUDIO:
-    modality_collection = {
-        "default": SpeechRecognitionModality,
-        "identity": IdentityModality,
-        "spectral": AudioSpectralModality,
-        "speech": SpeechRecognitionModality,
-    }
-  elif modality_type == registry.Modalities.VIDEO:
-    modality_collection = {
-        "default": VideoModality,
-        "identity": IdentityModality,
-        "bitwise": VideoModalityBitwise,
-        "pixel_noise": VideoModalityPixelNoise,
-        "l1": VideoModalityL1,
-        "l2": VideoModalityL2,
-        "l2raw": VideoModalityL2Raw,
-        "l1raw": VideoModalityL1Raw,
-    }
   elif modality_type == registry.Modalities.CLASS_LABEL:
     modality_collection = {
         "default": ClassLabelModality,
@@ -1151,8 +1127,7 @@ def create_modality(modality_spec, model_hparams):
         "log_poisson_loss": RealLogPoissonLossModality,
     }
   else:
-    modality_types = ("symbol", "image", "audio", "video", "class_label",
-                      "generic", "real")
+    modality_types = ("symbol", "class_label", "generic", "real")
     raise LookupError("Modality type %s not recognized. Options are: %s" %
                       (modality_type, list(modality_types)))
 

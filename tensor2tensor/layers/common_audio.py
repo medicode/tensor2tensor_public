@@ -25,33 +25,9 @@ import scipy.signal
 import tensorflow as tf
 
 
-def add_delta_deltas(filterbanks, name=None):
-  """Compute time first and second-order derivative channels.
-
-  Args:
-    filterbanks: float32 tensor with shape [batch_size, len, num_bins, 1]
-    name: scope name
-
-  Returns:
-    float32 tensor with shape [batch_size, len, num_bins, 3]
-  """
-  delta_filter = np.array([2, 1, 0, -1, -2])
-  delta_delta_filter = scipy.signal.convolve(delta_filter, delta_filter, "full")
-
-  delta_filter_stack = np.array(
-      [[0] * 4 + [1] + [0] * 4, [0] * 2 + list(delta_filter) + [0] * 2,
-       list(delta_delta_filter)],
-      dtype=np.float32).T[:, None, None, :]
-
-  delta_filter_stack /= np.sqrt(
-      np.sum(delta_filter_stack**2, axis=0, keepdims=True))
-
-  filterbanks = tf.nn.conv2d(
-      filterbanks, filters=delta_filter_stack, strides=[1, 1, 1, 1], padding="SAME", data_format="NHWC",
-      name=name)
-  return filterbanks
-
-
+# NOTE: removing this function causes an error with eager execution...
+# but it looks like this function is not even being used anywhere.
+# so keeping it in t2t-lite but this func is not used/can be hacked for tf2
 def compute_mel_filterbank_features(
     waveforms,
     sample_rate=16000, dither=1.0 / np.iinfo(np.int16).max, preemphasis=0.97,

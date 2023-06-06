@@ -22,7 +22,6 @@ from six.moves import range  # pylint: disable=redefined-builtin
 from tensor2tensor.layers import common_attention
 from tensor2tensor.layers import common_audio
 from tensor2tensor.layers import common_layers
-from tensor2tensor.layers import common_video
 from tensor2tensor.layers import discretization
 from tensor2tensor.utils import modality
 from tensor2tensor.utils import registry
@@ -600,189 +599,6 @@ class SpeechRecognitionModality(modality.Modality):
     return x
 
 
-class VideoModality(modality.Modality):
-  """Modality for videos, i.e., time-sequences of frames."""
-
-  def bottom(self, x):
-    common_video.gif_summary("inputs", x, max_outputs=1)
-    x = common_layers.standardize_images(x)
-    return x
-
-  def targets_bottom(self, x):
-    common_video.gif_summary("targets", x, max_outputs=1)
-    x = common_layers.standardize_images(x)
-    return x
-
-  def top(self, body_output, targets):
-    num_channels = self._model_hparams.problem.num_channels
-    shape = common_layers.shape_list(body_output)
-    reshape_shape = shape[:-1] + [num_channels, self.top_dimensionality]
-    res = tf.reshape(body_output, reshape_shape)
-    # Calculate argmax so as to have a summary with the produced images.
-    x = tf.argmax(tf.reshape(res, [-1, self.top_dimensionality]), axis=-1)
-    x = tf.reshape(x, shape[:-1] + [num_channels])
-    common_video.gif_summary("results", x, max_outputs=1)
-    return res
-
-  def loss(self, top_out, targets):
-    """Compute loss numerator and denominator for one shard of output."""
-    logits = top_out
-    logits = tf.reshape(logits, [-1] + common_layers.shape_list(logits)[2:])
-    targets = tf.reshape(targets, [-1] + common_layers.shape_list(targets)[2:])
-    cutoff = getattr(self._model_hparams, "video_modality_loss_cutoff", 0.01)
-    return common_layers.padded_cross_entropy(
-        logits,
-        targets,
-        self._model_hparams.label_smoothing,
-        cutoff=cutoff,
-        weights_fn=self.targets_weights_fn)
-
-
-class VideoModalityBitwise(VideoModality):
-  """Video Modality where bottom embeds pixels bitwise."""
-  PIXEL_EMBEDDING_SIZE = 64
-
-  def bottom(self, x):
-    inputs = x
-    with tf.variable_scope(self.name, reuse=tf.AUTO_REUSE):
-      common_layers.summarize_video(inputs, "bottom")
-      # Embed bitwise.
-      assert self.top_dimensionality == 256
-      embedded = discretization.int_to_bit_embed(inputs, 8,
-                                                 self.PIXEL_EMBEDDING_SIZE)
-      # Project.
-      return tf.layers.dense(
-          embedded,
-          self._body_input_depth,
-          name="merge_pixel_embedded_frames")
-
-  def targets_bottom(self, x):  # pylint: disable=arguments-differ
-    inputs = x
-    with tf.variable_scope(self.name, reuse=tf.AUTO_REUSE):
-      common_layers.summarize_video(inputs, "targets_bottom")
-      # Embed bitwise.
-      assert self.top_dimensionality == 256
-      embedded = discretization.int_to_bit_embed(inputs, 8,
-                                                 self.PIXEL_EMBEDDING_SIZE)
-      # Transpose and project.
-      transposed = common_layers.time_to_channels(embedded)
-      return tf.layers.dense(
-          transposed,
-          self._body_input_depth,
-          name="merge_pixel_embedded_frames")
-
-
-class VideoModalityPixelNoise(VideoModality):
-  """Video modality that introduces pixel noise on input during training."""
-
-  def bottom(self, x):
-    inputs = x
-    if self._model_hparams.mode == tf.estimator.ModeKeys.TRAIN:
-      background = tf.contrib.distributions.percentile(inputs, 50.,
-                                                       axis=[0, 1, 2, 3])
-      input_shape = common_layers.shape_list(inputs)
-      input_size = tf.reduce_prod(input_shape[:-1])
-      input_mask = tf.multinomial(
-          tf.log([[self.input_noise, 1.-self.input_noise]]), input_size)
-      input_mask = tf.reshape(tf.cast(input_mask, tf.int32),
-                              input_shape[:-1]+[1])
-      inputs = inputs * input_mask + background * (1 - input_mask)
-    return super(VideoModalityPixelNoise, self).bottom(inputs)
-
-  @property
-  def input_noise(self):
-    return getattr(self._model_hparams, "video_modality_input_noise", 0.25)
-
-
-class VideoModalityL1(VideoModality):
-  """Video modality that predicts a scalar per channel with an L1 loss."""
-
-  def top(self, body_output, _):
-    num_channels = self._model_hparams.problem.num_channels
-    num_frames = self._model_hparams.video_num_target_frames
-    with tf.variable_scope("rgb"):
-      body_output_shape = common_layers.shape_list(body_output)
-      res = tf.layers.dense(body_output, num_channels * num_frames, name="cast")
-      res = tf.reshape(res, body_output_shape[:3] + [num_channels, num_frames])
-      res = tf.transpose(res, [0, 4, 1, 2, 3])  # Move frames next to batch.
-      if not tf.get_variable_scope().reuse:
-        res_argmax = res[:, -1, :, :, :]
-        tf.summary.image(
-            "result",
-            common_layers.tpu_safe_image_summary(res_argmax),
-            max_outputs=1)
-      return tf.expand_dims(res, axis=-1)  # Add an axis like in perplexity.
-
-  @property
-  def cutoff(self):
-    return getattr(self._model_hparams, "video_modality_loss_cutoff", 0.2)
-
-  def internal_loss(self, logits, targets):
-    return tf.nn.relu(tf.abs(logits - targets) - self.cutoff)
-
-  def loss(self, top_out, targets):
-    """Compute loss numerator and denominator for one shard of output."""
-    logits = top_out
-    logits = tf.reshape(logits, [-1] + common_layers.shape_list(logits)[2:-1])
-    targets = tf.reshape(targets, [-1] + common_layers.shape_list(targets)[2:])
-    weights = self.targets_weights_fn(targets)
-    # Shift targets by 0.5 so later just casting to int gives the prediction.
-    # So for int targets, say 0 and 7, we actually train to predict 0.5 and 7.5.
-    # Later (in merics or infer) this is cast to int anyway. Also, we have no
-    # loss beyond self.cutoff = 0.2 as these are already correct predictions.
-    targets = tf.to_float(targets) + 0.5
-    loss = self.internal_loss(logits, targets)
-    return tf.reduce_sum(loss * weights), tf.reduce_sum(weights)
-
-
-class VideoModalityL2(VideoModalityL1):
-  """Modality for videos with L2 loss."""
-
-  def internal_loss(self, logits, targets):
-    return tf.nn.relu((logits - targets)**2 - self.cutoff * self.cutoff)
-
-
-class VideoModalityL2Raw(VideoModalityL2):
-  """Modality with L2 loss and raw input (sequences of frames)."""
-
-  def convert_rgb_to_real(self, prediction, targets):
-    """Convert prediction and target from rgb to real."""
-    prediction = tf.squeeze(prediction, axis=-1)
-    prediction = common_layers.convert_rgb_to_real(prediction)
-    targets = common_layers.convert_rgb_to_real(targets)
-    return prediction, targets
-
-  def bottom(self, x):
-    common_video.gif_summary("inputs", x)
-    return common_layers.convert_rgb_to_real(x)
-
-  def targets_bottom(self, x):  # pylint: disable=arguments-differ
-    common_video.gif_summary("targets_bottom", x)
-    return common_layers.convert_rgb_to_real(x)
-
-  def top(self, body_output, _):
-    frames = body_output
-    if isinstance(body_output, list):
-      frames = tf.stack(body_output, axis=1)
-    rgb_frames = common_layers.convert_real_to_rgb(frames)
-    common_video.gif_summary("body_output", rgb_frames)
-    return tf.expand_dims(rgb_frames, axis=-1)
-
-  def loss(self, top_out, targets):
-    prediction, groundtruth = self.convert_rgb_to_real(top_out, targets)
-    loss = tf.losses.mean_squared_error(prediction, groundtruth)
-    return loss, tf.constant(1.0)
-
-
-class VideoModalityL1Raw(VideoModalityL2Raw):
-  """Modality with L1 loss and raw input (sequences of frames)."""
-
-  def loss(self, top_out, targets):
-    prediction, groundtruth = self.convert_rgb_to_real(top_out, targets)
-    loss = tf.losses.absolute_difference(prediction, groundtruth)
-    return loss, tf.constant(1.0)
-
-
 class ClassLabelModality(modality.Modality):
   """Used for label data."""
 
@@ -1108,17 +924,6 @@ def create_modality(modality_spec, model_hparams):
         "spectral": AudioSpectralModality,
         "speech": SpeechRecognitionModality,
     }
-  elif modality_type == registry.Modalities.VIDEO:
-    modality_collection = {
-        "default": VideoModality,
-        "identity": IdentityModality,
-        "bitwise": VideoModalityBitwise,
-        "pixel_noise": VideoModalityPixelNoise,
-        "l1": VideoModalityL1,
-        "l2": VideoModalityL2,
-        "l2raw": VideoModalityL2Raw,
-        "l1raw": VideoModalityL1Raw,
-    }
   elif modality_type == registry.Modalities.CLASS_LABEL:
     modality_collection = {
         "default": ClassLabelModality,
@@ -1145,7 +950,7 @@ def create_modality(modality_spec, model_hparams):
         "log_poisson_loss": RealLogPoissonLossModality,
     }
   else:
-    modality_types = ("symbol", "image", "audio", "video", "class_label",
+    modality_types = ("symbol", "image", "audio", "class_label",
                       "generic", "real")
     raise LookupError("Modality type %s not recognized. Options are: %s" %
                       (modality_type, list(modality_types)))

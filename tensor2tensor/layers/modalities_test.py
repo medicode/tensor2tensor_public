@@ -125,10 +125,6 @@ class ModalityTest(tf.test.TestCase):
     modality = modalities.create_modality(modality_spec, model_hparams)
     self.assertIsInstance(modality, modalities.OneHotClassLabelModality)
 
-    modality_spec = (registry.Modalities.VIDEO + ":identity", None)
-    modality = modalities.create_modality(modality_spec, model_hparams)
-    self.assertIsInstance(modality, modalities.IdentityModality)
-
 
 if __name__ == "__main__":
   tf.test.main()

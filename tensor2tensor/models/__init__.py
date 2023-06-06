@@ -20,26 +20,10 @@ from __future__ import print_function
 # pylint: disable=unused-import
 
 from tensor2tensor.layers import modalities  # pylint: disable=g-import-not-at-top
-from tensor2tensor.models import bytenet
-from tensor2tensor.models import distillation
 from tensor2tensor.models import lstm
-from tensor2tensor.models import neural_gpu
-from tensor2tensor.models import resnet
-from tensor2tensor.models import revnet
 from tensor2tensor.models import transformer
-from tensor2tensor.models import vanilla_gan
-from tensor2tensor.models import xception
 
 # FATHOM
-# comment out so gym not required
-#from tensor2tensor.models.research import rl
-from tensor2tensor.models.research import similarity_transformer
-from tensor2tensor.models.research import super_lm
-from tensor2tensor.models.research import transformer_moe
-from tensor2tensor.models.research import transformer_nat
-from tensor2tensor.models.research import transformer_revnet
-from tensor2tensor.models.research import transformer_symshard
-from tensor2tensor.models.research import transformer_vae
 from tensor2tensor.models.research import universal_transformer
 
 

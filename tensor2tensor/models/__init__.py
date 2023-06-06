@@ -41,9 +41,6 @@ from tensor2tensor.models.research import transformer_revnet
 from tensor2tensor.models.research import transformer_symshard
 from tensor2tensor.models.research import transformer_vae
 from tensor2tensor.models.research import universal_transformer
-from tensor2tensor.models.research import vqa_attention
-from tensor2tensor.models.research import vqa_recurrent_self_attention
-from tensor2tensor.models.research import vqa_self_attention
 
 
 from tensor2tensor.utils import registry

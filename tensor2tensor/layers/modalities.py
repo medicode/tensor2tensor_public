@@ -301,13 +301,16 @@ class CTCSymbolModality(SymbolModality):
 
 #   def bottom_compress(self, inputs, name="bottom"):
 #     """Compresses channel-wise input pixels into whole pixel representions.
+
 #     Perform conversion of RGB pixel values to a real number in the range -1 to
 #     1. This combines pixel channels to form a representation of shape
 #     [img_len, img_len].
+
 #     Args:
 #       inputs: Tensor representing RGB pixel intensities as integers, of shape
 #         [batch, img_len, img_len, channels].
 #       name: string, scope.
+
 #     Returns:
 #       body_input: Tensor of shape [batch, img_len, img_len, body_input_depth].
 #     """

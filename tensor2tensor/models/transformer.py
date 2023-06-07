@@ -199,33 +199,33 @@ class Transformer(t2t_model.T2TModel):
     else:
       return ret
 
-  def _greedy_infer(self, features, decode_length, use_tpu=False):
-    """Fast version of greedy decoding.
+  # def _greedy_infer(self, features, decode_length, use_tpu=False):
+  #   """Fast version of greedy decoding.
 
-    Args:
-      features: an map of string to `Tensor`
-      decode_length: an integer.  How many additional timesteps to decode.
-      use_tpu: A bool. Whether to build the inference graph for TPU.
+  #   Args:
+  #     features: an map of string to `Tensor`
+  #     decode_length: an integer.  How many additional timesteps to decode.
+  #     use_tpu: A bool. Whether to build the inference graph for TPU.
 
-    Returns:
-      A dict of decoding results {
-          "outputs": integer `Tensor` of decoded ids of shape
-              [batch_size, <= decode_length] if beam_size == 1 or
-              [batch_size, top_beams, <= decode_length]
-          "scores": decoding log probs from the beam search,
-              None if using greedy decoding (beam_size=1)
-      }
+  #   Returns:
+  #     A dict of decoding results {
+  #         "outputs": integer `Tensor` of decoded ids of shape
+  #             [batch_size, <= decode_length] if beam_size == 1 or
+  #             [batch_size, top_beams, <= decode_length]
+  #         "scores": decoding log probs from the beam search,
+  #             None if using greedy decoding (beam_size=1)
+  #     }
 
-    Raises:
-      NotImplementedError: If there are multiple data shards.
-    """
-    # For real-valued modalities use the slow decode path for now.
-    if (self._target_modality_is_real or
-        self._hparams.self_attention_type != "dot_product"):
-      return  super(Transformer, self)._greedy_infer(features, decode_length)
-    with tf.variable_scope(self.name):
-      return (self._fast_decode_tpu(features, decode_length) if use_tpu else
-              self._fast_decode(features, decode_length))
+  #   Raises:
+  #     NotImplementedError: If there are multiple data shards.
+  #   """
+  #   # For real-valued modalities use the slow decode path for now.
+  #   if (self._target_modality_is_real or
+  #       self._hparams.self_attention_type != "dot_product"):
+  #     return  super(Transformer, self)._greedy_infer(features, decode_length)
+  #   with tf.variable_scope(self.name):
+  #     return (self._fast_decode_tpu(features, decode_length) if use_tpu else
+  #             self._fast_decode(features, decode_length))
 
   # def _beam_decode(self,
   #                  features,

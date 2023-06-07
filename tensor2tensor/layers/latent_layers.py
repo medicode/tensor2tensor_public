@@ -26,7 +26,7 @@ from tensor2tensor.layers import common_layers
 from tensor2tensor.models import transformer
 from tensor2tensor.utils import beam_search
 
-import fathom_tensorflow as tf
+import tensorflow as tf
 
 import tensorflow_probability as tfp
 

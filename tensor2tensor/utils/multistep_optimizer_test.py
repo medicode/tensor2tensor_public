@@ -20,7 +20,7 @@ from __future__ import print_function
 
 import numpy as np
 from tensor2tensor.utils import multistep_optimizer
-import fathom_tensorflow as tf
+import tensorflow as tf
 
 
 class MultistepAdamOptimizerTest(tf.test.TestCase):

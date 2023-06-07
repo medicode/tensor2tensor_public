@@ -17,9 +17,9 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import fathom_tensorflow as tf
+import tensorflow as tf
 
-from fathom_tensorflow.python.framework import function
+from tensorflow.python.framework import function
 
 
 def bfloat16_activations_var_getter(getter, *args, **kwargs):

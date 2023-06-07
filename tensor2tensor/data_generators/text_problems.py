@@ -36,7 +36,7 @@ from tensor2tensor.data_generators import text_encoder
 from tensor2tensor.utils import metrics
 from tensor2tensor.utils import registry
 
-import fathom_tensorflow as tf
+import tensorflow as tf
 
 
 class VocabType(object):

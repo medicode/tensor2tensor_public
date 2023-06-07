@@ -31,11 +31,11 @@ from tensor2tensor.utils import metrics_hook
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import t2t_model
 
-import fathom_tensorflow as tf
-from fathom_tensorflow.python.training.session_run_hook import SessionRunHook, SessionRunArgs
+import tensorflow as tf
+from tensorflow.python.training.session_run_hook import SessionRunHook, SessionRunArgs
 
-from fathom_tensorflow.core.protobuf import rewriter_config_pb2
-from fathom_tensorflow.python import debug
+from tensorflow.core.protobuf import rewriter_config_pb2
+from tensorflow.python import debug
 
 import tensorflow_probability as tfp
 

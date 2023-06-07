@@ -22,7 +22,7 @@ from six.moves import range  # pylint: disable=redefined-builtin
 
 from tensor2tensor.data_generators import algorithmic
 
-import fathom_tensorflow as tf
+import tensorflow as tf
 
 
 class AlgorithmicTest(tf.test.TestCase):

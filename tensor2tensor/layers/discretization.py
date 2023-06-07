@@ -24,9 +24,9 @@ from tensor2tensor.layers import common_hparams
 from tensor2tensor.layers import common_image_attention as cia
 from tensor2tensor.layers import common_layers
 
-import fathom_tensorflow as tf
+import tensorflow as tf
 
-from fathom_tensorflow.python.training import moving_averages
+from tensorflow.python.training import moving_averages
 
 import tensorflow_probability as tfp
 

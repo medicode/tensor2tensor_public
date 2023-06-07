@@ -24,7 +24,7 @@ from tensor2tensor.data_generators import problem as problem_lib
 from tensor2tensor.models import transformer  # pylint: disable=unused-import
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import trainer_lib
-import fathom_tensorflow as tf
+import tensorflow as tf
 
 
 class TrainerLibTest(tf.test.TestCase):

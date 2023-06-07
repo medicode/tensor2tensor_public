@@ -19,8 +19,8 @@ from __future__ import division
 from __future__ import print_function
 from functools import partial
 from tensor2tensor.layers import common_layers
-import fathom_tensorflow as tf
-from fathom_tensorflow.python.training import moving_averages
+import tensorflow as tf
+from tensorflow.python.training import moving_averages
 
 
 class DiscreteBottleneck(object):

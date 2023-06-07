@@ -31,10 +31,10 @@ from six.moves import zip  # pylint: disable=redefined-builtin
 from tensor2tensor.layers import common_layers
 from tensor2tensor.utils import expert_utils
 
-import fathom_tensorflow as tf
+import tensorflow as tf
 
-from fathom_tensorflow.python.framework import function
-from fathom_tensorflow.python.ops import inplace_ops
+from tensorflow.python.framework import function
+from tensorflow.python.ops import inplace_ops
 
 import tensorflow_probability as tfp
 

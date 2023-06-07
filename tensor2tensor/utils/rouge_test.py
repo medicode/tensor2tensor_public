@@ -21,7 +21,7 @@ from __future__ import print_function
 import numpy as np
 from tensor2tensor.utils import rouge
 
-import fathom_tensorflow as tf
+import tensorflow as tf
 
 
 class TestRouge2Metric(tf.test.TestCase):

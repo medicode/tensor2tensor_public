@@ -27,7 +27,7 @@ from builtins import bytes  # pylint: disable=redefined-builtin
 
 from tensor2tensor.data_generators import generator_utils
 
-import fathom_tensorflow as tf
+import tensorflow as tf
 
 
 class GeneratorUtilsTest(tf.test.TestCase):

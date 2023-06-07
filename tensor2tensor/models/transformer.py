@@ -36,10 +36,10 @@ from tensor2tensor.utils import expert_utils
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import t2t_model
 
-import fathom_tensorflow as tf
+import tensorflow as tf
 
-from fathom_tensorflow.python.ops import inplace_ops
-from fathom_tensorflow.python.util import nest
+from tensorflow.python.ops import inplace_ops
+from tensorflow.python.util import nest
 
 
 @registry.register_model

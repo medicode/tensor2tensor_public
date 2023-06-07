@@ -22,7 +22,7 @@ from __future__ import print_function
 import functools
 import numpy as np
 import scipy.signal
-import fathom_tensorflow as tf
+import tensorflow as tf
 
 
 # NOTE: removing this function causes an error with eager execution...

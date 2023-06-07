@@ -21,7 +21,7 @@ from __future__ import print_function
 import six
 from six.moves import range  # pylint: disable=redefined-builtin
 
-import fathom_tensorflow as tf
+import tensorflow as tf
 
 
 def cast_ints_to_int32(features):

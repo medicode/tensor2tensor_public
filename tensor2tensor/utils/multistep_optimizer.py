@@ -26,7 +26,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import fathom_tensorflow as tf
+import tensorflow as tf
 
 
 class MultistepAdamOptimizer(tf.compat.v1.train.AdamOptimizer):

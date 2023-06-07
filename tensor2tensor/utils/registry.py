@@ -46,7 +46,7 @@ from __future__ import print_function
 
 import inspect
 import re
-import fathom_tensorflow as tf
+import tensorflow as tf
 
 _ATTACKS = {}
 _ATTACK_PARAMS = {}

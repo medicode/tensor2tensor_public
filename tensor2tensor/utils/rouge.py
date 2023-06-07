@@ -27,7 +27,7 @@ from __future__ import unicode_literals
 
 import numpy as np
 
-import fathom_tensorflow as tf
+import tensorflow as tf
 
 
 def _len_lcs(x, y):

@@ -24,7 +24,7 @@ import numpy as np
 
 from tensor2tensor.layers import common_layers
 
-import fathom_tensorflow as tf
+import tensorflow as tf
 
 
 class CommonLayersTest(parameterized.TestCase, tf.test.TestCase):

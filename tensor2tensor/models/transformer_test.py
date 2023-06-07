@@ -23,7 +23,7 @@ import numpy as np
 from tensor2tensor.data_generators import problem_hparams
 from tensor2tensor.models import transformer
 
-import fathom_tensorflow as tf
+import tensorflow as tf
 
 
 BATCH_SIZE = 3

@@ -41,11 +41,11 @@ from tensor2tensor.utils import optimize
 from tensor2tensor.utils import quantization
 from tensor2tensor.utils import registry
 
-import fathom_tensorflow as tf
+import tensorflow as tf
 
-from fathom_tensorflow.python.layers import base
-from fathom_tensorflow.python.ops import inplace_ops
-from fathom_tensorflow.python.ops import variable_scope
+from tensorflow.python.layers import base
+from tensorflow.python.ops import inplace_ops
+from tensorflow.python.ops import variable_scope
 
 # Fathom
 from fathomt2t_dependencies.common_t2t_utils import combine_shards, FATHOM_DICT_FORMAT

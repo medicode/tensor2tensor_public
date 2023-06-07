@@ -24,9 +24,9 @@ from tensor2tensor.utils import adafactor
 from tensor2tensor.utils import multistep_optimizer
 from tensor2tensor.utils import yellowfin
 
-import fathom_tensorflow as tf
+import tensorflow as tf
 
-from fathom_tensorflow.python.framework import dtypes
+from tensorflow.python.framework import dtypes
 import tf_slim as slim
 import tensorflow_addons as tfa
 

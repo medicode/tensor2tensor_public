@@ -31,10 +31,10 @@ from tensor2tensor.utils import flags as t2t_flags  # pylint: disable=unused-imp
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import trainer_lib
 from tensor2tensor.utils import usr_dir
-import fathom_tensorflow as tf
+import tensorflow as tf
 
 # Fathom
-from fathom_tensorflow.compat.v1.estimator.tpu import InputPipelineConfig
+from tensorflow.compat.v1.estimator.tpu import InputPipelineConfig
 
 
 flags = tf.compat.v1.flags

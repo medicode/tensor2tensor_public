@@ -25,7 +25,7 @@ from tensor2tensor.layers import common_layers
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import t2t_model
 
-import fathom_tensorflow as tf
+import tensorflow as tf
 import tensorflow_addons as tfa
 
 

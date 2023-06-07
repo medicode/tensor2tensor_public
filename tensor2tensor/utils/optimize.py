@@ -278,7 +278,7 @@ def get_variable_initializer(hparams):
   if not hparams.initializer:
     return None
 
-  if not tf.eagerly_executing():
+  if not tf.executing_eagerly():
     tf.compat.v1.logging.info("Using variable initializer: %s", hparams.initializer)
   if hparams.initializer == "orthogonal":
     return tf.compat.v1.orthogonal_initializer(gain=hparams.initializer_gain)

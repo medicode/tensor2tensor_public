@@ -20,7 +20,7 @@ from __future__ import print_function
 
 import inspect
 from tensor2tensor.utils import expert_utils as eu
-import tensorflow as tf
+import fathom_tensorflow as tf
 
 
 def data_parallelism_from_flags(daisy_chain_variables=True, all_workers=False):

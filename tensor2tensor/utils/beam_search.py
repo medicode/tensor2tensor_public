@@ -20,10 +20,10 @@ from __future__ import division
 from __future__ import print_function
 from tensor2tensor.layers import common_layers
 
-import tensorflow as tf
+import fathom_tensorflow as tf
 
-from tensorflow.python.ops import inplace_ops
-from tensorflow.python.util import nest
+from fathom_tensorflow.python.ops import inplace_ops
+from fathom_tensorflow.python.util import nest
 
 # Assuming EOS_ID is 1
 EOS_ID = 1

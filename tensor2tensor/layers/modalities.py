@@ -26,7 +26,7 @@ from tensor2tensor.layers import common_layers
 from tensor2tensor.utils import modality
 from tensor2tensor.utils import registry
 
-import tensorflow as tf
+import fathom_tensorflow as tf
 
 import tensorflow_probability as tfp
 

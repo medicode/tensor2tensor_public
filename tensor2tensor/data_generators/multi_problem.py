@@ -25,7 +25,7 @@ from tensor2tensor.layers import common_layers
 from tensor2tensor.layers import discretization
 from tensor2tensor.layers import modalities
 from tensor2tensor.utils import metrics
-import tensorflow as tf
+import fathom_tensorflow as tf
 
 
 class MixingSchedule(object):

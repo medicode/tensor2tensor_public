@@ -19,7 +19,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow as tf
+import fathom_tensorflow as tf
 
 flags = tf.compat.v1.flags
 FLAGS = flags.FLAGS

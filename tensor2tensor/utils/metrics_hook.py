@@ -19,7 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 import os
-import tensorflow as tf
+import fathom_tensorflow as tf
 
 from tensorboard.backend.event_processing import event_accumulator
 from tensorboard.backend.event_processing import event_multiplexer

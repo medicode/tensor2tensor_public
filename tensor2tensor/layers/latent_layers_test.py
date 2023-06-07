@@ -27,7 +27,7 @@ from tensor2tensor.layers import discretization
 from tensor2tensor.layers import latent_layers
 from tensor2tensor.models import transformer
 
-import tensorflow as tf
+import fathom_tensorflow as tf
 
 
 def imagetransformer_latent_tiny():

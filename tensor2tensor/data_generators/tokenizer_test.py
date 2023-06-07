@@ -25,7 +25,7 @@ import random
 import six
 from six.moves import range  # pylint: disable=redefined-builtin
 from tensor2tensor.data_generators import tokenizer
-import tensorflow as tf
+import fathom_tensorflow as tf
 
 FLAGS = tf.compat.v1.flags.FLAGS
 

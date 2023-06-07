@@ -34,7 +34,7 @@ from tensor2tensor.models import transformer
 from tensor2tensor.models.research import universal_transformer_util
 from tensor2tensor.utils import registry
 
-import tensorflow as tf
+import fathom_tensorflow as tf
 
 
 @registry.register_model

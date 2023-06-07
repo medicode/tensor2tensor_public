@@ -23,8 +23,8 @@ from __future__ import absolute_import
 # from __future__ import print_function  # Not necessary in a Python 3-only module
 
 from absl import logging
-import tensorflow.compat.v1 as tf
-from tensorflow.compat.v1 import estimator as tf_estimator
+import fathom_tensorflow.compat.v1 as tf
+from fathom_tensorflow.compat.v1 import estimator as tf_estimator
 
 """
 # Check if we have contrib available
@@ -66,13 +66,13 @@ def slim():
 
 def util():
     err_if_tf2()
-    from tensorflow.contrib import util as contrib_util  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
+    from fathom_tensorflow.contrib import util as contrib_util  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
     return contrib_util
 
 
 def tfe():
     err_if_tf2(msg='warn')
-    from tensorflow.contrib.eager.python import tfe as contrib_eager  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
+    from fathom_tensorflow.contrib.eager.python import tfe as contrib_eager  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
     return contrib_eager
 
 
@@ -98,20 +98,20 @@ def framework(msg='err'):
             nest=tf.nest,
             argsort=tf.argsort)
 
-    from tensorflow.contrib import framework as contrib_framework  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
+    from fathom_tensorflow.contrib import framework as contrib_framework  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
     return contrib_framework
 
 
 def nn():
     err_if_tf2(msg='err')
-    from tensorflow.contrib import nn as contrib_nn  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
+    from fathom_tensorflow.contrib import nn as contrib_nn  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
     return contrib_nn
 
 
 def layers():
     """Return layers module or dummy version."""
     try:
-        from tensorflow.contrib import layers as contrib_layers  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
+        from fathom_tensorflow.contrib import layers as contrib_layers  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
         return contrib_layers
     except:  # pylint: disable=bare-except
         return DummyModule(
@@ -120,43 +120,43 @@ def layers():
 
 def rnn():
     err_if_tf2(msg='err')
-    from tensorflow.contrib import rnn as contrib_rnn  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
+    from fathom_tensorflow.contrib import rnn as contrib_rnn  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
     return contrib_rnn
 
 
 def seq2seq():
     err_if_tf2(msg='err')
-    from tensorflow.contrib import seq2seq as contrib_seq2seq  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
+    from fathom_tensorflow.contrib import seq2seq as contrib_seq2seq  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
     return contrib_seq2seq
 
 
 def tpu():
     err_if_tf2(msg='err')
-    from tensorflow.contrib import tpu as contrib_tpu  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
+    from fathom_tensorflow.contrib import tpu as contrib_tpu  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
     return contrib_tpu
 
 
 def training():
     err_if_tf2(msg='err')
-    from tensorflow.contrib import training as contrib_training  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
+    from fathom_tensorflow.contrib import training as contrib_training  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
     return contrib_training
 
 
 def summary():
     err_if_tf2(msg='err')
-    from tensorflow.contrib import summary as contrib_summary  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
+    from fathom_tensorflow.contrib import summary as contrib_summary  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
     return contrib_summary
 
 
 def metrics():
     err_if_tf2(msg='err')
-    from tensorflow.contrib import metrics as contrib_metrics  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
+    from fathom_tensorflow.contrib import metrics as contrib_metrics  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
     return contrib_metrics
 
 
 def opt():
     if not is_tf2:
-        from tensorflow.contrib import opt as contrib_opt  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
+        from fathom_tensorflow.contrib import opt as contrib_opt  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
         return contrib_opt
     return DummyModule(
         LazyAdam=tfa.optimizers.LazyAdam,
@@ -166,19 +166,19 @@ def opt():
 
 def mixed_precision():
     err_if_tf2(msg='err')
-    from tensorflow.contrib import mixed_precision as contrib_mixed_precision  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
+    from fathom_tensorflow.contrib import mixed_precision as contrib_mixed_precision  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
     return contrib_mixed_precision
 
 
 def cluster_resolver():
     err_if_tf2(msg='err')
-    from tensorflow.contrib import cluster_resolver as contrib_cluster_resolver  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
+    from fathom_tensorflow.contrib import cluster_resolver as contrib_cluster_resolver  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
     return contrib_cluster_resolver
 
 
 def distribute():
     err_if_tf2(msg='err')
-    from tensorflow.contrib import distribute as contrib_distribute  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
+    from fathom_tensorflow.contrib import distribute as contrib_distribute  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
     return contrib_distribute
 
 
@@ -200,7 +200,7 @@ def replace_monitors_with_hooks(monitors_or_hooks, estimator):
 def learn():
     """Return tf.contrib.learn module or dummy version."""
     if not is_tf2:
-        from tensorflow.contrib import learn as contrib_learn  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
+        from fathom_tensorflow.contrib import learn as contrib_learn  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
         return contrib_learn
     return DummyModule(
         RunConfig=tf_estimator.RunConfig,
@@ -211,17 +211,17 @@ def learn():
 
 def tf_prof():
     err_if_tf2(msg='err')
-    from tensorflow.contrib import tfprof as contrib_tfprof  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
+    from fathom_tensorflow.contrib import tfprof as contrib_tfprof  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
     return contrib_tfprof
 
 
 def eager():
     err_if_tf2(msg='err')
-    from tensorflow.contrib.eager.python import tfe as contrib_eager  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
+    from fathom_tensorflow.contrib.eager.python import tfe as contrib_eager  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
     return contrib_eager
 
 
 def image():
     err_if_tf2(msg='err')
-    from tensorflow.contrib import image as contrib_image  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
+    from fathom_tensorflow.contrib import image as contrib_image  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
     return contrib_image

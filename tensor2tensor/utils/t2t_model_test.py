@@ -21,7 +21,7 @@ from __future__ import print_function
 
 from tensor2tensor.utils import t2t_model
 
-import tensorflow as tf
+import fathom_tensorflow as tf
 
 
 class T2TModelTest(tf.test.TestCase):

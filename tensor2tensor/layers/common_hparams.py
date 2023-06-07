@@ -21,7 +21,7 @@ from __future__ import print_function
 from six.moves import zip  # pylint: disable=redefined-builtin
 from tensor2tensor.utils import registry
 
-import tensorflow as tf
+import fathom_tensorflow as tf
 from tensor2tensor.utils.hparam import HParams
 
 

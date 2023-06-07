@@ -36,7 +36,7 @@ from tensor2tensor.data_generators import text_encoder
 from tensor2tensor.data_generators import text_problems
 from tensor2tensor.utils import registry
 
-import tensorflow as tf
+import fathom_tensorflow as tf
 
 from tensor2tensor.utils.hparam import HParams
 

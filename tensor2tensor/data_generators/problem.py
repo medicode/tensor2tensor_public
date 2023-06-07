@@ -27,7 +27,7 @@ import random
 from typing import Dict
 
 import six
-from tensorflow import Tensor
+from fathom_tensorflow import Tensor
 
 from tensor2tensor.data_generators import generator_utils
 from tensor2tensor.data_generators import text_encoder
@@ -35,7 +35,7 @@ from tensor2tensor.layers import modalities
 from tensor2tensor.utils import data_reader
 from tensor2tensor.utils import metrics
 
-import tensorflow as tf
+import fathom_tensorflow as tf
 
 from tensor2tensor.utils.hparam import HParams
 

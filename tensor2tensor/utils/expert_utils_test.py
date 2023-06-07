@@ -20,7 +20,7 @@ from __future__ import print_function
 
 from tensor2tensor.layers import common_attention
 from tensor2tensor.utils import expert_utils
-import tensorflow as tf
+import fathom_tensorflow as tf
 
 
 class ExpertUtilsTest(tf.test.TestCase):

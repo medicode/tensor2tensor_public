@@ -21,7 +21,7 @@ from __future__ import print_function
 
 import numpy as np
 from tensor2tensor.layers import discretization
-import tensorflow as tf
+import fathom_tensorflow as tf
 
 
 class DiscretizationTest(tf.test.TestCase):

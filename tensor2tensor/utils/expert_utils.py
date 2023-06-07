@@ -32,7 +32,7 @@ from six.moves import zip  # pylint: disable=redefined-builtin
 from tensor2tensor.layers import common_layers
 from tensor2tensor.layers.vq_discrete import DiscreteBottleneck
 
-import tensorflow as tf
+import fathom_tensorflow as tf
 
 DEFAULT_DEV_STRING = "existing_device"
 

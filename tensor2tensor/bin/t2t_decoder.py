@@ -51,7 +51,7 @@ from tensor2tensor.utils import registry
 from tensor2tensor.utils import trainer_lib
 from tensor2tensor.utils import usr_dir
 
-import tensorflow as tf
+import fathom_tensorflow as tf
 
 flags = tf.compat.v1.flags
 FLAGS = flags.FLAGS

@@ -28,14 +28,14 @@ import math
 import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
 
-import tensorflow as tf
+import fathom_tensorflow as tf
 
 import tf_slim as slim
 
-from tensorflow.python.framework import function
-from tensorflow.python.framework import ops
-from tensorflow.python.ops import control_flow_util
-from tensorflow.python.ops import inplace_ops
+from fathom_tensorflow.python.framework import function
+from fathom_tensorflow.python.framework import ops
+from fathom_tensorflow.python.ops import control_flow_util
+from fathom_tensorflow.python.ops import inplace_ops
 
 
 @function.Defun(
@@ -2196,7 +2196,7 @@ def sru(x,
   if is_xla_compiled():  # On TPU the XLA does a good job with while.
     return sru_with_scan(x, num_layers, activation, initial_state, name, reuse)
   try:
-    from tensorflow.contrib.recurrent.python.ops import functional_rnn  # pylint: disable=g-import-not-at-top
+    from fathom_tensorflow.contrib.recurrent.python.ops import functional_rnn  # pylint: disable=g-import-not-at-top
   except ImportError:
     tf.compat.v1.logging.info("functional_rnn not found, using sru_with_scan instead")
     return sru_with_scan(x, num_layers, activation, initial_state, name, reuse)

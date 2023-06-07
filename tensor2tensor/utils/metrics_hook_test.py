@@ -24,7 +24,7 @@ import os
 import shutil
 from tensor2tensor.utils import metrics_hook
 
-import tensorflow as tf
+import fathom_tensorflow as tf
 
 
 class DummyHook(metrics_hook.MetricsBasedHook):

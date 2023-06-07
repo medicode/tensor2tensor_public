@@ -22,7 +22,7 @@ import numpy as np
 
 from tensor2tensor.utils.yellowfin import YellowFinOptimizer
 
-import tensorflow as tf
+import fathom_tensorflow as tf
 
 
 n_dim = 1000000

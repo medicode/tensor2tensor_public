@@ -25,7 +25,7 @@ import numpy as np
 from tensor2tensor.layers import common_attention
 from tensor2tensor.layers import common_layers
 
-import tensorflow as tf
+import fathom_tensorflow as tf
 
 
 class CommonAttentionTest(parameterized.TestCase, tf.test.TestCase):

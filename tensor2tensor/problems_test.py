@@ -20,7 +20,7 @@ from __future__ import print_function
 
 from tensor2tensor import problems
 
-import tensorflow as tf
+import fathom_tensorflow as tf
 
 
 class ProblemsTest(tf.test.TestCase):

@@ -21,7 +21,7 @@ from __future__ import print_function
 import numpy as np
 from tensor2tensor.utils import beam_search
 
-import tensorflow as tf
+import fathom_tensorflow as tf
 
 
 class BeamSearchTest(tf.test.TestCase):

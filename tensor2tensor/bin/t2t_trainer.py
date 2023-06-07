@@ -32,6 +32,7 @@ from tensor2tensor.utils import registry
 from tensor2tensor.utils import trainer_lib
 from tensor2tensor.utils import usr_dir
 import tensorflow as tf
+tf.compat.v1.disable_v2_behavior()
 
 # Fathom
 from tensorflow.compat.v1.estimator.tpu import InputPipelineConfig

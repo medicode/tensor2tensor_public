@@ -215,6 +215,9 @@ def create_run_config(model_name,
     run_config_cls = tf.estimator.RunConfig
     del run_config_args["master"]
     del run_config_args["evaluation_master"]
+  else:
+    del run_config_args["master"]
+    del run_config_args["evaluation_master"]
 
   config = run_config_cls(**run_config_args)
 

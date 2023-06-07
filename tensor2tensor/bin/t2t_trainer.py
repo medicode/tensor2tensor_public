@@ -35,6 +35,7 @@ import tensorflow as tf
 tf.compat.v1.disable_v2_behavior()
 
 # Fathom
+import fathomt2t_dependencies.t2t_trainer_utils as fathom
 from tensorflow.compat.v1.estimator.tpu import InputPipelineConfig
 
 

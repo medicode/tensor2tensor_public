@@ -28,6 +28,7 @@ from __future__ import division
 from __future__ import print_function
 from six.moves import range  # pylint: disable=redefined-builtin
 
+# from tensor2tensor.data_generators import librispeech
 from tensor2tensor.layers import common_attention
 from tensor2tensor.layers import common_hparams
 from tensor2tensor.layers import common_layers
@@ -2300,6 +2301,96 @@ def transformer_lm_tpu_1():
   hparams.hidden_size = 2048
   hparams.filter_size = 8192
   return hparams
+
+
+# @registry.register_hparams
+# def transformer_librispeech_v1():
+#   """HParams for training ASR model on LibriSpeech V1."""
+#   hparams = transformer_base()
+
+#   hparams.num_heads = 4
+#   hparams.filter_size = 1024
+#   hparams.hidden_size = 256
+#   hparams.num_encoder_layers = 5
+#   hparams.num_decoder_layers = 3
+#   hparams.learning_rate = 0.15
+#   hparams.batch_size = 6000000
+
+#   librispeech.set_librispeech_length_hparams(hparams)
+#   return hparams
+
+
+# @registry.register_hparams
+# def transformer_librispeech_v2():
+#   """HParams for training ASR model on LibriSpeech V2."""
+#   hparams = transformer_base()
+
+#   hparams.max_length = 1240000
+#   hparams.max_input_seq_length = 1550
+#   hparams.max_target_seq_length = 350
+#   hparams.batch_size = 16
+#   hparams.num_decoder_layers = 4
+#   hparams.num_encoder_layers = 6
+#   hparams.hidden_size = 384
+#   hparams.learning_rate = 0.15
+#   hparams.daisy_chain_variables = False
+#   hparams.filter_size = 1536
+#   hparams.num_heads = 2
+#   hparams.ffn_layer = "conv_relu_conv"
+#   hparams.conv_first_kernel = 9
+#   hparams.weight_decay = 0
+#   hparams.layer_prepostprocess_dropout = 0.2
+#   hparams.relu_dropout = 0.2
+
+#   return hparams
+
+
+# @registry.register_hparams
+# def transformer_librispeech_tpu_v1():
+#   """HParams for training ASR model on Librispeech on TPU v1."""
+#   hparams = transformer_librispeech_v1()
+#   update_hparams_for_tpu(hparams)
+
+#   hparams.batch_size = 16
+#   librispeech.set_librispeech_length_hparams(hparams)
+#   return hparams
+
+
+# @registry.register_hparams
+# def transformer_librispeech_tpu_v2():
+#   """HParams for training ASR model on Librispeech on TPU v2."""
+#   hparams = transformer_librispeech_v2()
+#   update_hparams_for_tpu(hparams)
+
+#   hparams.batch_size = 16
+#   librispeech.set_librispeech_length_hparams(hparams)
+#   return hparams
+
+
+# @registry.register_hparams
+# def transformer_librispeech():
+#   """HParams for training ASR model on Librispeech."""
+#   return transformer_librispeech_v2()
+
+
+# @registry.register_hparams
+# def transformer_librispeech_tpu():
+#   """HParams for training ASR model on Librispeech on TPU."""
+#   return transformer_librispeech_tpu_v2()
+
+
+# @registry.register_hparams
+# def transformer_common_voice():
+#   """HParams for training ASR model on Mozilla Common Voice."""
+#   return transformer_librispeech()
+
+
+# @registry.register_hparams
+# def transformer_common_voice_tpu():
+#   """HParams for training ASR model on Mozilla Common Voice on TPU."""
+#   hparams = transformer_librispeech_tpu()
+#   hparams.batch_size = 8
+#   return hparams
 
 
 @registry.register_hparams

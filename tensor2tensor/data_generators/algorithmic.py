@@ -119,8 +119,6 @@ class AlgorithmicIdentityBinary40(AlgorithmicProblem):
       yield {"inputs": inputs, "targets": inputs}
 
 
-### START OF UNUSED FUNCTIONS ###
-
 # @registry.register_problem
 # class AlgorithmicIdentityDecimal40(AlgorithmicIdentityBinary40):
 #   """Problem spec for algorithmic decimal identity task."""
@@ -513,8 +511,6 @@ class AlgorithmicIdentityBinary40(AlgorithmicProblem):
 #   def eval_metrics(self):
 #     defaults = super(AlgorithmicSortProblem, self).eval_metrics()
 #     return defaults + [metrics.Metrics.EDIT_DISTANCE]
-
-### END OF UNUSED FUNCTIONS ###
 
 
 @registry.register_problem

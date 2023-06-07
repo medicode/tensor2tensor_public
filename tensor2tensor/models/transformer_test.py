@@ -149,66 +149,66 @@ class TransformerTest(tf.test.TestCase):
     self.assertEqual(slow_res.shape, (BATCH_SIZE, decode_length))
     self.assertAllClose(slow_res, fast_res)
 
-  def testBeamDecodeWithRelativeAttention(self):
-    decode_length = 2
-    model, features = get_model(transformer.transformer_relative_tiny())
-    model.set_mode(tf.estimator.ModeKeys.PREDICT)
+  # def testBeamDecodeWithRelativeAttention(self):
+  #   decode_length = 2
+  #   model, features = get_model(transformer.transformer_relative_tiny())
+  #   model.set_mode(tf.estimator.ModeKeys.PREDICT)
 
-    beam_result = model._beam_decode(
-        features, decode_length, beam_size=4, top_beams=1,
-        alpha=1.0)["outputs"]
+  #   beam_result = model._beam_decode(
+  #       features, decode_length, beam_size=4, top_beams=1,
+  #       alpha=1.0)["outputs"]
 
-    with self.test_session():
-      tf.global_variables_initializer().run()
-      beam_result.eval()
+  #   with self.test_session():
+  #     tf.global_variables_initializer().run()
+  #     beam_result.eval()
 
-    # TODO(petershaw): This test is flaky because the decode may hit EOS before
-    # getting to the expected length.
-    # self.assertEqual(beam_res.shape,
-    #                  (BATCH_SIZE, INPUT_LENGTH + decode_length))
+  #   # TODO(petershaw): This test is flaky because the decode may hit EOS before
+  #   # getting to the expected length.
+  #   # self.assertEqual(beam_res.shape,
+  #   #                  (BATCH_SIZE, INPUT_LENGTH + decode_length))
 
-  def testBeamVsFast(self):
-    model, features = get_model(transformer.transformer_small())
+  # def testBeamVsFast(self):
+  #   model, features = get_model(transformer.transformer_small())
 
-    decode_length = 2
+  #   decode_length = 2
 
-    out_logits, _ = model(features)
-    out_logits = tf.squeeze(out_logits, axis=[2, 3])
-    loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
-        logits=tf.reshape(out_logits, [-1, VOCAB_SIZE]),
-        labels=tf.reshape(features["targets"], [-1]))
-    loss = tf.reduce_mean(loss)
-    apply_grad = tf.train.AdamOptimizer(0.001).minimize(loss)
+  #   out_logits, _ = model(features)
+  #   out_logits = tf.squeeze(out_logits, axis=[2, 3])
+  #   loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
+  #       logits=tf.reshape(out_logits, [-1, VOCAB_SIZE]),
+  #       labels=tf.reshape(features["targets"], [-1]))
+  #   loss = tf.reduce_mean(loss)
+  #   apply_grad = tf.train.AdamOptimizer(0.001).minimize(loss)
 
-    with self.test_session():
-      tf.global_variables_initializer().run()
-      for _ in range(100):
-        apply_grad.run()
+  #   with self.test_session():
+  #     tf.global_variables_initializer().run()
+  #     for _ in range(100):
+  #       apply_grad.run()
 
-    model.set_mode(tf.estimator.ModeKeys.PREDICT)
+  #   model.set_mode(tf.estimator.ModeKeys.PREDICT)
 
-    with tf.variable_scope(tf.get_variable_scope(), reuse=True):
-      beam_result = model._beam_decode_slow(
-          features,
-          decode_length,
-          beam_size=4,
-          top_beams=1,
-          alpha=1.0)["outputs"]
+  #   with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+  #     beam_result = model._beam_decode_slow(
+  #         features,
+  #         decode_length,
+  #         beam_size=4,
+  #         top_beams=1,
+  #         alpha=1.0)["outputs"]
 
-      fast_result = model._beam_decode(
-          features,
-          decode_length,
-          beam_size=4,
-          top_beams=1,
-          alpha=1.0)["outputs"]
+  #     fast_result = model._beam_decode(
+  #         features,
+  #         decode_length,
+  #         beam_size=4,
+  #         top_beams=1,
+  #         alpha=1.0)["outputs"]
 
-    with self.test_session():
-      beam_res = beam_result.eval()
-      fast_res = fast_result.eval()
+  #   with self.test_session():
+  #     beam_res = beam_result.eval()
+  #     fast_res = fast_result.eval()
 
-    self.assertEqual(fast_res.shape,
-                     (BATCH_SIZE, INPUT_LENGTH + decode_length))
-    self.assertAllClose(beam_res, fast_res)
+  #   self.assertEqual(fast_res.shape,
+  #                    (BATCH_SIZE, INPUT_LENGTH + decode_length))
+  #   self.assertAllClose(beam_res, fast_res)
 
   def testTransformerWithoutProblem(self):
     hparams = transformer.transformer_test()

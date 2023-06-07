@@ -31,15 +31,15 @@ from six.moves import range  # pylint: disable=redefined-builtin
 from tensor2tensor.layers import common_attention
 from tensor2tensor.layers import common_hparams
 from tensor2tensor.layers import common_layers
-from tensor2tensor.utils import beam_search
+# from tensor2tensor.utils import beam_search
 from tensor2tensor.utils import expert_utils
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import t2t_model
 
 import tensorflow as tf
 
-from tensorflow.python.ops import inplace_ops
-from tensorflow.python.util import nest
+# from tensorflow.python.ops import inplace_ops
+# from tensorflow.python.util import nest
 
 
 @registry.register_model
@@ -226,789 +226,789 @@ class Transformer(t2t_model.T2TModel):
       return (self._fast_decode_tpu(features, decode_length) if use_tpu else
               self._fast_decode(features, decode_length))
 
-  def _beam_decode(self,
-                   features,
-                   decode_length,
-                   beam_size,
-                   top_beams,
-                   alpha,
-                   use_tpu=False):
-    """Beam search decoding.
-
-    Args:
-      features: an map of string to `Tensor`
-      decode_length: an integer.  How many additional timesteps to decode.
-      beam_size: number of beams.
-      top_beams: an integer. How many of the beams to return.
-      alpha: Float that controls the length penalty. larger the alpha, stronger
-        the preference for longer translations.
-      use_tpu: A bool, whether to do beam decode on TPU.
-
-    Returns:
-      A dict of decoding results {
-          "outputs": integer `Tensor` of decoded ids of shape
-              [batch_size, <= decode_length] if beam_size == 1 or
-              [batch_size, top_beams, <= decode_length]
-          "scores": decoding log probs from the beam search,
-              None if using greedy decoding (beam_size=1)
-      }
-    """
-    if self._hparams.self_attention_type != "dot_product":
-      # Caching is not guaranteed to work with attention types other than
-      # dot_product.
-      # TODO(petershaw): Support fast decoding when using relative
-      # position representations, i.e. "dot_product_relative" attention.
-      return self._beam_decode_slow(features, decode_length, beam_size,
-                                    top_beams, alpha, use_tpu)
-    with tf.variable_scope(self.name):
-      return (
-          self._fast_decode_tpu(
-              features, decode_length, beam_size, top_beams, alpha) if use_tpu
-          else self._fast_decode(
-              features, decode_length, beam_size, top_beams, alpha))
-
-  def _fast_decode_tpu(self,
-                       features,
-                       decode_length,
-                       beam_size=1,
-                       top_beams=1,
-                       alpha=1.0):
-    """Fast decoding.
-
-    Implements both greedy and beam search decoding on TPU, uses beam search
-    iff beam_size > 1, otherwise beam search related arguments are ignored.
-
-    Args:
-      features: A map of string to model features.
-      decode_length: An integer, how many additional timesteps to decode.
-      beam_size: An integer, number of beams.
-      top_beams: An integer, how many of the beams to return.
-      alpha: A float that controls the length penalty. Larger the alpha,
-        stronger the preference for longer translations.
-
-    Returns:
-      A dict of decoding results {
-          "outputs": integer `Tensor` of decoded ids of shape
-              [batch_size, <= decode_length] if beam_size == 1 or
-              [batch_size, top_beams, <= decode_length]
-          "scores": decoding log probs from the beam search,
-              None if using greedy decoding (beam_size=1)
-      }.
-
-    Raises:
-      NotImplementedError: If there are multiple data shards.
-    """
-    if self._num_datashards != 1:
-      raise NotImplementedError("Fast decoding only supports a single shard.")
-    if "targets_segmentation" in features:
-      raise NotImplementedError(
-          "Decoding not supported on packed datasets "
-          " If you want to decode from a dataset, use the non-packed version"
-          " of the dataset when decoding.")
-    dp = self._data_parallelism
-    hparams = self._hparams
-    target_modality = self._problem_hparams.target_modality
-
-    if self.has_input:
-      inputs = features["inputs"]
-      if target_modality.is_class_modality:
-        decode_length = 1
-      else:
-        decode_length = (
-            common_layers.shape_list(inputs)[1] + features.get(
-                "decode_length", decode_length))
-
-      # TODO(llion): Clean up this reshaping logic.
-      inputs = tf.expand_dims(inputs, axis=1)
-      if len(inputs.shape) < 5:
-        inputs = tf.expand_dims(inputs, axis=4)
-      s = common_layers.shape_list(inputs)
-      batch_size = s[0]
-      inputs = tf.reshape(inputs, [s[0] * s[1], s[2], s[3], s[4]])
-      # _shard_features called to ensure that the variable names match
-      inputs = self._shard_features({"inputs": inputs})["inputs"]
-      input_modality = self._problem_hparams.input_modality["inputs"]
-      with tf.variable_scope(input_modality.name):
-        inputs = input_modality.bottom_sharded(inputs, dp)
-      with tf.variable_scope("body"):
-        encoder_output, encoder_decoder_attention_bias = dp(
-            self.encode,
-            inputs,
-            features["target_space_id"],
-            hparams,
-            features=features)
-      encoder_output = encoder_output[0]
-      encoder_decoder_attention_bias = encoder_decoder_attention_bias[0]
-      partial_targets = None
-    else:
-      # The problem has no inputs.
-      encoder_output = None
-      encoder_decoder_attention_bias = None
-
-      # Prepare partial targets.
-      # In either features["inputs"] or features["targets"].
-      # We force the outputs to begin with these sequences.
-      partial_targets = features.get("inputs")
-      if partial_targets is None:
-        partial_targets = features["targets"]
-      assert partial_targets is not None
-      partial_targets = common_layers.expand_squeeze_to_nd(partial_targets, 2)
-      partial_targets = tf.to_int64(partial_targets)
-      partial_targets_shape = common_layers.shape_list(partial_targets)
-      partial_targets_length = partial_targets_shape[1]
-      decode_length = (
-          partial_targets_length + features.get("decode_length", decode_length))
-      batch_size = partial_targets_shape[0]
-
-    if hparams.pos == "timing":
-      positional_encoding = common_attention.get_timing_signal_1d(
-          decode_length + 1, hparams.hidden_size)
-    elif hparams.pos == "emb":
-      positional_encoding = common_attention.add_positional_embedding(
-          tf.zeros([1, decode_length + 1, hparams.hidden_size]),
-          hparams.max_length, "body/targets_positional_embedding", None)
-    else:
-      positional_encoding = None
-
-    def preprocess_targets(targets, i):
-      """Performs preprocessing steps on the targets to prepare for the decoder.
-
-      This includes:
-        - Embedding the ids.
-        - Flattening to 3D tensor.
-        - Optionally adding timing signals.
-
-      Args:
-        targets: A tensor, inputs ids to the decoder. [batch_size, 1].
-        i: An integer, Step number of the decoding loop.
-
-      Returns:
-        A tensor, processed targets [batch_size, 1, hidden_dim].
-      """
-      # _shard_features called to ensure that the variable names match
-      targets = self._shard_features({"targets": targets})["targets"]
-      with tf.variable_scope(target_modality.name):
-        targets = target_modality.targets_bottom_sharded(targets, dp)[0]
-      targets = common_layers.flatten4d3d(targets)
-
-      # TODO(llion): Explain! Is this even needed?
-      targets = tf.cond(
-          tf.equal(i, 0), lambda: tf.zeros_like(targets), lambda: targets)
-
-      if positional_encoding is not None:
-        positional_encoding_shape = positional_encoding.shape.as_list()
-        targets += tf.slice(
-            positional_encoding, [0, i, 0],
-            [positional_encoding_shape[0], 1, positional_encoding_shape[2]])
-      return targets
-
-    decoder_self_attention_bias = (
-        common_attention.attention_bias_lower_triangle(decode_length))
-    if hparams.proximity_bias:
-      decoder_self_attention_bias += common_attention.attention_bias_proximal(
-          decode_length)
-
-    def symbols_to_logits_tpu_fn(ids, i, cache):
-      """Go from ids to logits for next symbol on TPU.
-
-      Args:
-        ids: A tensor, symbol IDs.
-        i: An integer, step number of the decoding loop. Only used for inference
-            on TPU.
-        cache: A dict, containing tensors which are the results of previous
-            attentions, used for fast decoding.
-
-      Returns:
-        ret: A tensor, computed logits.
-        cache: A dict, containing tensors which are the results of previous
-            attentions, used for fast decoding.
-      """
-      ids = ids[:, -1:]
-      targets = tf.expand_dims(tf.expand_dims(ids, axis=2), axis=3)
-      targets = preprocess_targets(targets, i)
-
-      bias_shape = decoder_self_attention_bias.shape.as_list()
-      bias = tf.slice(decoder_self_attention_bias, [0, 0, i, 0],
-                      [bias_shape[0], bias_shape[1], 1, bias_shape[3]])
-
-      with tf.variable_scope("body"):
-        body_outputs = dp(
-            self.decode,
-            targets,
-            cache.get("encoder_output"),
-            cache.get("encoder_decoder_attention_bias"),
-            bias,
-            hparams,
-            cache,
-            i,
-            nonpadding=features_to_nonpadding(features, "targets"))
-
-      with tf.variable_scope(target_modality.name):
-        logits = target_modality.top_sharded(body_outputs, None, dp)[0]
-
-      ret = tf.squeeze(logits, axis=[1, 2, 3])
-      if partial_targets is not None:
-        # If the position is within the given partial targets, we alter the
-        # logits to always return those values.
-        # A faster approach would be to process the partial targets in one
-        # iteration in order to fill the corresponding parts of the cache.
-        # This would require broader changes, though.
-        vocab_size = tf.shape(ret)[1]
-
-        def forced_logits():
-          return tf.one_hot(
-              tf.tile(
-                  tf.slice(partial_targets, [0, i],
-                           [partial_targets.shape.as_list()[0], 1]),
-                  [beam_size]), vocab_size, 0.0, -1e9)
-
-        ret = tf.cond(
-            tf.less(i, partial_targets_length), forced_logits, lambda: ret)
-      return ret, cache
-
-    ret = fast_decode_tpu(
-        encoder_output=encoder_output,
-        encoder_decoder_attention_bias=encoder_decoder_attention_bias,
-        symbols_to_logits_fn=symbols_to_logits_tpu_fn,
-        hparams=hparams,
-        decode_length=decode_length,
-        vocab_size=target_modality.top_dimensionality,
-        beam_size=beam_size,
-        top_beams=top_beams,
-        alpha=alpha,
-        batch_size=batch_size,
-        force_decode_length=self._decode_hparams.force_decode_length)
-    if partial_targets is not None:
-      if beam_size <= 1 or top_beams <= 1:
-        ret["outputs"] = ret["outputs"][:, partial_targets_length:]
-      else:
-        ret["outputs"] = ret["outputs"][:, :, partial_targets_length:]
-    return ret
-
-  def _fast_decode(self,
-                   features,
-                   decode_length,
-                   beam_size=1,
-                   top_beams=1,
-                   alpha=1.0):
-    """Fast decoding.
-
-    Implements both greedy and beam search decoding, uses beam search iff
-    beam_size > 1, otherwise beam search related arguments are ignored.
-
-    Args:
-      features: a map of string to model  features.
-      decode_length: an integer.  How many additional timesteps to decode.
-      beam_size: number of beams.
-      top_beams: an integer. How many of the beams to return.
-      alpha: Float that controls the length penalty. larger the alpha, stronger
-        the preference for longer translations.
-
-    Returns:
-      A dict of decoding results {
-          "outputs": integer `Tensor` of decoded ids of shape
-              [batch_size, <= decode_length] if beam_size == 1 or
-              [batch_size, top_beams, <= decode_length]
-          "scores": decoding log probs from the beam search,
-              None if using greedy decoding (beam_size=1)
-      }
-
-    Raises:
-      NotImplementedError: If there are multiple data shards.
-    """
-    if self._num_datashards != 1:
-      raise NotImplementedError("Fast decoding only supports a single shard.")
-    dp = self._data_parallelism
-    hparams = self._hparams
-    target_modality = self._problem_hparams.target_modality
-    if "targets_segmentation" in features:
-      raise NotImplementedError(
-          "Decoding not supported on packed datasets "
-          " If you want to decode from a dataset, use the non-packed version"
-          " of the dataset when decoding.")
-    if self.has_input:
-      inputs = features["inputs"]
-      if target_modality.is_class_modality:
-        decode_length = 1
-      else:
-        decode_length = (
-            common_layers.shape_list(inputs)[1] + features.get(
-                "decode_length", decode_length))
-
-      # TODO(llion): Clean up this reshaping logic.
-      inputs = tf.expand_dims(inputs, axis=1)
-      if len(inputs.shape) < 5:
-        inputs = tf.expand_dims(inputs, axis=4)
-      s = common_layers.shape_list(inputs)
-      batch_size = s[0]
-      inputs = tf.reshape(inputs, [s[0] * s[1], s[2], s[3], s[4]])
-      # _shard_features called to ensure that the variable names match
-      inputs = self._shard_features({"inputs": inputs})["inputs"]
-      input_modality = self._problem_hparams.input_modality["inputs"]
-      with tf.variable_scope(input_modality.name):
-        inputs = input_modality.bottom_sharded(inputs, dp)
-      with tf.variable_scope("body"):
-        encoder_output, encoder_decoder_attention_bias = dp(
-            self.encode,
-            inputs,
-            features["target_space_id"],
-            hparams,
-            features=features)
-      encoder_output = encoder_output[0]
-      encoder_decoder_attention_bias = encoder_decoder_attention_bias[0]
-      partial_targets = None
-    else:
-      # The problem has no inputs.
-      encoder_output = None
-      encoder_decoder_attention_bias = None
-
-      # Prepare partial targets.
-      # In either features["inputs"] or features["targets"].
-      # We force the outputs to begin with these sequences.
-      partial_targets = features.get("inputs")
-      if partial_targets is None:
-        partial_targets = features["targets"]
-      assert partial_targets is not None
-      partial_targets = common_layers.expand_squeeze_to_nd(partial_targets, 2)
-      partial_targets = tf.to_int64(partial_targets)
-      partial_targets_shape = common_layers.shape_list(partial_targets)
-      partial_targets_length = partial_targets_shape[1]
-      decode_length = (
-          partial_targets_length + features.get("decode_length", decode_length))
-      batch_size = partial_targets_shape[0]
-
-    if hparams.pos == "timing":
-      positional_encoding = common_attention.get_timing_signal_1d(
-          decode_length + 1, hparams.hidden_size)
-    elif hparams.pos == "emb":
-      positional_encoding = common_attention.add_positional_embedding(
-          tf.zeros([1, decode_length, hparams.hidden_size]),
-          hparams.max_length, "body/targets_positional_embedding", None)
-    else:
-      positional_encoding = None
-
-    def preprocess_targets(targets, i):
-      """Performs preprocessing steps on the targets to prepare for the decoder.
-
-      This includes:
-        - Embedding the ids.
-        - Flattening to 3D tensor.
-        - Optionally adding timing signals.
-
-      Args:
-        targets: inputs ids to the decoder. [batch_size, 1]
-        i: scalar, Step number of the decoding loop.
-
-      Returns:
-        Processed targets [batch_size, 1, hidden_dim]
-      """
-      # _shard_features called to ensure that the variable names match
-      targets = self._shard_features({"targets": targets})["targets"]
-      with tf.variable_scope(target_modality.name):
-        targets = target_modality.targets_bottom_sharded(targets, dp)[0]
-      targets = common_layers.flatten4d3d(targets)
-
-      # TODO(llion): Explain! Is this even needed?
-      targets = tf.cond(
-          tf.equal(i, 0), lambda: tf.zeros_like(targets), lambda: targets)
-
-      if positional_encoding is not None:
-        targets += positional_encoding[:, i:i + 1]
-      return targets
-
-    decoder_self_attention_bias = (
-        common_attention.attention_bias_lower_triangle(decode_length))
-    if hparams.proximity_bias:
-      decoder_self_attention_bias += common_attention.attention_bias_proximal(
-          decode_length)
-
-    def symbols_to_logits_fn(ids, i, cache):
-      """Go from ids to logits for next symbol."""
-      ids = ids[:, -1:]
-      targets = tf.expand_dims(tf.expand_dims(ids, axis=2), axis=3)
-      targets = preprocess_targets(targets, i)
-
-      bias = decoder_self_attention_bias[:, :, i:i + 1, :i + 1]
-
-      with tf.variable_scope("body"):
-        body_outputs = dp(
-            self.decode,
-            targets,
-            cache.get("encoder_output"),
-            cache.get("encoder_decoder_attention_bias"),
-            bias,
-            hparams,
-            cache,
-            nonpadding=features_to_nonpadding(features, "targets"))
-
-      with tf.variable_scope(target_modality.name):
-        logits = target_modality.top_sharded(body_outputs, None, dp)[0]
-
-      ret = tf.squeeze(logits, axis=[1, 2, 3])
-      if partial_targets is not None:
-        # If the position is within the given partial targets, we alter the
-        # logits to always return those values.
-        # A faster approach would be to process the partial targets in one
-        # iteration in order to fill the corresponding parts of the cache.
-        # This would require broader changes, though.
-        vocab_size = tf.shape(ret)[1]
-
-        def forced_logits():
-          return tf.one_hot(
-              tf.tile(partial_targets[:, i], [beam_size]), vocab_size, 0.0,
-              -1e9)
-
-        ret = tf.cond(
-            tf.less(i, partial_targets_length), forced_logits, lambda: ret)
-      return ret, cache
-
-    ret = fast_decode(
-        encoder_output=encoder_output,
-        encoder_decoder_attention_bias=encoder_decoder_attention_bias,
-        symbols_to_logits_fn=symbols_to_logits_fn,
-        hparams=hparams,
-        decode_length=decode_length,
-        vocab_size=target_modality.top_dimensionality,
-        beam_size=beam_size,
-        top_beams=top_beams,
-        alpha=alpha,
-        batch_size=batch_size,
-        force_decode_length=self._decode_hparams.force_decode_length)
-    if partial_targets is not None:
-      if beam_size <= 1 or top_beams <= 1:
-        ret["outputs"] = ret["outputs"][:, partial_targets_length:]
-      else:
-        ret["outputs"] = ret["outputs"][:, :, partial_targets_length:]
-    return ret
-
-
-def fast_decode_tpu(encoder_output,
-                    encoder_decoder_attention_bias,
-                    symbols_to_logits_fn,
-                    hparams,
-                    decode_length,
-                    vocab_size,
-                    beam_size=1,
-                    top_beams=1,
-                    alpha=1.0,
-                    sos_id=0,
-                    eos_id=beam_search.EOS_ID,
-                    batch_size=None,
-                    force_decode_length=False,
-                    scope_prefix="body/"):
-  """Given encoder output and a symbols to logits function, does fast decoding.
-
-  Implements both greedy and beam search decoding for TPU, uses beam search iff
-  beam_size > 1, otherwise beam search related arguments are ignored.
-
-  Args:
-    encoder_output: A tensor, output from encoder.
-    encoder_decoder_attention_bias: A tensor, bias for use in encoder-decoder
-        attention.
-    symbols_to_logits_fn: Incremental decoding, function mapping triple
-        `(ids, step, cache)` to symbol logits.
-    hparams: Run hyperparameters.
-    decode_length: An integer, how many additional timesteps to decode.
-    vocab_size: Output vocabulary size.
-    beam_size: An integer, number of beams.
-    top_beams: An integer, how many of the beams to return.
-    alpha: A float that controls the length penalty. Larger the alpha, stronger
-      the preference for longer translations.
-    sos_id: Start-of-sequence symbol.
-    eos_id: End-of-sequence symbol.
-    batch_size: An integer, must be passed if there is no input.
-    force_decode_length: A bool, whether to force the full decode length, or if
-        False, stop when all beams hit eos_id.
-    scope_prefix: str, prefix for decoder layer variable scopes.
-
-  Returns:
-    A dict of decoding results {
-        "outputs": integer `Tensor` of decoded ids of shape
-            [batch_size, <= decode_length] if top_beams == 1 or
-            [batch_size, top_beams, <= decode_length] otherwise
-        "scores": decoding log probs from the beam search,
-            None if using greedy decoding (beam_size=1)
-    }.
-
-  Raises:
-    NotImplementedError: If beam size > 1 with partial targets.
-  """
-  if encoder_output is not None:
-    batch_size = common_layers.shape_list(encoder_output)[0]
-
-  key_channels = hparams.attention_key_channels or hparams.hidden_size
-  value_channels = hparams.attention_value_channels or hparams.hidden_size
-  num_layers = hparams.num_decoder_layers or hparams.num_hidden_layers
-  vars_3d_num_heads = (
-      hparams.num_heads if hparams.get("attention_variables_3d") else 0)
-
-  cache = {
-      "layer_%d" % layer: {
-          "k":
-          common_attention.split_heads(
-              tf.zeros([batch_size, decode_length, key_channels]),
-              hparams.num_heads),
-          "v":
-          common_attention.split_heads(
-              tf.zeros([batch_size, decode_length, value_channels]),
-              hparams.num_heads),
-          "f":
-          tf.zeros([batch_size, decode_length, hparams.hidden_size]),
-      } for layer in range(num_layers)
-  }
-
-  if encoder_output is not None:
-    for layer in range(num_layers):
-      layer_name = "layer_%d" % layer
-      with tf.variable_scope(
-          "%sdecoder/%s/encdec_attention/multihead_attention" % (scope_prefix,
-                                                                 layer_name)):
-        k_encdec = common_attention.compute_attention_component(
-            encoder_output, key_channels, name="k",
-            vars_3d_num_heads=vars_3d_num_heads)
-        k_encdec = common_attention.split_heads(k_encdec, hparams.num_heads)
-        v_encdec = common_attention.compute_attention_component(
-            encoder_output, value_channels, name="v",
-            vars_3d_num_heads=vars_3d_num_heads)
-        v_encdec = common_attention.split_heads(v_encdec, hparams.num_heads)
-      cache[layer_name]["k_encdec"] = k_encdec
-      cache[layer_name]["v_encdec"] = v_encdec
-
-    cache["encoder_output"] = encoder_output
-    cache["encoder_decoder_attention_bias"] = encoder_decoder_attention_bias
-
-  if beam_size > 1:  # Beam Search
-    initial_ids = sos_id * tf.ones([batch_size], dtype=tf.int32)
-    decoded_ids, scores = beam_search.beam_search(
-        symbols_to_logits_fn,
-        initial_ids,
-        beam_size,
-        decode_length,
-        vocab_size,
-        alpha,
-        states=cache,
-        eos_id=eos_id,
-        stop_early=(top_beams == 1),
-        use_tpu=True)
-
-    if top_beams == 1:
-      decoded_ids = decoded_ids[:, 0, 1:]
-      scores = scores[:, 0]
-    else:
-      decoded_ids = decoded_ids[:, :top_beams, 1:]
-      scores = scores[:, :top_beams]
-  else:  # Greedy
-    def inner_loop(i, hit_eos, next_id, decoded_ids, cache, log_prob):
-      """One step of greedy decoding."""
-      logits, cache = symbols_to_logits_fn(next_id, i, cache)
-      log_probs = common_layers.log_prob_from_logits(logits)
-      temperature = (0.0 if hparams.sampling_method == "argmax" else
-                     hparams.sampling_temp)
-      next_id = common_layers.sample_with_temperature(logits, temperature)
-      hit_eos |= tf.equal(next_id, eos_id)
-
-      log_prob_indices = tf.stack(
-          [tf.range(tf.to_int64(batch_size)), next_id], axis=1)
-      log_prob += tf.gather_nd(log_probs, log_prob_indices)
-
-      next_id = tf.expand_dims(next_id, axis=1)
-      decoded_ids = tf.transpose(decoded_ids)
-      decoded_ids = inplace_ops.alias_inplace_update(
-          decoded_ids, i, tf.squeeze(next_id, axis=1))
-      decoded_ids = tf.transpose(decoded_ids)
-      return i + 1, hit_eos, next_id, decoded_ids, cache, log_prob
-
-    def is_not_finished(i, hit_eos, *_):
-      finished = i >= decode_length
-      if not force_decode_length:
-        finished |= tf.reduce_all(hit_eos)
-      return tf.logical_not(finished)
-
-    decoded_ids = tf.zeros([batch_size, decode_length], dtype=tf.int64)
-    hit_eos = tf.fill([batch_size], False)
-    next_id = sos_id * tf.ones([batch_size, 1], dtype=tf.int64)
-    initial_log_prob = tf.zeros([batch_size], dtype=tf.float32)
-
-    def compute_cache_shape_invariants(tensor):
-      return tf.TensorShape(tensor.shape.as_list())
-
-    _, _, _, decoded_ids, _, log_prob = tf.while_loop(
-        is_not_finished,
-        inner_loop, [
-            tf.constant(0), hit_eos, next_id, decoded_ids, cache,
-            initial_log_prob
-        ],
-        shape_invariants=[
-            tf.TensorShape([]),
-            tf.TensorShape([batch_size]),
-            tf.TensorShape([batch_size, 1]),
-            tf.TensorShape([batch_size, decode_length]),
-            nest.map_structure(compute_cache_shape_invariants, cache),
-            tf.TensorShape([batch_size]),
-        ])
-    scores = log_prob
-
-  return {"outputs": decoded_ids, "scores": scores}
-
-
-def fast_decode(encoder_output,
-                encoder_decoder_attention_bias,
-                symbols_to_logits_fn,
-                hparams,
-                decode_length,
-                vocab_size,
-                beam_size=1,
-                top_beams=1,
-                alpha=1.0,
-                sos_id=0,
-                eos_id=beam_search.EOS_ID,
-                batch_size=None,
-                force_decode_length=False,
-                scope_prefix="body/"):
-  """Given encoder output and a symbols to logits function, does fast decoding.
-
-  Implements both greedy and beam search decoding, uses beam search iff
-  beam_size > 1, otherwise beam search related arguments are ignored.
-
-  Args:
-    encoder_output: Output from encoder.
-    encoder_decoder_attention_bias: a bias tensor for use in encoder-decoder
-      attention
-    symbols_to_logits_fn: Incremental decoding; function mapping triple
-      `(ids, step, cache)` to symbol logits.
-    hparams: run hyperparameters
-    decode_length: an integer.  How many additional timesteps to decode.
-    vocab_size: Output vocabulary size.
-    beam_size: number of beams.
-    top_beams: an integer. How many of the beams to return.
-    alpha: Float that controls the length penalty. larger the alpha, stronger
-      the preference for longer translations.
-    sos_id: End-of-sequence symbol in beam search.
-    eos_id: End-of-sequence symbol in beam search.
-    batch_size: an integer scalar - must be passed if there is no input
-    force_decode_length: bool, whether to force the full decode length, or if
-      False, stop when all beams hit eos_id.
-    scope_prefix: str, prefix for decoder layer variable scopes.
-
-  Returns:
-      A dict of decoding results {
-          "outputs": integer `Tensor` of decoded ids of shape
-              [batch_size, <= decode_length] if top_beams == 1 or
-              [batch_size, top_beams, <= decode_length] otherwise
-          "scores": decoding log probs from the beam search,
-              None if using greedy decoding (beam_size=1)
-      }
-
-    Raises:
-      NotImplementedError: If beam size > 1 with partial targets.
-  """
-  if encoder_output is not None:
-    batch_size = common_layers.shape_list(encoder_output)[0]
-
-  key_channels = hparams.attention_key_channels or hparams.hidden_size
-  value_channels = hparams.attention_value_channels or hparams.hidden_size
-  num_layers = hparams.num_decoder_layers or hparams.num_hidden_layers
-  vars_3d_num_heads = (
-      hparams.num_heads if hparams.get("attention_variables_3d") else 0)
-
-  cache = {
-      "layer_%d" % layer: {
-          "k":
-              common_attention.split_heads(
-                  tf.zeros([batch_size, 0, key_channels]), hparams.num_heads),
-          "v":
-              common_attention.split_heads(
-                  tf.zeros([batch_size, 0, value_channels]), hparams.num_heads),
-          "f":
-              tf.zeros([batch_size, 0, hparams.hidden_size]),
-      } for layer in range(num_layers)
-  }
-
-  if encoder_output is not None:
-    for layer in range(num_layers):
-      layer_name = "layer_%d" % layer
-      with tf.variable_scope(
-          "%sdecoder/%s/encdec_attention/multihead_attention" % (scope_prefix,
-                                                                 layer_name)):
-        k_encdec = common_attention.compute_attention_component(
-            encoder_output, key_channels, name="k",
-            vars_3d_num_heads=vars_3d_num_heads)
-        k_encdec = common_attention.split_heads(k_encdec, hparams.num_heads)
-        v_encdec = common_attention.compute_attention_component(
-            encoder_output, value_channels, name="v",
-            vars_3d_num_heads=vars_3d_num_heads)
-        v_encdec = common_attention.split_heads(v_encdec, hparams.num_heads)
-      cache[layer_name]["k_encdec"] = k_encdec
-      cache[layer_name]["v_encdec"] = v_encdec
-
-    cache["encoder_output"] = encoder_output
-    cache["encoder_decoder_attention_bias"] = encoder_decoder_attention_bias
-
-  if beam_size > 1:  # Beam Search
-    initial_ids = sos_id * tf.ones([batch_size], dtype=tf.int32)
-    decoded_ids, scores = beam_search.beam_search(
-        symbols_to_logits_fn,
-        initial_ids,
-        beam_size,
-        decode_length,
-        vocab_size,
-        alpha,
-        states=cache,
-        eos_id=eos_id,
-        stop_early=(top_beams == 1))
-
-    if top_beams == 1:
-      decoded_ids = decoded_ids[:, 0, 1:]
-      scores = scores[:, 0]
-    else:
-      decoded_ids = decoded_ids[:, :top_beams, 1:]
-      scores = scores[:, :top_beams]
-  else:  # Greedy
-
-    def inner_loop(i, hit_eos, next_id, decoded_ids, cache, log_prob):
-      """One step of greedy decoding."""
-      logits, cache = symbols_to_logits_fn(next_id, i, cache)
-      log_probs = common_layers.log_prob_from_logits(logits)
-      temperature = (0.0 if hparams.sampling_method == "argmax" else
-                     hparams.sampling_temp)
-      next_id = common_layers.sample_with_temperature(logits, temperature)
-      hit_eos |= tf.equal(next_id, eos_id)
-
-      log_prob_indices = tf.stack(
-          [tf.range(tf.to_int64(batch_size)), next_id], axis=1)
-      log_prob += tf.gather_nd(log_probs, log_prob_indices)
-
-      next_id = tf.expand_dims(next_id, axis=1)
-      decoded_ids = tf.concat([decoded_ids, next_id], axis=1)
-      return i + 1, hit_eos, next_id, decoded_ids, cache, log_prob
-
-    def is_not_finished(i, hit_eos, *_):
-      finished = i >= decode_length
-      if not force_decode_length:
-        finished |= tf.reduce_all(hit_eos)
-      return tf.logical_not(finished)
-
-    decoded_ids = tf.zeros([batch_size, 0], dtype=tf.int64)
-    hit_eos = tf.fill([batch_size], False)
-    next_id = sos_id * tf.ones([batch_size, 1], dtype=tf.int64)
-    initial_log_prob = tf.zeros([batch_size], dtype=tf.float32)
-    _, _, _, decoded_ids, _, log_prob = tf.while_loop(
-        is_not_finished,
-        inner_loop, [
-            tf.constant(0), hit_eos, next_id, decoded_ids, cache,
-            initial_log_prob
-        ],
-        shape_invariants=[
-            tf.TensorShape([]),
-            tf.TensorShape([None]),
-            tf.TensorShape([None, None]),
-            tf.TensorShape([None, None]),
-            nest.map_structure(beam_search.get_state_shape_invariants, cache),
-            tf.TensorShape([None]),
-        ])
-    scores = log_prob
-
-  return {"outputs": decoded_ids, "scores": scores}
+  # def _beam_decode(self,
+  #                  features,
+  #                  decode_length,
+  #                  beam_size,
+  #                  top_beams,
+  #                  alpha,
+  #                  use_tpu=False):
+  #   """Beam search decoding.
+
+  #   Args:
+  #     features: an map of string to `Tensor`
+  #     decode_length: an integer.  How many additional timesteps to decode.
+  #     beam_size: number of beams.
+  #     top_beams: an integer. How many of the beams to return.
+  #     alpha: Float that controls the length penalty. larger the alpha, stronger
+  #       the preference for longer translations.
+  #     use_tpu: A bool, whether to do beam decode on TPU.
+
+  #   Returns:
+  #     A dict of decoding results {
+  #         "outputs": integer `Tensor` of decoded ids of shape
+  #             [batch_size, <= decode_length] if beam_size == 1 or
+  #             [batch_size, top_beams, <= decode_length]
+  #         "scores": decoding log probs from the beam search,
+  #             None if using greedy decoding (beam_size=1)
+  #     }
+  #   """
+  #   if self._hparams.self_attention_type != "dot_product":
+  #     # Caching is not guaranteed to work with attention types other than
+  #     # dot_product.
+  #     # TODO(petershaw): Support fast decoding when using relative
+  #     # position representations, i.e. "dot_product_relative" attention.
+  #     return self._beam_decode_slow(features, decode_length, beam_size,
+  #                                   top_beams, alpha, use_tpu)
+  #   with tf.variable_scope(self.name):
+  #     return (
+  #         self._fast_decode_tpu(
+  #             features, decode_length, beam_size, top_beams, alpha) if use_tpu
+  #         else self._fast_decode(
+  #             features, decode_length, beam_size, top_beams, alpha))
+
+  # def _fast_decode_tpu(self,
+  #                      features,
+  #                      decode_length,
+  #                      beam_size=1,
+  #                      top_beams=1,
+  #                      alpha=1.0):
+  #   """Fast decoding.
+
+  #   Implements both greedy and beam search decoding on TPU, uses beam search
+  #   iff beam_size > 1, otherwise beam search related arguments are ignored.
+
+  #   Args:
+  #     features: A map of string to model features.
+  #     decode_length: An integer, how many additional timesteps to decode.
+  #     beam_size: An integer, number of beams.
+  #     top_beams: An integer, how many of the beams to return.
+  #     alpha: A float that controls the length penalty. Larger the alpha,
+  #       stronger the preference for longer translations.
+
+  #   Returns:
+  #     A dict of decoding results {
+  #         "outputs": integer `Tensor` of decoded ids of shape
+  #             [batch_size, <= decode_length] if beam_size == 1 or
+  #             [batch_size, top_beams, <= decode_length]
+  #         "scores": decoding log probs from the beam search,
+  #             None if using greedy decoding (beam_size=1)
+  #     }.
+
+  #   Raises:
+  #     NotImplementedError: If there are multiple data shards.
+  #   """
+  #   if self._num_datashards != 1:
+  #     raise NotImplementedError("Fast decoding only supports a single shard.")
+  #   if "targets_segmentation" in features:
+  #     raise NotImplementedError(
+  #         "Decoding not supported on packed datasets "
+  #         " If you want to decode from a dataset, use the non-packed version"
+  #         " of the dataset when decoding.")
+  #   dp = self._data_parallelism
+  #   hparams = self._hparams
+  #   target_modality = self._problem_hparams.target_modality
+
+  #   if self.has_input:
+  #     inputs = features["inputs"]
+  #     if target_modality.is_class_modality:
+  #       decode_length = 1
+  #     else:
+  #       decode_length = (
+  #           common_layers.shape_list(inputs)[1] + features.get(
+  #               "decode_length", decode_length))
+
+  #     # TODO(llion): Clean up this reshaping logic.
+  #     inputs = tf.expand_dims(inputs, axis=1)
+  #     if len(inputs.shape) < 5:
+  #       inputs = tf.expand_dims(inputs, axis=4)
+  #     s = common_layers.shape_list(inputs)
+  #     batch_size = s[0]
+  #     inputs = tf.reshape(inputs, [s[0] * s[1], s[2], s[3], s[4]])
+  #     # _shard_features called to ensure that the variable names match
+  #     inputs = self._shard_features({"inputs": inputs})["inputs"]
+  #     input_modality = self._problem_hparams.input_modality["inputs"]
+  #     with tf.variable_scope(input_modality.name):
+  #       inputs = input_modality.bottom_sharded(inputs, dp)
+  #     with tf.variable_scope("body"):
+  #       encoder_output, encoder_decoder_attention_bias = dp(
+  #           self.encode,
+  #           inputs,
+  #           features["target_space_id"],
+  #           hparams,
+  #           features=features)
+  #     encoder_output = encoder_output[0]
+  #     encoder_decoder_attention_bias = encoder_decoder_attention_bias[0]
+  #     partial_targets = None
+  #   else:
+  #     # The problem has no inputs.
+  #     encoder_output = None
+  #     encoder_decoder_attention_bias = None
+
+  #     # Prepare partial targets.
+  #     # In either features["inputs"] or features["targets"].
+  #     # We force the outputs to begin with these sequences.
+  #     partial_targets = features.get("inputs")
+  #     if partial_targets is None:
+  #       partial_targets = features["targets"]
+  #     assert partial_targets is not None
+  #     partial_targets = common_layers.expand_squeeze_to_nd(partial_targets, 2)
+  #     partial_targets = tf.to_int64(partial_targets)
+  #     partial_targets_shape = common_layers.shape_list(partial_targets)
+  #     partial_targets_length = partial_targets_shape[1]
+  #     decode_length = (
+  #         partial_targets_length + features.get("decode_length", decode_length))
+  #     batch_size = partial_targets_shape[0]
+
+  #   if hparams.pos == "timing":
+  #     positional_encoding = common_attention.get_timing_signal_1d(
+  #         decode_length + 1, hparams.hidden_size)
+  #   elif hparams.pos == "emb":
+  #     positional_encoding = common_attention.add_positional_embedding(
+  #         tf.zeros([1, decode_length + 1, hparams.hidden_size]),
+  #         hparams.max_length, "body/targets_positional_embedding", None)
+  #   else:
+  #     positional_encoding = None
+
+  #   def preprocess_targets(targets, i):
+  #     """Performs preprocessing steps on the targets to prepare for the decoder.
+
+  #     This includes:
+  #       - Embedding the ids.
+  #       - Flattening to 3D tensor.
+  #       - Optionally adding timing signals.
+
+  #     Args:
+  #       targets: A tensor, inputs ids to the decoder. [batch_size, 1].
+  #       i: An integer, Step number of the decoding loop.
+
+  #     Returns:
+  #       A tensor, processed targets [batch_size, 1, hidden_dim].
+  #     """
+  #     # _shard_features called to ensure that the variable names match
+  #     targets = self._shard_features({"targets": targets})["targets"]
+  #     with tf.variable_scope(target_modality.name):
+  #       targets = target_modality.targets_bottom_sharded(targets, dp)[0]
+  #     targets = common_layers.flatten4d3d(targets)
+
+  #     # TODO(llion): Explain! Is this even needed?
+  #     targets = tf.cond(
+  #         tf.equal(i, 0), lambda: tf.zeros_like(targets), lambda: targets)
+
+  #     if positional_encoding is not None:
+  #       positional_encoding_shape = positional_encoding.shape.as_list()
+  #       targets += tf.slice(
+  #           positional_encoding, [0, i, 0],
+  #           [positional_encoding_shape[0], 1, positional_encoding_shape[2]])
+  #     return targets
+
+  #   decoder_self_attention_bias = (
+  #       common_attention.attention_bias_lower_triangle(decode_length))
+  #   if hparams.proximity_bias:
+  #     decoder_self_attention_bias += common_attention.attention_bias_proximal(
+  #         decode_length)
+
+  #   def symbols_to_logits_tpu_fn(ids, i, cache):
+  #     """Go from ids to logits for next symbol on TPU.
+
+  #     Args:
+  #       ids: A tensor, symbol IDs.
+  #       i: An integer, step number of the decoding loop. Only used for inference
+  #           on TPU.
+  #       cache: A dict, containing tensors which are the results of previous
+  #           attentions, used for fast decoding.
+
+  #     Returns:
+  #       ret: A tensor, computed logits.
+  #       cache: A dict, containing tensors which are the results of previous
+  #           attentions, used for fast decoding.
+  #     """
+  #     ids = ids[:, -1:]
+  #     targets = tf.expand_dims(tf.expand_dims(ids, axis=2), axis=3)
+  #     targets = preprocess_targets(targets, i)
+
+  #     bias_shape = decoder_self_attention_bias.shape.as_list()
+  #     bias = tf.slice(decoder_self_attention_bias, [0, 0, i, 0],
+  #                     [bias_shape[0], bias_shape[1], 1, bias_shape[3]])
+
+  #     with tf.variable_scope("body"):
+  #       body_outputs = dp(
+  #           self.decode,
+  #           targets,
+  #           cache.get("encoder_output"),
+  #           cache.get("encoder_decoder_attention_bias"),
+  #           bias,
+  #           hparams,
+  #           cache,
+  #           i,
+  #           nonpadding=features_to_nonpadding(features, "targets"))
+
+  #     with tf.variable_scope(target_modality.name):
+  #       logits = target_modality.top_sharded(body_outputs, None, dp)[0]
+
+  #     ret = tf.squeeze(logits, axis=[1, 2, 3])
+  #     if partial_targets is not None:
+  #       # If the position is within the given partial targets, we alter the
+  #       # logits to always return those values.
+  #       # A faster approach would be to process the partial targets in one
+  #       # iteration in order to fill the corresponding parts of the cache.
+  #       # This would require broader changes, though.
+  #       vocab_size = tf.shape(ret)[1]
+
+  #       def forced_logits():
+  #         return tf.one_hot(
+  #             tf.tile(
+  #                 tf.slice(partial_targets, [0, i],
+  #                          [partial_targets.shape.as_list()[0], 1]),
+  #                 [beam_size]), vocab_size, 0.0, -1e9)
+
+  #       ret = tf.cond(
+  #           tf.less(i, partial_targets_length), forced_logits, lambda: ret)
+  #     return ret, cache
+
+  #   ret = fast_decode_tpu(
+  #       encoder_output=encoder_output,
+  #       encoder_decoder_attention_bias=encoder_decoder_attention_bias,
+  #       symbols_to_logits_fn=symbols_to_logits_tpu_fn,
+  #       hparams=hparams,
+  #       decode_length=decode_length,
+  #       vocab_size=target_modality.top_dimensionality,
+  #       beam_size=beam_size,
+  #       top_beams=top_beams,
+  #       alpha=alpha,
+  #       batch_size=batch_size,
+  #       force_decode_length=self._decode_hparams.force_decode_length)
+  #   if partial_targets is not None:
+  #     if beam_size <= 1 or top_beams <= 1:
+  #       ret["outputs"] = ret["outputs"][:, partial_targets_length:]
+  #     else:
+  #       ret["outputs"] = ret["outputs"][:, :, partial_targets_length:]
+  #   return ret
+
+  # def _fast_decode(self,
+  #                  features,
+  #                  decode_length,
+  #                  beam_size=1,
+  #                  top_beams=1,
+  #                  alpha=1.0):
+  #   """Fast decoding.
+
+  #   Implements both greedy and beam search decoding, uses beam search iff
+  #   beam_size > 1, otherwise beam search related arguments are ignored.
+
+  #   Args:
+  #     features: a map of string to model  features.
+  #     decode_length: an integer.  How many additional timesteps to decode.
+  #     beam_size: number of beams.
+  #     top_beams: an integer. How many of the beams to return.
+  #     alpha: Float that controls the length penalty. larger the alpha, stronger
+  #       the preference for longer translations.
+
+  #   Returns:
+  #     A dict of decoding results {
+  #         "outputs": integer `Tensor` of decoded ids of shape
+  #             [batch_size, <= decode_length] if beam_size == 1 or
+  #             [batch_size, top_beams, <= decode_length]
+  #         "scores": decoding log probs from the beam search,
+  #             None if using greedy decoding (beam_size=1)
+  #     }
+
+  #   Raises:
+  #     NotImplementedError: If there are multiple data shards.
+  #   """
+  #   if self._num_datashards != 1:
+  #     raise NotImplementedError("Fast decoding only supports a single shard.")
+  #   dp = self._data_parallelism
+  #   hparams = self._hparams
+  #   target_modality = self._problem_hparams.target_modality
+  #   if "targets_segmentation" in features:
+  #     raise NotImplementedError(
+  #         "Decoding not supported on packed datasets "
+  #         " If you want to decode from a dataset, use the non-packed version"
+  #         " of the dataset when decoding.")
+  #   if self.has_input:
+  #     inputs = features["inputs"]
+  #     if target_modality.is_class_modality:
+  #       decode_length = 1
+  #     else:
+  #       decode_length = (
+  #           common_layers.shape_list(inputs)[1] + features.get(
+  #               "decode_length", decode_length))
+
+  #     # TODO(llion): Clean up this reshaping logic.
+  #     inputs = tf.expand_dims(inputs, axis=1)
+  #     if len(inputs.shape) < 5:
+  #       inputs = tf.expand_dims(inputs, axis=4)
+  #     s = common_layers.shape_list(inputs)
+  #     batch_size = s[0]
+  #     inputs = tf.reshape(inputs, [s[0] * s[1], s[2], s[3], s[4]])
+  #     # _shard_features called to ensure that the variable names match
+  #     inputs = self._shard_features({"inputs": inputs})["inputs"]
+  #     input_modality = self._problem_hparams.input_modality["inputs"]
+  #     with tf.variable_scope(input_modality.name):
+  #       inputs = input_modality.bottom_sharded(inputs, dp)
+  #     with tf.variable_scope("body"):
+  #       encoder_output, encoder_decoder_attention_bias = dp(
+  #           self.encode,
+  #           inputs,
+  #           features["target_space_id"],
+  #           hparams,
+  #           features=features)
+  #     encoder_output = encoder_output[0]
+  #     encoder_decoder_attention_bias = encoder_decoder_attention_bias[0]
+  #     partial_targets = None
+  #   else:
+  #     # The problem has no inputs.
+  #     encoder_output = None
+  #     encoder_decoder_attention_bias = None
+
+  #     # Prepare partial targets.
+  #     # In either features["inputs"] or features["targets"].
+  #     # We force the outputs to begin with these sequences.
+  #     partial_targets = features.get("inputs")
+  #     if partial_targets is None:
+  #       partial_targets = features["targets"]
+  #     assert partial_targets is not None
+  #     partial_targets = common_layers.expand_squeeze_to_nd(partial_targets, 2)
+  #     partial_targets = tf.to_int64(partial_targets)
+  #     partial_targets_shape = common_layers.shape_list(partial_targets)
+  #     partial_targets_length = partial_targets_shape[1]
+  #     decode_length = (
+  #         partial_targets_length + features.get("decode_length", decode_length))
+  #     batch_size = partial_targets_shape[0]
+
+  #   if hparams.pos == "timing":
+  #     positional_encoding = common_attention.get_timing_signal_1d(
+  #         decode_length + 1, hparams.hidden_size)
+  #   elif hparams.pos == "emb":
+  #     positional_encoding = common_attention.add_positional_embedding(
+  #         tf.zeros([1, decode_length, hparams.hidden_size]),
+  #         hparams.max_length, "body/targets_positional_embedding", None)
+  #   else:
+  #     positional_encoding = None
+
+  #   def preprocess_targets(targets, i):
+  #     """Performs preprocessing steps on the targets to prepare for the decoder.
+
+  #     This includes:
+  #       - Embedding the ids.
+  #       - Flattening to 3D tensor.
+  #       - Optionally adding timing signals.
+
+  #     Args:
+  #       targets: inputs ids to the decoder. [batch_size, 1]
+  #       i: scalar, Step number of the decoding loop.
+
+  #     Returns:
+  #       Processed targets [batch_size, 1, hidden_dim]
+  #     """
+  #     # _shard_features called to ensure that the variable names match
+  #     targets = self._shard_features({"targets": targets})["targets"]
+  #     with tf.variable_scope(target_modality.name):
+  #       targets = target_modality.targets_bottom_sharded(targets, dp)[0]
+  #     targets = common_layers.flatten4d3d(targets)
+
+  #     # TODO(llion): Explain! Is this even needed?
+  #     targets = tf.cond(
+  #         tf.equal(i, 0), lambda: tf.zeros_like(targets), lambda: targets)
+
+  #     if positional_encoding is not None:
+  #       targets += positional_encoding[:, i:i + 1]
+  #     return targets
+
+  #   decoder_self_attention_bias = (
+  #       common_attention.attention_bias_lower_triangle(decode_length))
+  #   if hparams.proximity_bias:
+  #     decoder_self_attention_bias += common_attention.attention_bias_proximal(
+  #         decode_length)
+
+  #   def symbols_to_logits_fn(ids, i, cache):
+  #     """Go from ids to logits for next symbol."""
+  #     ids = ids[:, -1:]
+  #     targets = tf.expand_dims(tf.expand_dims(ids, axis=2), axis=3)
+  #     targets = preprocess_targets(targets, i)
+
+  #     bias = decoder_self_attention_bias[:, :, i:i + 1, :i + 1]
+
+  #     with tf.variable_scope("body"):
+  #       body_outputs = dp(
+  #           self.decode,
+  #           targets,
+  #           cache.get("encoder_output"),
+  #           cache.get("encoder_decoder_attention_bias"),
+  #           bias,
+  #           hparams,
+  #           cache,
+  #           nonpadding=features_to_nonpadding(features, "targets"))
+
+  #     with tf.variable_scope(target_modality.name):
+  #       logits = target_modality.top_sharded(body_outputs, None, dp)[0]
+
+  #     ret = tf.squeeze(logits, axis=[1, 2, 3])
+  #     if partial_targets is not None:
+  #       # If the position is within the given partial targets, we alter the
+  #       # logits to always return those values.
+  #       # A faster approach would be to process the partial targets in one
+  #       # iteration in order to fill the corresponding parts of the cache.
+  #       # This would require broader changes, though.
+  #       vocab_size = tf.shape(ret)[1]
+
+  #       def forced_logits():
+  #         return tf.one_hot(
+  #             tf.tile(partial_targets[:, i], [beam_size]), vocab_size, 0.0,
+  #             -1e9)
+
+  #       ret = tf.cond(
+  #           tf.less(i, partial_targets_length), forced_logits, lambda: ret)
+  #     return ret, cache
+
+  #   ret = fast_decode(
+  #       encoder_output=encoder_output,
+  #       encoder_decoder_attention_bias=encoder_decoder_attention_bias,
+  #       symbols_to_logits_fn=symbols_to_logits_fn,
+  #       hparams=hparams,
+  #       decode_length=decode_length,
+  #       vocab_size=target_modality.top_dimensionality,
+  #       beam_size=beam_size,
+  #       top_beams=top_beams,
+  #       alpha=alpha,
+  #       batch_size=batch_size,
+  #       force_decode_length=self._decode_hparams.force_decode_length)
+  #   if partial_targets is not None:
+  #     if beam_size <= 1 or top_beams <= 1:
+  #       ret["outputs"] = ret["outputs"][:, partial_targets_length:]
+  #     else:
+  #       ret["outputs"] = ret["outputs"][:, :, partial_targets_length:]
+  #   return ret
+
+
+# def fast_decode_tpu(encoder_output,
+#                     encoder_decoder_attention_bias,
+#                     symbols_to_logits_fn,
+#                     hparams,
+#                     decode_length,
+#                     vocab_size,
+#                     beam_size=1,
+#                     top_beams=1,
+#                     alpha=1.0,
+#                     sos_id=0,
+#                     eos_id=beam_search.EOS_ID,
+#                     batch_size=None,
+#                     force_decode_length=False,
+#                     scope_prefix="body/"):
+#   """Given encoder output and a symbols to logits function, does fast decoding.
+
+#   Implements both greedy and beam search decoding for TPU, uses beam search iff
+#   beam_size > 1, otherwise beam search related arguments are ignored.
+
+#   Args:
+#     encoder_output: A tensor, output from encoder.
+#     encoder_decoder_attention_bias: A tensor, bias for use in encoder-decoder
+#         attention.
+#     symbols_to_logits_fn: Incremental decoding, function mapping triple
+#         `(ids, step, cache)` to symbol logits.
+#     hparams: Run hyperparameters.
+#     decode_length: An integer, how many additional timesteps to decode.
+#     vocab_size: Output vocabulary size.
+#     beam_size: An integer, number of beams.
+#     top_beams: An integer, how many of the beams to return.
+#     alpha: A float that controls the length penalty. Larger the alpha, stronger
+#       the preference for longer translations.
+#     sos_id: Start-of-sequence symbol.
+#     eos_id: End-of-sequence symbol.
+#     batch_size: An integer, must be passed if there is no input.
+#     force_decode_length: A bool, whether to force the full decode length, or if
+#         False, stop when all beams hit eos_id.
+#     scope_prefix: str, prefix for decoder layer variable scopes.
+
+#   Returns:
+#     A dict of decoding results {
+#         "outputs": integer `Tensor` of decoded ids of shape
+#             [batch_size, <= decode_length] if top_beams == 1 or
+#             [batch_size, top_beams, <= decode_length] otherwise
+#         "scores": decoding log probs from the beam search,
+#             None if using greedy decoding (beam_size=1)
+#     }.
+
+#   Raises:
+#     NotImplementedError: If beam size > 1 with partial targets.
+#   """
+#   if encoder_output is not None:
+#     batch_size = common_layers.shape_list(encoder_output)[0]
+
+#   key_channels = hparams.attention_key_channels or hparams.hidden_size
+#   value_channels = hparams.attention_value_channels or hparams.hidden_size
+#   num_layers = hparams.num_decoder_layers or hparams.num_hidden_layers
+#   vars_3d_num_heads = (
+#       hparams.num_heads if hparams.get("attention_variables_3d") else 0)
+
+#   cache = {
+#       "layer_%d" % layer: {
+#           "k":
+#           common_attention.split_heads(
+#               tf.zeros([batch_size, decode_length, key_channels]),
+#               hparams.num_heads),
+#           "v":
+#           common_attention.split_heads(
+#               tf.zeros([batch_size, decode_length, value_channels]),
+#               hparams.num_heads),
+#           "f":
+#           tf.zeros([batch_size, decode_length, hparams.hidden_size]),
+#       } for layer in range(num_layers)
+#   }
+
+#   if encoder_output is not None:
+#     for layer in range(num_layers):
+#       layer_name = "layer_%d" % layer
+#       with tf.variable_scope(
+#           "%sdecoder/%s/encdec_attention/multihead_attention" % (scope_prefix,
+#                                                                  layer_name)):
+#         k_encdec = common_attention.compute_attention_component(
+#             encoder_output, key_channels, name="k",
+#             vars_3d_num_heads=vars_3d_num_heads)
+#         k_encdec = common_attention.split_heads(k_encdec, hparams.num_heads)
+#         v_encdec = common_attention.compute_attention_component(
+#             encoder_output, value_channels, name="v",
+#             vars_3d_num_heads=vars_3d_num_heads)
+#         v_encdec = common_attention.split_heads(v_encdec, hparams.num_heads)
+#       cache[layer_name]["k_encdec"] = k_encdec
+#       cache[layer_name]["v_encdec"] = v_encdec
+
+#     cache["encoder_output"] = encoder_output
+#     cache["encoder_decoder_attention_bias"] = encoder_decoder_attention_bias
+
+#   if beam_size > 1:  # Beam Search
+#     initial_ids = sos_id * tf.ones([batch_size], dtype=tf.int32)
+#     decoded_ids, scores = beam_search.beam_search(
+#         symbols_to_logits_fn,
+#         initial_ids,
+#         beam_size,
+#         decode_length,
+#         vocab_size,
+#         alpha,
+#         states=cache,
+#         eos_id=eos_id,
+#         stop_early=(top_beams == 1),
+#         use_tpu=True)
+
+#     if top_beams == 1:
+#       decoded_ids = decoded_ids[:, 0, 1:]
+#       scores = scores[:, 0]
+#     else:
+#       decoded_ids = decoded_ids[:, :top_beams, 1:]
+#       scores = scores[:, :top_beams]
+#   else:  # Greedy
+#     def inner_loop(i, hit_eos, next_id, decoded_ids, cache, log_prob):
+#       """One step of greedy decoding."""
+#       logits, cache = symbols_to_logits_fn(next_id, i, cache)
+#       log_probs = common_layers.log_prob_from_logits(logits)
+#       temperature = (0.0 if hparams.sampling_method == "argmax" else
+#                      hparams.sampling_temp)
+#       next_id = common_layers.sample_with_temperature(logits, temperature)
+#       hit_eos |= tf.equal(next_id, eos_id)
+
+#       log_prob_indices = tf.stack(
+#           [tf.range(tf.to_int64(batch_size)), next_id], axis=1)
+#       log_prob += tf.gather_nd(log_probs, log_prob_indices)
+
+#       next_id = tf.expand_dims(next_id, axis=1)
+#       decoded_ids = tf.transpose(decoded_ids)
+#       decoded_ids = inplace_ops.alias_inplace_update(
+#           decoded_ids, i, tf.squeeze(next_id, axis=1))
+#       decoded_ids = tf.transpose(decoded_ids)
+#       return i + 1, hit_eos, next_id, decoded_ids, cache, log_prob
+
+#     def is_not_finished(i, hit_eos, *_):
+#       finished = i >= decode_length
+#       if not force_decode_length:
+#         finished |= tf.reduce_all(hit_eos)
+#       return tf.logical_not(finished)
+
+#     decoded_ids = tf.zeros([batch_size, decode_length], dtype=tf.int64)
+#     hit_eos = tf.fill([batch_size], False)
+#     next_id = sos_id * tf.ones([batch_size, 1], dtype=tf.int64)
+#     initial_log_prob = tf.zeros([batch_size], dtype=tf.float32)
+
+#     def compute_cache_shape_invariants(tensor):
+#       return tf.TensorShape(tensor.shape.as_list())
+
+#     _, _, _, decoded_ids, _, log_prob = tf.while_loop(
+#         is_not_finished,
+#         inner_loop, [
+#             tf.constant(0), hit_eos, next_id, decoded_ids, cache,
+#             initial_log_prob
+#         ],
+#         shape_invariants=[
+#             tf.TensorShape([]),
+#             tf.TensorShape([batch_size]),
+#             tf.TensorShape([batch_size, 1]),
+#             tf.TensorShape([batch_size, decode_length]),
+#             nest.map_structure(compute_cache_shape_invariants, cache),
+#             tf.TensorShape([batch_size]),
+#         ])
+#     scores = log_prob
+
+#   return {"outputs": decoded_ids, "scores": scores}
+
+
+# def fast_decode(encoder_output,
+#                 encoder_decoder_attention_bias,
+#                 symbols_to_logits_fn,
+#                 hparams,
+#                 decode_length,
+#                 vocab_size,
+#                 beam_size=1,
+#                 top_beams=1,
+#                 alpha=1.0,
+#                 sos_id=0,
+#                 eos_id=beam_search.EOS_ID,
+#                 batch_size=None,
+#                 force_decode_length=False,
+#                 scope_prefix="body/"):
+#   """Given encoder output and a symbols to logits function, does fast decoding.
+
+#   Implements both greedy and beam search decoding, uses beam search iff
+#   beam_size > 1, otherwise beam search related arguments are ignored.
+
+#   Args:
+#     encoder_output: Output from encoder.
+#     encoder_decoder_attention_bias: a bias tensor for use in encoder-decoder
+#       attention
+#     symbols_to_logits_fn: Incremental decoding; function mapping triple
+#       `(ids, step, cache)` to symbol logits.
+#     hparams: run hyperparameters
+#     decode_length: an integer.  How many additional timesteps to decode.
+#     vocab_size: Output vocabulary size.
+#     beam_size: number of beams.
+#     top_beams: an integer. How many of the beams to return.
+#     alpha: Float that controls the length penalty. larger the alpha, stronger
+#       the preference for longer translations.
+#     sos_id: End-of-sequence symbol in beam search.
+#     eos_id: End-of-sequence symbol in beam search.
+#     batch_size: an integer scalar - must be passed if there is no input
+#     force_decode_length: bool, whether to force the full decode length, or if
+#       False, stop when all beams hit eos_id.
+#     scope_prefix: str, prefix for decoder layer variable scopes.
+
+#   Returns:
+#       A dict of decoding results {
+#           "outputs": integer `Tensor` of decoded ids of shape
+#               [batch_size, <= decode_length] if top_beams == 1 or
+#               [batch_size, top_beams, <= decode_length] otherwise
+#           "scores": decoding log probs from the beam search,
+#               None if using greedy decoding (beam_size=1)
+#       }
+
+#     Raises:
+#       NotImplementedError: If beam size > 1 with partial targets.
+#   """
+#   if encoder_output is not None:
+#     batch_size = common_layers.shape_list(encoder_output)[0]
+
+#   key_channels = hparams.attention_key_channels or hparams.hidden_size
+#   value_channels = hparams.attention_value_channels or hparams.hidden_size
+#   num_layers = hparams.num_decoder_layers or hparams.num_hidden_layers
+#   vars_3d_num_heads = (
+#       hparams.num_heads if hparams.get("attention_variables_3d") else 0)
+
+#   cache = {
+#       "layer_%d" % layer: {
+#           "k":
+#               common_attention.split_heads(
+#                   tf.zeros([batch_size, 0, key_channels]), hparams.num_heads),
+#           "v":
+#               common_attention.split_heads(
+#                   tf.zeros([batch_size, 0, value_channels]), hparams.num_heads),
+#           "f":
+#               tf.zeros([batch_size, 0, hparams.hidden_size]),
+#       } for layer in range(num_layers)
+#   }
+
+#   if encoder_output is not None:
+#     for layer in range(num_layers):
+#       layer_name = "layer_%d" % layer
+#       with tf.variable_scope(
+#           "%sdecoder/%s/encdec_attention/multihead_attention" % (scope_prefix,
+#                                                                  layer_name)):
+#         k_encdec = common_attention.compute_attention_component(
+#             encoder_output, key_channels, name="k",
+#             vars_3d_num_heads=vars_3d_num_heads)
+#         k_encdec = common_attention.split_heads(k_encdec, hparams.num_heads)
+#         v_encdec = common_attention.compute_attention_component(
+#             encoder_output, value_channels, name="v",
+#             vars_3d_num_heads=vars_3d_num_heads)
+#         v_encdec = common_attention.split_heads(v_encdec, hparams.num_heads)
+#       cache[layer_name]["k_encdec"] = k_encdec
+#       cache[layer_name]["v_encdec"] = v_encdec
+
+#     cache["encoder_output"] = encoder_output
+#     cache["encoder_decoder_attention_bias"] = encoder_decoder_attention_bias
+
+#   if beam_size > 1:  # Beam Search
+#     initial_ids = sos_id * tf.ones([batch_size], dtype=tf.int32)
+#     decoded_ids, scores = beam_search.beam_search(
+#         symbols_to_logits_fn,
+#         initial_ids,
+#         beam_size,
+#         decode_length,
+#         vocab_size,
+#         alpha,
+#         states=cache,
+#         eos_id=eos_id,
+#         stop_early=(top_beams == 1))
+
+#     if top_beams == 1:
+#       decoded_ids = decoded_ids[:, 0, 1:]
+#       scores = scores[:, 0]
+#     else:
+#       decoded_ids = decoded_ids[:, :top_beams, 1:]
+#       scores = scores[:, :top_beams]
+#   else:  # Greedy
+
+#     def inner_loop(i, hit_eos, next_id, decoded_ids, cache, log_prob):
+#       """One step of greedy decoding."""
+#       logits, cache = symbols_to_logits_fn(next_id, i, cache)
+#       log_probs = common_layers.log_prob_from_logits(logits)
+#       temperature = (0.0 if hparams.sampling_method == "argmax" else
+#                      hparams.sampling_temp)
+#       next_id = common_layers.sample_with_temperature(logits, temperature)
+#       hit_eos |= tf.equal(next_id, eos_id)
+
+#       log_prob_indices = tf.stack(
+#           [tf.range(tf.to_int64(batch_size)), next_id], axis=1)
+#       log_prob += tf.gather_nd(log_probs, log_prob_indices)
+
+#       next_id = tf.expand_dims(next_id, axis=1)
+#       decoded_ids = tf.concat([decoded_ids, next_id], axis=1)
+#       return i + 1, hit_eos, next_id, decoded_ids, cache, log_prob
+
+#     def is_not_finished(i, hit_eos, *_):
+#       finished = i >= decode_length
+#       if not force_decode_length:
+#         finished |= tf.reduce_all(hit_eos)
+#       return tf.logical_not(finished)
+
+#     decoded_ids = tf.zeros([batch_size, 0], dtype=tf.int64)
+#     hit_eos = tf.fill([batch_size], False)
+#     next_id = sos_id * tf.ones([batch_size, 1], dtype=tf.int64)
+#     initial_log_prob = tf.zeros([batch_size], dtype=tf.float32)
+#     _, _, _, decoded_ids, _, log_prob = tf.while_loop(
+#         is_not_finished,
+#         inner_loop, [
+#             tf.constant(0), hit_eos, next_id, decoded_ids, cache,
+#             initial_log_prob
+#         ],
+#         shape_invariants=[
+#             tf.TensorShape([]),
+#             tf.TensorShape([None]),
+#             tf.TensorShape([None, None]),
+#             tf.TensorShape([None, None]),
+#             nest.map_structure(beam_search.get_state_shape_invariants, cache),
+#             tf.TensorShape([None]),
+#         ])
+#     scores = log_prob
+
+#   return {"outputs": decoded_ids, "scores": scores}
 
 
 @registry.register_model

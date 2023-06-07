@@ -20,19 +20,10 @@ from __future__ import print_function
 # pylint: disable=unused-import
 
 from tensor2tensor.layers import modalities  # pylint: disable=g-import-not-at-top
-from tensor2tensor.models import lstm
 from tensor2tensor.models import transformer
-
-# FATHOM
-from tensor2tensor.models.research import universal_transformer
-
-
 from tensor2tensor.utils import registry
 
 # pylint: enable=unused-import
-
-# bug reproduction
-from tensor2tensor.models import lstm2
 
 def model(name):
   return registry.model(name)

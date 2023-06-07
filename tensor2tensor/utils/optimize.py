@@ -20,9 +20,9 @@ from __future__ import print_function
 import numpy as np
 
 from tensor2tensor.layers import common_layers
-from tensor2tensor.utils import adafactor
-from tensor2tensor.utils import multistep_optimizer
-from tensor2tensor.utils import yellowfin
+# from tensor2tensor.utils import adafactor
+# from tensor2tensor.utils import multistep_optimizer
+# from tensor2tensor.utils import yellowfin
 
 import tensorflow as tf
 
@@ -89,29 +89,29 @@ class ConditionalOptimizer(tf.compat.v1.train.Optimizer):
           beta1=hparams.optimizer_adam_beta1,
           beta2=hparams.optimizer_adam_beta2,
           epsilon=hparams.optimizer_adam_epsilon)
-    elif optimizer_name == "MultistepAdam":
-      self._opt = multistep_optimizer.MultistepAdamOptimizer(
-          lr,
-          beta1=hparams.optimizer_adam_beta1,
-          beta2=hparams.optimizer_adam_beta2,
-          epsilon=hparams.optimizer_adam_epsilon,
-          n=hparams.optimizer_multistep_accumulate_steps)
+    # elif optimizer_name == "MultistepAdam":
+    #   self._opt = multistep_optimizer.MultistepAdamOptimizer(
+    #       lr,
+    #       beta1=hparams.optimizer_adam_beta1,
+    #       beta2=hparams.optimizer_adam_beta2,
+    #       epsilon=hparams.optimizer_adam_epsilon,
+    #       n=hparams.optimizer_multistep_accumulate_steps)
     elif optimizer_name == "Momentum":
       self._opt = tf.compat.v1.train.MomentumOptimizer(
           lr,
           momentum=hparams.optimizer_momentum_momentum,
           use_nesterov=hparams.optimizer_momentum_nesterov)
-    elif optimizer_name == "YellowFin":
-      self._opt = yellowfin.YellowFinOptimizer(
-          learning_rate=lr, momentum=hparams.optimizer_momentum_momentum)
+    # elif optimizer_name == "YellowFin":
+    #   self._opt = yellowfin.YellowFinOptimizer(
+    #       learning_rate=lr, momentum=hparams.optimizer_momentum_momentum)
     elif optimizer_name == "TrueAdam":
       self._opt = tf.compat.v1.train.AdamOptimizer(
           lr,
           beta1=hparams.optimizer_adam_beta1,
           beta2=hparams.optimizer_adam_beta2,
           epsilon=hparams.optimizer_adam_epsilon)
-    elif optimizer_name == "Adafactor":
-      self._opt = adafactor.adafactor_optimizer_from_hparams(hparams, lr)
+    # elif optimizer_name == "Adafactor":
+    #   self._opt = adafactor.adafactor_optimizer_from_hparams(hparams, lr)
     else:
       assert False, "Should not be here"
       # self._opt = tf.contrib.layers.OPTIMIZER_CLS_NAMES[optimizer_name](lr)

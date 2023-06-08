@@ -79,7 +79,7 @@ class TrainerLibTest(tf.test.TestCase):
     problem = hparams.problem
     dataset = problem.dataset(tf.estimator.ModeKeys.TRAIN,
                               algorithmic.TinyAlgo.data_dir)
-    dataset = dataset.repeat(None).padded_batch(10, dataset.output_shapes)
+    dataset = dataset.repeat(None).padded_batch(10, tf.compat.v1.data.get_output_shapes(dataset))
     features = tf.compat.v1.data.make_one_shot_iterator(dataset).get_next()
     features = problem_lib.standardize_shapes(features)
 
@@ -116,7 +116,7 @@ class TrainerLibTest(tf.test.TestCase):
     problem = hparams.problem
     dataset = problem.dataset(tf.estimator.ModeKeys.TRAIN,
                               algorithmic.TinyAlgo.data_dir)
-    dataset = dataset.repeat(None).padded_batch(10, dataset.output_shapes)
+    dataset = dataset.repeat(None).padded_batch(10, tf.compat.v1.data.get_output_shapes(dataset))
     features = tf.compat.v1.data.make_one_shot_iterator(dataset).get_next()
     features = problem_lib.standardize_shapes(features)
     features["A"] = features["B"] = features["targets"]

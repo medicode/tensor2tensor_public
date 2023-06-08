@@ -55,7 +55,7 @@ def example_valid_size(example, min_length, max_length):
 def padded_batch(dataset, batch_size, padded_shapes=None):
   padded_shapes = padded_shapes or dict(
       [(name, [None] * len(shape))
-       for name, shape in dataset.output_shapes.items()])
+       for name, shape in tf.compat.v1.data.get_output_shapes(dataset).items()])
   return dataset.padded_batch(batch_size, padded_shapes)
 
 

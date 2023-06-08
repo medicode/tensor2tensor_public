@@ -1011,7 +1011,7 @@ class Problem(object):
     if self.batch_size_means_tokens:
       batch_size_means_tokens = True
     else:
-      if _are_shapes_fully_defined(dataset.output_shapes):
+      if _are_shapes_fully_defined(tf.compat.v1.data.get_output_shapes(dataset)):
         batch_size_means_tokens = False
       else:
         tf.compat.v1.logging.warning(
@@ -1114,7 +1114,7 @@ class Problem(object):
     dataset = dataset.map(data_reader.cast_ints_to_int32)
     dataset = dataset.padded_batch(
         tf.shape(serialized_example, out_type=tf.int64)[0],
-        dataset.output_shapes)
+        tf.compat.v1.data.get_output_shapes(dataset))
     dataset = dataset.map(standardize_shapes)
     features = tf.data.experimental.get_single_element(dataset)
 

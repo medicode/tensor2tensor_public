@@ -39,7 +39,7 @@ from tensorflow.python import debug
 
 import tensorflow_probability as tfp
 
-from tensor2tensor.utils.contrib import replace_monitors_with_hooks
+from tensor2tensor.utils.contrib_monitors import replace_monitors_with_hooks
 import tf_slim as slim
 
 # Fathom imports

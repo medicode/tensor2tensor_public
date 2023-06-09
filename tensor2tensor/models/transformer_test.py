@@ -13,6 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# t2t-lite notes:
+# deleted all tests related to fast_decode or greedy_infer, because
+# they are unused and refernece beam_search, which has been removed.
+
 """Tests for Transformer."""
 
 from __future__ import absolute_import

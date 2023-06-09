@@ -13,6 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# t2t-lite notes:
+# commented out all imports for deleted/deprecated modules
+
 """Models defined in T2T. Imports here force registration."""
 from __future__ import absolute_import
 from __future__ import division

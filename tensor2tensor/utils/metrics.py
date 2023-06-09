@@ -13,6 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# t2t-lite notes:
+# commented out all references to bleu_hook and rouge
+
 """Utils for metrics used in eval."""
 from __future__ import absolute_import
 from __future__ import division

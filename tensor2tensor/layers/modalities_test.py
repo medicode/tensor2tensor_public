@@ -13,6 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# t2t-lite notes:
+# commented out reference to video modalities
+
 """Tests for Modalities."""
 from __future__ import absolute_import
 from __future__ import division

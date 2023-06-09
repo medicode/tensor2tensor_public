@@ -13,6 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# t2t-lite notes:
+# commented out problems that are audio-related, since all audio processing
+# functions/files have been deleted.
+
 """Hyperparameters defining different problems.
 
 """

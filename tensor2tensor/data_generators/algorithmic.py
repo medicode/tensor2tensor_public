@@ -13,6 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# t2t-lite notes:
+# most of this file has been commented out because it is not needed
+# The one remaining class is TinyAlgo, which is used in a variety of
+# test files as a simple data_generator class.
+
 """Algorithmic data generators."""
 from __future__ import absolute_import
 from __future__ import division

@@ -13,6 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# t2t-lite notes:
+# commenting out infer functions because it is overlayed
+# in our diseaseTools base model, and the infer functions
+# here reference beam_search, which has been deleted.
+
 """T2TModel Base Class."""
 from __future__ import absolute_import
 from __future__ import division
@@ -28,7 +33,7 @@ import time
 import six
 
 from tensor2tensor.data_generators import multi_problem
-from tensor2tensor.data_generators import text_encoder
+# from tensor2tensor.data_generators import text_encoder
 from tensor2tensor.data_generators.problem import problem_hparams_to_features
 from tensor2tensor.layers import common_layers
 # from tensor2tensor.utils import beam_search
@@ -44,7 +49,7 @@ from tensor2tensor.utils import registry
 import tensorflow as tf
 
 from tensorflow.python.layers import base
-from tensorflow.python.ops import inplace_ops
+# from tensorflow.python.ops import inplace_ops
 from tensorflow.python.ops import variable_scope
 
 # Fathom

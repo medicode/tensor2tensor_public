@@ -13,6 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# t2t-lite notes:
+# commmon_audio is effectively removed from t2t-lite, but if i remove the
+# import, there is an error that pops up with eager execution.
+# audio, video, and image related modalities have been commented out.
+
 """Modalities define the bottom and top of the model (not the body)."""
 from __future__ import absolute_import
 from __future__ import division
@@ -20,8 +25,6 @@ from __future__ import print_function
 from six.moves import range  # pylint: disable=redefined-builtin
 
 # from tensor2tensor.layers import common_attention
-# commmon_audio is effectively removed from t2t-lite, but if i remove this
-# import, there is an error that pops up with eager execution.
 from tensor2tensor.layers import common_audio  # pylint: disable=unused-import
 from tensor2tensor.layers import common_layers
 # from tensor2tensor.layers import common_video

@@ -13,6 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# t2t-lite notes:
+# commented out methods that reference beam_search, since that
+# file has been deleted, and all beam_search related methods
+# are unused.
+
 """Transformer model from "Attention Is All You Need".
 
 The Transformer model consists of an encoder and a decoder. Both are stacks

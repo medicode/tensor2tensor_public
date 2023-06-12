@@ -13,6 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# t2t-lite notes:
+# removing compute_mel_filterbank_features causes an error with eager execution...
+# but this function is not being used anywhere anyways, so i'm keeping it in
+# t2t-lite. this func is not used/can be hacked for tf2 migration.
+
 """Utils for audio."""
 
 from __future__ import absolute_import
@@ -50,9 +55,6 @@ import tensorflow as tf
 #   return filterbanks
 
 
-# NOTE: removing this function causes an error with eager execution...
-# but it looks like this function is not even being used anywhere.
-# so keeping it in t2t-lite but this func is not used/can be hacked for tf2
 def compute_mel_filterbank_features(
     waveforms,
     sample_rate=16000, dither=1.0 / np.iinfo(np.int16).max, preemphasis=0.97,

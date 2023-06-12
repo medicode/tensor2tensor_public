@@ -13,6 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# t2t-lite notes:
+# commented out local_expert_attention because it references
+# code from the now removed vq_discrete file, and it is unused
+
 """Utilities for attention."""
 from __future__ import absolute_import
 from __future__ import division
@@ -3865,53 +3869,53 @@ def self_attention_expert(x,
   return out
 
 
-def local_expert_attention(x,
-                           k,
-                           loss_coef,
-                           attention_num_experts,
-                           train=True,
-                           batch_coordinate=None,
-                           **kwargs):
-  """Attention using a mixture of experts.
-
-    Positions sent to the same expert can attend to each other.
-    The mixture of experts is "local" in that it is replicated on each
-    datashard.
-
-    local_moe flatten all batches so to avoid problems with padding (ex: all
-    padding going to the same expert, self attention attending to non null
-    padding tokens,...), the padding should be removed before.
-
-  Args:
-    x: a Tensor with shape [batch, length, depth] or [1, batch*length, depth]
-    k: The number of experts to dispatch each example to
-    loss_coef: a scalar. A multiplier for the expert loss
-    attention_num_experts: The number of experts to use
-    train: a boolean for the current mode
-    batch_coordinate (tf.Tensor): int32 tensor of shape [1, batch*length, 1]
-      containing the batch ids. If None, deduced from first dim of x.
-    **kwargs: Arguments to forward to self_attention_expert
-
-  Returns:
-    y: a Tensor with shape [batch, length, depth]
-    loss: a Scalar
-  """
-  if batch_coordinate is None:
-    batch_coordinate = tf.expand_dims(
-        coordinate_tensor(common_layers.shape_list(x)[:-1], axis=0), axis=-1)
-  with tf.compat.v1.variable_scope("local_expert_attention"):
-    additional_dispatch_params = {"batch_coordinate": batch_coordinate}
-    return expert_utils.local_moe(
-        x,
-        train,
-        functools.partial(self_attention_expert, **kwargs),
-        attention_num_experts,
-        k=k,
-        loss_coef=loss_coef,
-        pass_x=True,
-        pass_gates=False,
-        additional_dispatch_params=additional_dispatch_params,
-    )
+# def local_expert_attention(x,
+#                            k,
+#                            loss_coef,
+#                            attention_num_experts,
+#                            train=True,
+#                            batch_coordinate=None,
+#                            **kwargs):
+#   """Attention using a mixture of experts.
+#
+#     Positions sent to the same expert can attend to each other.
+#     The mixture of experts is "local" in that it is replicated on each
+#     datashard.
+#
+#     local_moe flatten all batches so to avoid problems with padding (ex: all
+#     padding going to the same expert, self attention attending to non null
+#     padding tokens,...), the padding should be removed before.
+#
+#   Args:
+#     x: a Tensor with shape [batch, length, depth] or [1, batch*length, depth]
+#     k: The number of experts to dispatch each example to
+#     loss_coef: a scalar. A multiplier for the expert loss
+#     attention_num_experts: The number of experts to use
+#     train: a boolean for the current mode
+#     batch_coordinate (tf.Tensor): int32 tensor of shape [1, batch*length, 1]
+#       containing the batch ids. If None, deduced from first dim of x.
+#     **kwargs: Arguments to forward to self_attention_expert
+#
+#   Returns:
+#     y: a Tensor with shape [batch, length, depth]
+#     loss: a Scalar
+#   """
+#   if batch_coordinate is None:
+#     batch_coordinate = tf.expand_dims(
+#         coordinate_tensor(common_layers.shape_list(x)[:-1], axis=0), axis=-1)
+#   with tf.compat.v1.variable_scope("local_expert_attention"):
+#     additional_dispatch_params = {"batch_coordinate": batch_coordinate}
+#     return expert_utils.local_moe(
+#         x,
+#         train,
+#         functools.partial(self_attention_expert, **kwargs),
+#         attention_num_experts,
+#         k=k,
+#         loss_coef=loss_coef,
+#         pass_x=True,
+#         pass_gates=False,
+#         additional_dispatch_params=additional_dispatch_params,
+#     )
 
 
 @expert_utils.add_name_scope()

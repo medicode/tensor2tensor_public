@@ -13,6 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# t2t-lite notes:
+# commented out references to unused optimizers
+# (adafactor, multistep_optimizer, and yellowfin)
+
 """Optimization."""
 from __future__ import absolute_import
 from __future__ import division

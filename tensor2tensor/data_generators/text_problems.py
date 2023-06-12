@@ -13,6 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# t2t-lite notes:
+# commenting out references to bleu and rouge metrics
+
 """Base classes for text-based Problems.
 
 * Text2TextProblem: input=text, target=text.

@@ -13,6 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# t2t-lite notes:
+# commenting out infer functions because it is overlayed
+# in our diseaseTools base model, and the infer functions
+# here reference beam_search, which has been deleted.
+
 """T2TModel Base Class."""
 from __future__ import absolute_import
 from __future__ import division

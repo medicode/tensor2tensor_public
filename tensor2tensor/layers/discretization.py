@@ -13,6 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# t2t-lite notes:
+# all code from this file has been commented out except for the
+# int_to_bit util.
+
 """Discretization bottlenecks used to train discrete latent variables."""
 from __future__ import absolute_import
 from __future__ import division

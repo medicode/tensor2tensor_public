@@ -14,18 +14,19 @@
 # limitations under the License.
 
 # t2t-lite notes:
-# commmon_audio is effectively removed from t2t-lite, but if i remove the
-# import, there is an error that pops up with eager execution.
-# audio, video, and image related modalities have been commented out.
+# removed all references/imports for common_audio, common_attention,
+# common_video, and discretization. Also removed all modalities related
+# to image.
 
 """Modalities define the bottom and top of the model (not the body)."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from six.moves import range  # pylint: disable=redefined-builtin
+import functools
 
 # from tensor2tensor.layers import common_attention
-from tensor2tensor.layers import common_audio  # pylint: disable=unused-import
+# from tensor2tensor.layers import common_audio
 from tensor2tensor.layers import common_layers
 # from tensor2tensor.layers import common_video
 # from tensor2tensor.layers import discretization
@@ -33,6 +34,15 @@ from tensor2tensor.utils import modality
 from tensor2tensor.utils import registry
 
 import tensorflow as tf
+
+
+# this line was copied here from one of the params of the
+# compute_mel_filterbank_features func in common_audio.py (which
+# is now removed). If i remove this line, it causes an eager
+# execution error to pop up during unit tests, so I'm leaving
+# it here for now.
+window_fn = functools.partial(tf.contrib.signal.hann_window, periodic=True)
+
 
 class SymbolModality(modality.Modality):
   """Modality for sets of discrete symbols.

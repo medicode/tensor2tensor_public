@@ -14,9 +14,9 @@
 # limitations under the License.
 
 # t2t-lite notes:
-# commmon_audio is effectively removed from t2t-lite, but if i remove the
-# import, there is an error that pops up with eager execution.
-# audio, video, and image related modalities have been commented out.
+# removed all references/imports for common_audio, common_attention,
+# common_video, and discretization. Also removed all modalities related
+# to image.
 
 """Modalities define the bottom and top of the model (not the body)."""
 from __future__ import absolute_import
@@ -25,7 +25,7 @@ from __future__ import print_function
 from six.moves import range  # pylint: disable=redefined-builtin
 
 # from tensor2tensor.layers import common_attention
-from tensor2tensor.layers import common_audio  # pylint: disable=unused-import
+# from tensor2tensor.layers import common_audio
 from tensor2tensor.layers import common_layers
 # from tensor2tensor.layers import common_video
 # from tensor2tensor.layers import discretization
@@ -35,6 +35,15 @@ from tensor2tensor.utils import registry
 import tensorflow as tf
 
 import tensorflow_probability as tfp
+
+# this import was previously called via common_audio, but that
+# file has been removed. TF has a lazy python package importer, and
+# it seems that importing tensorflow.contrib.signal here is triggering
+# the actual load of tf.contrib.eager.
+# Removing this line causes errors with eager execution during
+# unit tests.
+from tensorflow.contrib import signal  # pylint: disable=unused-import
+
 
 class SymbolModality(modality.Modality):
   """Modality for sets of discrete symbols.

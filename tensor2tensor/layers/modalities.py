@@ -34,7 +34,6 @@ from tensor2tensor.utils import registry
 
 import tensorflow as tf
 
-import tensorflow_probability as tfp
 
 class SymbolModality(modality.Modality):
   """Modality for sets of discrete symbols.

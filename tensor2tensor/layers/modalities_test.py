@@ -29,6 +29,7 @@ from tensor2tensor.utils import expert_utils
 from tensor2tensor.utils import registry
 
 import tensorflow as tf
+from tensor2tensor.utils.hparam import HParams
 
 
 class ModalityTest(tf.test.TestCase):
@@ -118,7 +119,7 @@ class ModalityTest(tf.test.TestCase):
 
   @tf.contrib.eager.run_test_in_graph_and_eager_modes()
   def testCreateModality(self):
-    model_hparams = tf.contrib.training.HParams()
+    model_hparams = HParams
 
     modality_spec = (registry.Modalities.SYMBOL, 2)
     modality = modalities.create_modality(modality_spec, model_hparams)

@@ -25,6 +25,7 @@ import numpy as np
 from tensor2tensor.layers import common_layers
 
 import tensorflow as tf
+import tf_slim as slim
 
 
 class CommonLayersTest(parameterized.TestCase, tf.test.TestCase):
@@ -752,7 +753,7 @@ class RecomputeTest(tf.test.TestCase):
 
     def layer(x, name=None):
       with tf.compat.v1.variable_scope(name, default_name="layer"):
-        x = tf.contrib.layers.layer_norm(x)
+        x = slim.layers.layers.layer_norm(x)
         x = tf.compat.v1.layers.conv1d(
             x,
             10,

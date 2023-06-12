@@ -23,7 +23,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from six.moves import range  # pylint: disable=redefined-builtin
-import functools
 
 # from tensor2tensor.layers import common_attention
 # from tensor2tensor.layers import common_audio
@@ -35,13 +34,13 @@ from tensor2tensor.utils import registry
 
 import tensorflow as tf
 
-
-# this line was copied here from one of the params of the
-# compute_mel_filterbank_features func in common_audio.py (which
-# is now removed). If i remove this line, it causes an eager
-# execution error to pop up during unit tests, so I'm leaving
-# it here for now.
-window_fn = functools.partial(tf.contrib.signal.hann_window, periodic=True)
+# this import was previously called via common_audio, but that
+# file has been removed. TF has a lazy python package importer, and
+# it seems that importing tensorflow.contrib.signal here is triggering
+# the actual load of tf.contrib.eager.
+# Removing this line causes errors with eager execution during
+# unit tests.
+from tensorflow.contrib import signal  # pylint: disable=unused-import
 
 
 class SymbolModality(modality.Modality):

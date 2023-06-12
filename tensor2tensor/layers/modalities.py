@@ -34,13 +34,9 @@ from tensor2tensor.utils import registry
 
 import tensorflow as tf
 
-# this import was previously called via common_audio, but that
-# file has been removed. TF has a lazy python package importer, and
-# it seems that importing tensorflow.contrib.signal here is triggering
-# the actual load of tf.contrib.eager.
-# Removing this line causes errors with eager execution during
-# unit tests.
-from tensorflow.contrib import signal  # pylint: disable=unused-import
+# need to explicitly import tensorflow.contrib.eager here to avoid
+# errors with eager execution in unit tests, despite eager being unused here.
+from tensorflow.contrib import eager  # pylint: disable=unused-import
 
 
 class SymbolModality(modality.Modality):

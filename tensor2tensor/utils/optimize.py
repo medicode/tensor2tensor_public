@@ -17,6 +17,9 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
+import importlib
+
 import numpy as np
 
 from tensor2tensor.layers import common_layers
@@ -29,6 +32,8 @@ import tensorflow as tf
 from tensorflow.python.framework import dtypes
 import tf_slim as slim
 import tensorflow_addons as tfa
+
+from tensor2tensor.utils.lazy_adam import LazyAdamOptimizer
 
 
 def optimize(loss, learning_rate, hparams, use_tpu=False):
@@ -84,7 +89,7 @@ class ConditionalOptimizer(tf.compat.v1.train.Optimizer):
     if optimizer_name == "Adam":
       # We change the default epsilon for Adam.
       # Using LazyAdam as it's much faster for large vocabulary embeddings.
-      self._opt = tfa.optimizers.LazyAdam(
+      self._opt = LazyAdamOptimizer(
           lr,
           beta1=hparams.optimizer_adam_beta1,
           beta2=hparams.optimizer_adam_beta2,

@@ -31,6 +31,7 @@ from tensor2tensor.layers import modalities
 from tensor2tensor.utils import registry
 
 import tensorflow as tf
+tf.compat.v1.disable_v2_behavior()
 
 
 def assert_tensors_equal(sess, t1, t2, n):
@@ -84,7 +85,6 @@ class ProblemTest(tf.test.TestCase):
       self.assertTrue(assert_tensors_equal(sess, tensor1, tensor2, 20))
 
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
   def testProblemHparamsModality(self):
     problem = problem_hparams.TestProblem(input_vocab_size=2,
                                           target_vocab_size=3)
@@ -93,7 +93,6 @@ class ProblemTest(tf.test.TestCase):
                           modalities.SymbolModality)
     self.assertIsInstance(p_hparams.target_modality, modalities.SymbolModality)
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
   def testProblemHparamsModalityObj(self):
     class ModalityObjProblem(problem_module.Problem):
 
@@ -109,7 +108,6 @@ class ProblemTest(tf.test.TestCase):
                           modalities.SymbolModality)
     self.assertIsInstance(p_hparams.target_modality, modalities.SymbolModality)
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
   def testProblemHparamsInputOnlyModality(self):
     class InputOnlyProblem(problem_module.Problem):
 
@@ -124,7 +122,6 @@ class ProblemTest(tf.test.TestCase):
                           modalities.SymbolModality)
     self.assertIsNone(p_hparams.target_modality)
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
   def testProblemHparamsTargetOnlyModality(self):
     class TargetOnlyProblem(problem_module.Problem):
 

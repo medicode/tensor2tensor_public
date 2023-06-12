@@ -26,6 +26,7 @@ from __future__ import print_function
 import numpy as np
 from tensor2tensor.layers import discretization
 import tensorflow as tf
+tf.compat.v1.disable_v2_behavior()
 
 
 class DiscretizationTest(tf.test.TestCase):
@@ -51,7 +52,6 @@ class DiscretizationTest(tf.test.TestCase):
   #   d = self.evaluate(diff)
   #   self.assertEqual(d, 0)
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
   def testIntToBitZeros(self):
     x_bit = tf.zeros(shape=[1, 10], dtype=tf.float32)
     x_int = tf.zeros(shape=[1], dtype=tf.int32)
@@ -59,7 +59,6 @@ class DiscretizationTest(tf.test.TestCase):
     d = self.evaluate(diff)
     self.assertTrue(np.all(d == 0))
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
   def testIntToBitOnes(self):
     x_bit = tf.ones(shape=[1, 3], dtype=tf.float32)
     x_int = 7 * tf.ones(shape=[1], dtype=tf.int32)

@@ -25,6 +25,7 @@ from tensor2tensor.data_generators import text_encoder
 from tensor2tensor.layers import modalities
 
 import tensorflow as tf
+tf.compat.v1.disable_v2_behavior()
 
 
 # TODO(trandustin): This test problem is required in order for MultiProblem
@@ -66,7 +67,6 @@ class TestMultiProblem(multi_problem.MultiProblem):
 
 class MultiProblemTest(tf.test.TestCase):
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
   def testProblemHparamsModality(self):
     multiproblem = TestMultiProblem()
     p_hparams = multiproblem.get_hparams()

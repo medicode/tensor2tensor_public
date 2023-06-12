@@ -30,11 +30,12 @@ from tensor2tensor.utils import registry
 
 import tensorflow as tf
 from tensor2tensor.utils.hparam import HParams
+tf.compat.v1.disable_v2_behavior()
 
 
 class ModalityTest(tf.test.TestCase):
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
+
   def testSymbolModalityInputs(self):
     batch_size = 10
     num_datashards = 5
@@ -56,7 +57,7 @@ class ModalityTest(tf.test.TestCase):
     res = self.evaluate(output)
     self.assertEqual(res.shape, (batch_size, length, 1, hidden_size))
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
+
   def testSymbolModalityTargets(self):
     batch_size = 10
     num_datashards = 5
@@ -117,7 +118,7 @@ class ModalityTest(tf.test.TestCase):
     self.assertEqual(res1.shape, (batch_size, length, height, 1, vocab_size))
     self.assertEqual(res2.shape, ())
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
+
   def testCreateModality(self):
     model_hparams = HParams
 

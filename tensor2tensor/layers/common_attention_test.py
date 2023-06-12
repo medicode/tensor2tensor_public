@@ -26,11 +26,12 @@ from tensor2tensor.layers import common_attention
 from tensor2tensor.layers import common_layers
 
 import tensorflow as tf
+tf.compat.v1.disable_v2_behavior()
 
 
 class CommonAttentionTest(parameterized.TestCase, tf.test.TestCase):
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
+
   def testAddPositionalEmbedding(self):
     x = np.random.rand(5, 3, 12)
     y = common_attention.add_positional_embedding(
@@ -46,7 +47,7 @@ class CommonAttentionTest(parameterized.TestCase, tf.test.TestCase):
       {"input_shape": (5, 5, 5, 12)},
       {"input_shape": (5, 3, 3, 3, 12)},
   )
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
+  
   def testAddPositionalEmbeddingNd(self, input_shape):
     x = np.random.rand(*input_shape)
     y = common_attention.add_positional_embedding_nd(
@@ -57,7 +58,7 @@ class CommonAttentionTest(parameterized.TestCase, tf.test.TestCase):
     res = self.evaluate(y)
     self.assertEqual(res.shape, input_shape)
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
+  
   def testDotProductAttention(self):
     x = np.random.rand(5, 7, 12, 32)
     y = np.random.rand(5, 7, 12, 32)
@@ -235,7 +236,7 @@ class CommonAttentionTest(parameterized.TestCase, tf.test.TestCase):
     self.assertAllClose(dnorm_bias, dnorm_bias_f)
     self.assertAllClose(dx, dx_f)
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
+  
   def test2dGatherAndScatterInvertibility(self):
     """2d gather and scatter invertibility test."""
     batch_size = 2
@@ -254,7 +255,7 @@ class CommonAttentionTest(parameterized.TestCase, tf.test.TestCase):
     res = self.evaluate(scattered_x)
     self.assertAllClose(x, res)
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
+  
   def test2dBlockRasterScanMask(self):
     """Testing the 2d block raster scan mask."""
     query_shape = (2, 3)
@@ -277,7 +278,7 @@ class CommonAttentionTest(parameterized.TestCase, tf.test.TestCase):
           1.0, 0.0, 0.0, 0.0, 0.0, 1.0]])
     self.assertAllClose(correct_mask, res)
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
+  
   def test2dGather(self):
     """Testing 2d index gather and block gather functions."""
     batch_size = 2
@@ -316,7 +317,7 @@ class CommonAttentionTest(parameterized.TestCase, tf.test.TestCase):
     self.assertAllEqual(correct_indices, x_indices)
     self.assertAllClose(correct_gathered_x, gathered_x)
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
+  
   def testGetMemoryRegion(self):
     """Testing the function that gathers the flanged memory region."""
     np.set_printoptions(threshold=np.inf)
@@ -393,7 +394,7 @@ class CommonAttentionTest(parameterized.TestCase, tf.test.TestCase):
     self.assertAllClose(correct_x_flange, x_flange)
     self.assertAllClose(correct_x_center, x_center)
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
+  
   def testGetShiftedCenterBlocks(self):
     """Testing the function that gathers the flanged memory region."""
     np.set_printoptions(threshold=np.inf)
@@ -458,7 +459,7 @@ class CommonAttentionTest(parameterized.TestCase, tf.test.TestCase):
     x_indices, gathered_x = self.evaluate([x_indices, gathered_x])
     self.assertAllClose(correct_gathered_x, gathered_x)
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
+  
   def testDotProductAttentionRelative(self):
     x = np.random.rand(5, 7, 12, 32)
     y = np.random.rand(5, 7, 12, 32)
@@ -472,7 +473,7 @@ class CommonAttentionTest(parameterized.TestCase, tf.test.TestCase):
     res = self.evaluate(a)
     self.assertEqual(res.shape, (5, 7, 12, 32))
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
+  
   def testRelativeAttentionV2(self):
     # (batch, heads, length, depth)
     x = np.random.rand(5, 4, 16, 7)
@@ -489,7 +490,7 @@ class CommonAttentionTest(parameterized.TestCase, tf.test.TestCase):
     res = self.evaluate(a)
     self.assertEqual(res.shape, (5, 4, 16, 7))
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
+  
   def testRelativeAttentionV2SharedRel(self):
     # (batch, heads, length, depth)
     x = np.random.rand(5, 4, 16, 7)
@@ -506,7 +507,7 @@ class CommonAttentionTest(parameterized.TestCase, tf.test.TestCase):
     res = self.evaluate(a)
     self.assertEqual(res.shape, (5, 4, 16, 7))
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
+  
   def testRelativeAttentionV2MaxRelativeLargerThanLength(self):
     # (batch, heads, length, depth)
     x = np.random.rand(5, 4, 3, 7)
@@ -523,7 +524,7 @@ class CommonAttentionTest(parameterized.TestCase, tf.test.TestCase):
     res = self.evaluate(a)
     self.assertEqual(res.shape, (5, 4, 3, 7))
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
+  
   def testDotProductUnMaskedAttentionRelativeV2(self):
     x = np.random.rand(5, 7, 12, 32)
     y = np.random.rand(5, 7, 12, 32)
@@ -537,7 +538,7 @@ class CommonAttentionTest(parameterized.TestCase, tf.test.TestCase):
     res = self.evaluate(a)
     self.assertEqual(res.shape, (5, 7, 12, 32))
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
+  
   def testRelativeAttentionV2Unmasked(self):
     # (batch, heads, length, depth)
     x = np.random.rand(5, 4, 16, 7)
@@ -554,7 +555,7 @@ class CommonAttentionTest(parameterized.TestCase, tf.test.TestCase):
     res = self.evaluate(a)
     self.assertEqual(res.shape, (5, 4, 16, 7))
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
+  
   def testRelativeAttentionV2UnmaskedSharedRel(self):
     # (batch, heads, length, depth)
     x = np.random.rand(5, 4, 16, 7)
@@ -571,7 +572,7 @@ class CommonAttentionTest(parameterized.TestCase, tf.test.TestCase):
     res = self.evaluate(a)
     self.assertEqual(res.shape, (5, 4, 16, 7))
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
+  
   def testRelativeAttentionV2UnmaskedRelativeLargerThanLength(self):
     # (batch, heads, length, depth)
     x = np.random.rand(5, 4, 3, 7)
@@ -588,7 +589,7 @@ class CommonAttentionTest(parameterized.TestCase, tf.test.TestCase):
     res = self.evaluate(a)
     self.assertEqual(res.shape, (5, 4, 3, 7))
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
+  
   def testMaskedRelativeLocalAttentionV2(self):
     # (batch, heads, length, depth)
     x = np.random.rand(5, 4, 16, 7)
@@ -606,7 +607,7 @@ class CommonAttentionTest(parameterized.TestCase, tf.test.TestCase):
     res = self.evaluate(a)
     self.assertEqual(res.shape, (5, 4, 16, 7))
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
+  
   def testMaskedRelativeLocalAttentionV2AddRelativeValues(self):
     # (batch, heads, length, depth)
     x = np.random.rand(5, 4, 16, 7)
@@ -624,7 +625,7 @@ class CommonAttentionTest(parameterized.TestCase, tf.test.TestCase):
     res = self.evaluate(a)
     self.assertEqual(res.shape, (5, 4, 16, 7))
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
+  
   def testMaskedRelativeLocalAttentionV2SeqShorterThanBlockLength(self):
     # (batch, heads, length, depth)
     x = np.random.rand(5, 7, 2, 7)
@@ -641,7 +642,7 @@ class CommonAttentionTest(parameterized.TestCase, tf.test.TestCase):
     res = self.evaluate(a)
     self.assertEqual(res.shape, (5, 7, 2, 7))
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
+  
   def testMaskedRelativeLocalAttentionV2SeqShorterThanTwiceBlockLength(self):
     # (batch, heads, length, depth)
     x = np.random.rand(5, 7, 5, 7)
@@ -681,7 +682,7 @@ class CommonAttentionTest(parameterized.TestCase, tf.test.TestCase):
     bias = common_attention.attention_bias_coordinates(q, k)
     self.assertAllClose(self.evaluate(bias), ground_truth)
 
-  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
+  
   def testBiasFuture(self):
     """Testing the sequence order mask."""
     q = tf.constant([0, 1, 2, 3, 0, 1, 2, 0, 1], dtype=tf.int32)

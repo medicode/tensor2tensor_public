@@ -36,15 +36,6 @@ import tensorflow as tf
 
 import tensorflow_probability as tfp
 
-# this import was previously called via common_audio, but that
-# file has been removed. TF has a lazy python package importer, and
-# it seems that importing tensorflow.contrib.signal here is triggering
-# the actual load of tf.contrib.eager.
-# Removing this line causes errors with eager execution during
-# unit tests.
-from tensorflow.contrib import signal  # pylint: disable=unused-import
-
-
 class SymbolModality(modality.Modality):
   """Modality for sets of discrete symbols.
 

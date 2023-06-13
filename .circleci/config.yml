@@ -10,7 +10,7 @@ jobs:
       - run:
           name: Checkout diseaseTools & gdm repos
           command: |
-            DT_BRANCH='develop';
+            DT_BRANCH='branko/t2t_tf2';
             GDM_BRANCH='develop';
             git clone -b ${DT_BRANCH} --depth 1 git@github.com:medicode/diseaseTools.git ~/diseaseTools;
             git clone -b master --depth 1 git@github.com:medicode/diseaseTools-config.git ~/diseaseTools-config;
@@ -47,7 +47,7 @@ jobs:
       - checkout
       - run:
           name: Checkout diseaseTools develop
-          command: git clone -b develop git@github.com:medicode/diseaseTools.git ~/diseaseTools;
+          command: git clone -b branko/t2t_tf2 git@github.com:medicode/diseaseTools.git ~/diseaseTools;
       - run: *DOCKER_LOGIN
       - run:
           name: Use Python 2
@@ -72,7 +72,7 @@ jobs:
       - run:
           name: Trigger smoke tests
           # CI sets up the root directory to project, which is here the tensor2tensor repo
-          command: docker run -it -e 'GOOGLE_APPLICATION_CREDENTIALS=/usr/src/app/gcloud/keys/google-auth.json' -v ~/gdm:/usr/src/app/gcloud/gdm -v ~/diseaseTools:/usr/src/app -v ~/project:/usr/src/project -w /usr/src/project us.gcr.io/fathom-containers/ci python /usr/src/app/fathomairflow/integration_tests/trigger_tests_on_testinfra.py queue_smoke_tests /usr/src/project
+          command: docker run -it -e 'GOOGLE_APPLICATION_CREDENTIALS=/usr/src/app/gcloud/keys/google-auth.json' -v ~/gdm:/usr/src/app/gcloud/gdm -v ~/diseaseTools:/usr/src/app -v ~/project:/usr/src/project -w /usr/src/project us.gcr.io/fathom-containers/ci:tf2 python /usr/src/app/fathomairflow/integration_tests/trigger_tests_on_testinfra.py queue_smoke_tests /usr/src/project
           working_directory: ~/diseaseTools
 workflows:
   version: 2

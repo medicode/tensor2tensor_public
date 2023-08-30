@@ -49,6 +49,7 @@ from tensorflow.python.ops import variable_scope
 
 # Fathom
 from fathomt2t_dependencies.common_t2t_utils import combine_shards, FATHOM_DICT_FORMAT
+from fathomtf.services.model_management import INVALID_CHARS
 
 _no_problem_err_str = (
     "The default implementation of %s requires that the "
@@ -1408,6 +1409,17 @@ class T2TModel(base.Layer):
       else:
         tf.logging.info(
             "Cannot find variable in checkpoint, skipping: %s", var_name)
+    
+    valid_tf2_dir = True
+
+    for char in INVALID_CHARS:
+      valid_tf2_dir = valid_tf2_dir and char not in ckpt_dir
+
+    assert valid_tf2_dir, (
+                f"Invalid character {INVALID_CHARS} present in model path. "
+                "Follow these steps to update model path: https://docs.google.com/document/d/1vCxWfcxJrg9VFXSrXU5AXTuV-u4szkmtQgvmkhSKhj8/edit?pli=1#bookmark=id.hffvs0oi2we6"
+      )
+
     tf.train.init_from_checkpoint(ckpt_dir, variable_map)
 
   def estimator_spec_train(self, loss, num_async_replicas=1, use_tpu=False):

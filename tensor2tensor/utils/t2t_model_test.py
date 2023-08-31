@@ -42,7 +42,15 @@ class T2TModelTest(tf.test.TestCase):
   def testInvalidPath(self):
     with tf.Graph().as_default():
       model = t2t_model.T2TModel(tf.contrib.training.HParams())
-      model.initialize_from_ckpt("invalid+")
+
+      with self.assertRaises(AssertionError):
+        model.initialize_from_ckpt("invalid+")
+      
+      with self.assertRaises(AssertionError):
+        model.initialize_from_ckpt("invalid]")
+
+      with self.assertRaises(AssertionError):
+        model.initialize_from_ckpt("invalid[")
     
 if __name__ == "__main__":
   tf.test.main()

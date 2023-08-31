@@ -58,17 +58,17 @@ class T2TModelTest(tf.test.TestCase):
       hparams = tf.contrib.training.HParams()
       
       with self.assertRaises(AssertionError):
-        hparams["model_dir"] = "invalid+"
+        hparams.model_dir = "invalid+"
         model = t2t_model.T2TModel(tf.contrib.training.HParams())
         model.initialize_from_ckpt("valid")
       
       with self.assertRaises(AssertionError):
-        hparams["model_dir"] = "invalid["
+        hparams.model_dir = "invalid["
         model = t2t_model.T2TModel(tf.contrib.training.HParams())
         model.initialize_from_ckpt("valid")
 
       with self.assertRaises(AssertionError):
-        hparams["model_dir"] = "invalid]"
+        hparams.model_dir = "invalid]"
         model = t2t_model.T2TModel(tf.contrib.training.HParams())
         model.initialize_from_ckpt("valid")
     

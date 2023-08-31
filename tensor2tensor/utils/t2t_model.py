@@ -51,6 +51,8 @@ from tensorflow.python.ops import variable_scope
 from fathomt2t_dependencies.common_t2t_utils import combine_shards, FATHOM_DICT_FORMAT
 from fathomtf.services.model_management import INVALID_CHARS
 
+INVALID_CHARS = frozenset({"[", "]", "+"})
+
 _no_problem_err_str = (
     "The default implementation of %s requires that the "
     "model be used with a Problem. If using a Problem, augment the "
@@ -58,7 +60,6 @@ _no_problem_err_str = (
     "override %s.")
 _no_problem_err = (
     lambda method_name: _no_problem_err_str % (method_name, method_name))
-
 
 class T2TModel(base.Layer):
   """Abstract base class for models.

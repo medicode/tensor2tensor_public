@@ -38,5 +38,11 @@ class T2TModelTest(tf.test.TestCase):
           len(tf.get_collection(tf.GraphKeys.SUMMARIES, scope="losses")),
           len(losses))
 
+  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
+  def testInvalidPath(self):
+    with tf.Graph().as_default():
+      model = t2t_model.T2TModel(tf.contrib.training.HParams())
+      model.initialize_from_ckpt("invalid+")
+    
 if __name__ == "__main__":
   tf.test.main()

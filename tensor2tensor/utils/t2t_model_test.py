@@ -59,19 +59,19 @@ class T2TModelTest(tf.test.TestCase):
       
       with self.assertRaises(AssertionError):
         #hparams.model_dir = "invalid+"
-        hparams.set_hparam("model_dir", "invalid+")
+        hparams.add_hparam("model_dir", "invalid+")
         model = t2t_model.T2TModel(hparams)
         model.set_mode(tf.estimator.ModeKeys.TRAIN)
         model.initialize_from_ckpt("valid")
       
       with self.assertRaises(AssertionError):
-        hparams.set_hparam("model_dir", "invalid[")
+        hparams.add_hparam("model_dir", "invalid[")
         model = t2t_model.T2TModel(hparams)
         model.set_mode(tf.estimator.ModeKeys.TRAIN)
         model.initialize_from_ckpt("valid")
 
       with self.assertRaises(AssertionError):
-        hparams.set_hparam("model_dir", "invalid]")
+        hparams.add_hparam("model_dir", "invalid]")
         model = t2t_model.T2TModel(hparams)
         model.set_mode(tf.estimator.ModeKeys.TRAIN)
         model.initialize_from_ckpt("valid")

@@ -1406,7 +1406,8 @@ class T2TModel(base.Layer):
 
     assert valid_tf2_dir, (
                 f"Invalid character {INVALID_CHARS} present in model path. "
-                "Follow these steps to update model path: https://docs.google.com/document/d/1vCxWfcxJrg9VFXSrXU5AXTuV-u4szkmtQgvmkhSKhj8/edit?pli=1#bookmark=id.hffvs0oi2we6"
+                "Follow these steps to update model path: "
+                "https://docs.google.com/document/d/1vCxWfcxJrg9VFXSrXU5AXTuV-u4szkmtQgvmkhSKhj8/edit?pli=1#bookmark=id.hffvs0oi2we6"
       )
 
     # TODO(mitchellstern): Add support for partitioned variables?

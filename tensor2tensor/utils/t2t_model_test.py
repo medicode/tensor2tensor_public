@@ -39,7 +39,7 @@ class T2TModelTest(tf.test.TestCase):
           len(losses))
 
   @tf.contrib.eager.run_test_in_graph_and_eager_modes()
-  def testInvalidPath(self):
+  def testInvalidCkptPath(self):
     with tf.Graph().as_default():
       model = t2t_model.T2TModel(tf.contrib.training.HParams())
 
@@ -51,6 +51,26 @@ class T2TModelTest(tf.test.TestCase):
 
       with self.assertRaises(AssertionError):
         model.initialize_from_ckpt("invalid[")
+  
+  @tf.contrib.eager.run_test_in_graph_and_eager_modes()
+  def testInvalidModelPath(self):
+    with tf.Graph().as_default():
+      hparams = tf.contrib.training.HParams()
+      
+      with self.assertRaises(AssertionError):
+        hparams["model_dir"] = "invalid+"
+        model = t2t_model.T2TModel(tf.contrib.training.HParams())
+        model.initialize_from_ckpt("valid")
+      
+      with self.assertRaises(AssertionError):
+        hparams["model_dir"] = "invalid["
+        model = t2t_model.T2TModel(tf.contrib.training.HParams())
+        model.initialize_from_ckpt("valid")
+
+      with self.assertRaises(AssertionError):
+        hparams["model_dir"] = "invalid]"
+        model = t2t_model.T2TModel(tf.contrib.training.HParams())
+        model.initialize_from_ckpt("valid")
     
 if __name__ == "__main__":
   tf.test.main()

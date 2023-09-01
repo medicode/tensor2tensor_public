@@ -1398,7 +1398,8 @@ class T2TModel(base.Layer):
     valid_tf2_dir = True
 
     for char in INVALID_CHARS:
-      valid_tf2_dir = valid_tf2_dir and char not in ckpt_dir and (model_dir is None or char not in model_dir)
+      valid_tf2_dir = (valid_tf2_dir and (ckpt_dir is None or char not in ckpt_dir)
+                       and (model_dir is None or char not in model_dir))
 
     assert valid_tf2_dir, (
       f"Invalid character {INVALID_CHARS} present in model path. "

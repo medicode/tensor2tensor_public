@@ -1394,15 +1394,16 @@ class T2TModel(base.Layer):
 
   def initialize_from_ckpt(self, ckpt_dir):
     model_dir = self._hparams.get("model_dir", None)
-    already_has_ckpt = (
-        model_dir and tf.train.latest_checkpoint(model_dir) is not None)
-    if already_has_ckpt:
-      return
 
     valid_tf2_dir = True
 
     for char in INVALID_CHARS:
       valid_tf2_dir = valid_tf2_dir and char not in ckpt_dir and (model_dir is None or char not in model_dir)
+
+    already_has_ckpt = (
+        model_dir and tf.train.latest_checkpoint(model_dir) is not None)
+    if already_has_ckpt:
+      return
 
     assert valid_tf2_dir, (
                 f"Invalid character {INVALID_CHARS} present in model path. "

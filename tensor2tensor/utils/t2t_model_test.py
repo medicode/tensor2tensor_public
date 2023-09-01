@@ -20,6 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 from tensor2tensor.utils import t2t_model
+from tensor2tensor.utils import trainer_lib
 
 import tensorflow as tf
 
@@ -56,22 +57,22 @@ class T2TModelTest(tf.test.TestCase):
   def testInvalidModelPath(self):
     with tf.Graph().as_default():
       hparams = tf.contrib.training.HParams()
-      
+
       with self.assertRaises(AssertionError):
         #hparams.model_dir = "invalid+"
-        hparams.add_hparam("model_dir", "invalid+")
+        hparams.model_dir = "invalid+"
         model = t2t_model.T2TModel(hparams)
         model.set_mode(tf.estimator.ModeKeys.TRAIN)
         model.initialize_from_ckpt("valid")
       
       with self.assertRaises(AssertionError):
-        hparams.add_hparam("model_dir", "invalid[")
+        hparams.model_dir = "invalid["
         model = t2t_model.T2TModel(hparams)
         model.set_mode(tf.estimator.ModeKeys.TRAIN)
         model.initialize_from_ckpt("valid")
 
       with self.assertRaises(AssertionError):
-        hparams.add_hparam("model_dir", "invalid]")
+        hparams.model_dir = "invalid]"
         model = t2t_model.T2TModel(hparams)
         model.set_mode(tf.estimator.ModeKeys.TRAIN)
         model.initialize_from_ckpt("valid")

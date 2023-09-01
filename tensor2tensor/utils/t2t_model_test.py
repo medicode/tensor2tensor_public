@@ -18,6 +18,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+import os
 
 from tensor2tensor.utils import t2t_model
 from tensor2tensor.utils import trainer_lib
@@ -55,6 +56,14 @@ class T2TModelTest(tf.test.TestCase):
   
   @tf.contrib.eager.run_test_in_graph_and_eager_modes()
   def testInvalidModelPath(self):
+    def get_data_dir():
+      pkg, _ = os.path.split(__file__)
+      pkg, _ = os.path.split(pkg)
+      return os.path.join(pkg, "test_data")
+    
+    
+    _DATA_DIR = get_data_dir()
+    _CKPT_DIR = os.path.join(_DATA_DIR, "transformer_test_ckpt")
     with tf.Graph().as_default():
       #hparams = tf.contrib.training.HParams()
 
@@ -65,7 +74,7 @@ class T2TModelTest(tf.test.TestCase):
         problem_name = "translate_ende_wmt8k"
 
         hp = trainer_lib.create_hparams(
-            hp_set, hparams_overrides_str = "model_dir=invalid+",data_dir="invalid+", problem_name=problem_name)
+            hp_set, hparams_overrides_str = "model_dir=invalid+",data_dir=_DATA_DIR, problem_name=problem_name)
         run_config = trainer_lib.create_run_config(model, model_dir="invalid+")
         estimator = trainer_lib.create_estimator(model, hp, run_config)
 

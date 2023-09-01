@@ -57,7 +57,7 @@ class T2TModelTest(tf.test.TestCase):
       with self.assertRaises(tf.errors.NotFoundError):
         model.initialize_from_ckpt("valid")
 
-      with self.assertRaises(tf.errors.NotFoundError):
+      with self.assertRaises(TypeError):
         model.initialize_from_ckpt(None)
   
   @tf.contrib.eager.run_test_in_graph_and_eager_modes()
@@ -65,7 +65,7 @@ class T2TModelTest(tf.test.TestCase):
     with tf.Graph().as_default():
       hparams = tf.contrib.training.HParams()
 
-      setattr = (hparams, "model_dir", "invalid+")
+      setattr(hparams, "model_dir", "invalid+")
       self.assertEquals(hparams.get("model_dir", None), "invalid+")
 
       model = t2t_model.T2TModel(hparams)

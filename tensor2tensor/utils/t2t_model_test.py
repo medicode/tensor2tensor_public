@@ -65,23 +65,13 @@ class T2TModelTest(tf.test.TestCase):
     _DATA_DIR = get_data_dir()
     _CKPT_DIR = os.path.join(_DATA_DIR, "transformer_test_ckpt")
     with tf.Graph().as_default():
-      #hparams = tf.contrib.training.HParams()
+      hparams = tf.contrib.training.HParams()
 
       with self.assertRaises(AssertionError):
-        #hparams.model_dir = "invalid+"
-        model = "transformer"
-        hp_set = "transformer_test"
-        problem_name = "translate_ende_wmt8k"
-
-        hp = trainer_lib.create_hparams(
-            hp_set, data_dir=_DATA_DIR, problem_name=problem_name)
-        run_config = trainer_lib.create_run_config(model, model_dir="invalid+")
-        estimator = trainer_lib.create_estimator(model, hp, run_config)
-
-        #hparams.model_dir = "invalid+"
-        #self.assertEquals(hparams.model_dir, "invalid+")
-        hp.set("model_dir", "invalid+")
-        model = t2t_model.T2TModel(hp)
+        hparams.model_dir = "invalid+"
+        self.assertEquals(hparams.get("model_dir", None), "invalid+")
+        
+        model = t2t_model.T2TModel(hparams)
         #model._hparams = hparams
         model.set_mode(tf.estimator.ModeKeys.TRAIN)
         model.initialize_from_ckpt("valid")

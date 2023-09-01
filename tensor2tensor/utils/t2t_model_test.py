@@ -21,6 +21,7 @@ from __future__ import print_function
 
 from tensor2tensor.utils import t2t_model
 from tensor2tensor.utils.t2t_model import INVALID_CHARS
+import tensorflow as tf
 
 
 class T2TModelTest(tf.test.TestCase):

@@ -53,6 +53,12 @@ class T2TModelTest(tf.test.TestCase):
 
       with self.assertRaises(AssertionError):
         model.initialize_from_ckpt("invalid[")
+
+      with self.assertRaises(AssertionError):
+        model.initialize_from_ckpt("valid")
+
+      with self.assertRaises(AssertionError):
+        model.initialize_from_ckpt(None)
   
   @tf.contrib.eager.run_test_in_graph_and_eager_modes()
   def testInvalidModelPath(self):

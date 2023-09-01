@@ -74,7 +74,7 @@ class T2TModelTest(tf.test.TestCase):
         problem_name = "translate_ende_wmt8k"
 
         hp = trainer_lib.create_hparams(
-            hp_set, hparams_overrides_str = "model_dir=invalid+",data_dir=_DATA_DIR, problem_name=problem_name)
+            hp_set, data_dir=_DATA_DIR, problem_name=problem_name)
         run_config = trainer_lib.create_run_config(model, model_dir="invalid+")
         estimator = trainer_lib.create_estimator(model, hp, run_config)
 

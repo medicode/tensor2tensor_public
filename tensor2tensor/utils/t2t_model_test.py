@@ -45,22 +45,22 @@ class T2TModelTest(tf.test.TestCase):
 
       with self.assertRaisesWithLiteralMatch(AssertionError,(
         f"Invalid character {INVALID_CHARS} present in model path. "
-      "Follow these steps to update model path: "
-      "https://docs.google.com/document/d/1vCxWfcxJrg9VFXSrXU5AXTuV-u4szkmtQgvmkhSKhj8/edit?pli=1#bookmark=id.hffvs0oi2we6"
+        "Follow these steps to update model path: "
+        "https://docs.google.com/document/d/1vCxWfcxJrg9VFXSrXU5AXTuV-u4szkmtQgvmkhSKhj8/edit?pli=1#bookmark=id.hffvs0oi2we6"
       )):
         model.initialize_from_ckpt("invalid+")
       
       with self.assertRaisesWithLiteralMatch(AssertionError,(
         f"Invalid character {INVALID_CHARS} present in model path. "
-      "Follow these steps to update model path: "
-      "https://docs.google.com/document/d/1vCxWfcxJrg9VFXSrXU5AXTuV-u4szkmtQgvmkhSKhj8/edit?pli=1#bookmark=id.hffvs0oi2we6"
+        "Follow these steps to update model path: "
+        "https://docs.google.com/document/d/1vCxWfcxJrg9VFXSrXU5AXTuV-u4szkmtQgvmkhSKhj8/edit?pli=1#bookmark=id.hffvs0oi2we6"
       )):
         model.initialize_from_ckpt("invalid]")
 
       with self.assertRaisesWithLiteralMatch(AssertionError,(
         f"Invalid character {INVALID_CHARS} present in model path. "
-      "Follow these steps to update model path: "
-      "https://docs.google.com/document/d/1vCxWfcxJrg9VFXSrXU5AXTuV-u4szkmtQgvmkhSKhj8/edit?pli=1#bookmark=id.hffvs0oi2we6"
+        "Follow these steps to update model path: "
+        "https://docs.google.com/document/d/1vCxWfcxJrg9VFXSrXU5AXTuV-u4szkmtQgvmkhSKhj8/edit?pli=1#bookmark=id.hffvs0oi2we6"
       )):
         model.initialize_from_ckpt("invalid[")
 
@@ -75,8 +75,8 @@ class T2TModelTest(tf.test.TestCase):
     with tf.Graph().as_default():
       with self.assertRaisesWithLiteralMatch(AssertionError,(
         f"Invalid character {INVALID_CHARS} present in model path. "
-      "Follow these steps to update model path: "
-      "https://docs.google.com/document/d/1vCxWfcxJrg9VFXSrXU5AXTuV-u4szkmtQgvmkhSKhj8/edit?pli=1#bookmark=id.hffvs0oi2we6"
+        "Follow these steps to update model path: "
+        "https://docs.google.com/document/d/1vCxWfcxJrg9VFXSrXU5AXTuV-u4szkmtQgvmkhSKhj8/edit?pli=1#bookmark=id.hffvs0oi2we6"
       )):
         hparams = tf.contrib.training.HParams(model_dir="invalid+")
 
@@ -86,8 +86,8 @@ class T2TModelTest(tf.test.TestCase):
 
       with self.assertRaisesWithLiteralMatch(AssertionError,(
         f"Invalid character {INVALID_CHARS} present in model path. "
-      "Follow these steps to update model path: "
-      "https://docs.google.com/document/d/1vCxWfcxJrg9VFXSrXU5AXTuV-u4szkmtQgvmkhSKhj8/edit?pli=1#bookmark=id.hffvs0oi2we6"
+        "Follow these steps to update model path: "
+        "https://docs.google.com/document/d/1vCxWfcxJrg9VFXSrXU5AXTuV-u4szkmtQgvmkhSKhj8/edit?pli=1#bookmark=id.hffvs0oi2we6"
       )):
         hparams = tf.contrib.training.HParams(model_dir="invalid[")
 
@@ -97,8 +97,8 @@ class T2TModelTest(tf.test.TestCase):
 
       with self.assertRaisesWithLiteralMatch(AssertionError,(
         f"Invalid character {INVALID_CHARS} present in model path. "
-      "Follow these steps to update model path: "
-      "https://docs.google.com/document/d/1vCxWfcxJrg9VFXSrXU5AXTuV-u4szkmtQgvmkhSKhj8/edit?pli=1#bookmark=id.hffvs0oi2we6"
+        "Follow these steps to update model path: "
+        "https://docs.google.com/document/d/1vCxWfcxJrg9VFXSrXU5AXTuV-u4szkmtQgvmkhSKhj8/edit?pli=1#bookmark=id.hffvs0oi2we6"
       )):
         hparams = tf.contrib.training.HParams(model_dir="invalid]")
 

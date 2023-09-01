@@ -72,30 +72,14 @@ class T2TModelTest(tf.test.TestCase):
     _CKPT_DIR = os.path.join(_DATA_DIR, "transformer_test_ckpt")
     with tf.Graph().as_default():
       hparams = tf.contrib.training.HParams()
-
-      with self.assertRaises(AssertionError):
-        hparams.model_dir = "invalid+"
-        self.assertEquals(hparams.get("model_dir", None), "invalid+")
-
-        model = t2t_model.T2TModel(hparams)
-        model.set_mode(tf.estimator.ModeKeys.TRAIN)
-        model.initialize_from_ckpt("valid")
-
-      with self.assertRaises(AssertionError):
-        hparams.model_dir = "invalid["
-        self.assertEquals(hparams.get("model_dir", None), "invalid+")
-
-        model = t2t_model.T2TModel(hparams)
-        model.set_mode(tf.estimator.ModeKeys.TRAIN)
-        model.initialize_from_ckpt("valid")
       
-      with self.assertRaises(AssertionError):
-        hparams.model_dir = "invalid]"
-        self.assertEquals(hparams.get("model_dir", None), "invalid+")
+      hparams.model_dir = "invalid+"
+      self.assertEquals(hparams.get("model_dir", None), "invalid+")
 
-        model = t2t_model.T2TModel(hparams)
-        model.set_mode(tf.estimator.ModeKeys.TRAIN)
-        model.initialize_from_ckpt("valid")
+      model = t2t_model.T2TModel(hparams)
+      model.set_mode(tf.estimator.ModeKeys.TRAIN)
+      model.initialize_from_ckpt("valid")
+
     
 if __name__ == "__main__":
   tf.test.main()

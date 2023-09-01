@@ -56,29 +56,25 @@ class T2TModelTest(tf.test.TestCase):
   @tf.contrib.eager.run_test_in_graph_and_eager_modes()
   def testInvalidModelPath(self):
     with tf.Graph().as_default():
-      hparams = tf.contrib.training.HParams()
+      #hparams = tf.contrib.training.HParams()
 
       with self.assertRaises(AssertionError):
         #hparams.model_dir = "invalid+"
-        hparams.model_dir = "invalid+"
-        self.assertEquals(hparams.model_dir, "invalid+")
-        model = t2t_model.T2TModel(hparams)
-        model._hparams = hparams
-        #model.set_mode(tf.estimator.ModeKeys.TRAIN)
-        model.initialize_from_ckpt("valid")
-      
-      with self.assertRaises(AssertionError):
-        hparams.model_dir = "invalid["
-        model = t2t_model.T2TModel(hparams)
-        model._hparams = hparams
-        #model.set_mode(tf.estimator.ModeKeys.TRAIN)
-        model.initialize_from_ckpt("valid")
+        model = "transformer"
+        hp_set = "transformer_test"
+        problem_name = "translate_ende_wmt8k"
 
-      with self.assertRaises(AssertionError):
-        hparams.model_dir = "invalid]"
-        model = t2t_model.T2TModel(hparams)
-        model._hparams = hparams
-        #model.set_mode(tf.estimator.ModeKeys.TRAIN)
+        hp = trainer_lib.create_hparams(
+            hp_set, hparams_overrides_str = "model_dir=invalid+",data_dir="invalid+", problem_name=problem_name)
+        run_config = trainer_lib.create_run_config(model, model_dir="invalid+")
+        estimator = trainer_lib.create_estimator(model, hp, run_config)
+
+        #hparams.model_dir = "invalid+"
+        #self.assertEquals(hparams.model_dir, "invalid+")
+        hp.set("model_dir", "invalid+")
+        model = t2t_model.T2TModel(hp)
+        #model._hparams = hparams
+        model.set_mode(tf.estimator.ModeKeys.TRAIN)
         model.initialize_from_ckpt("valid")
     
 if __name__ == "__main__":

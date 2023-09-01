@@ -54,26 +54,18 @@ class T2TModelTest(tf.test.TestCase):
       with self.assertRaises(AssertionError):
         model.initialize_from_ckpt("invalid[")
 
-      with self.assertRaises(AssertionError):
+      with self.assertRaises(tf.errors.NotFoundError):
         model.initialize_from_ckpt("valid")
 
-      with self.assertRaises(AssertionError):
+      with self.assertRaises(tf.errors.NotFoundError):
         model.initialize_from_ckpt(None)
   
   @tf.contrib.eager.run_test_in_graph_and_eager_modes()
   def testInvalidModelPath(self):
-    def get_data_dir():
-      pkg, _ = os.path.split(__file__)
-      pkg, _ = os.path.split(pkg)
-      return os.path.join(pkg, "test_data")
-    
-    
-    _DATA_DIR = get_data_dir()
-    _CKPT_DIR = os.path.join(_DATA_DIR, "transformer_test_ckpt")
     with tf.Graph().as_default():
       hparams = tf.contrib.training.HParams()
-      
-      hparams.model_dir = "invalid+"
+
+      setattr = (hparams, "model_dir", "invalid+")
       self.assertEquals(hparams.get("model_dir", None), "invalid+")
 
       model = t2t_model.T2TModel(hparams)

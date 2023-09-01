@@ -1400,16 +1400,16 @@ class T2TModel(base.Layer):
     for char in INVALID_CHARS:
       valid_tf2_dir = valid_tf2_dir and char not in ckpt_dir and (model_dir is None or char not in model_dir)
 
+    assert valid_tf2_dir, (
+      f"Invalid character {INVALID_CHARS} present in model path. "
+      "Follow these steps to update model path: "
+      "https://docs.google.com/document/d/1vCxWfcxJrg9VFXSrXU5AXTuV-u4szkmtQgvmkhSKhj8/edit?pli=1#bookmark=id.hffvs0oi2we6"
+    )
+
     already_has_ckpt = (
         model_dir and tf.train.latest_checkpoint(model_dir) is not None)
     if already_has_ckpt:
       return
-
-    assert valid_tf2_dir, (
-                f"Invalid character {INVALID_CHARS} present in model path. "
-                "Follow these steps to update model path: "
-                "https://docs.google.com/document/d/1vCxWfcxJrg9VFXSrXU5AXTuV-u4szkmtQgvmkhSKhj8/edit?pli=1#bookmark=id.hffvs0oi2we6"
-      )
 
     # TODO(mitchellstern): Add support for partitioned variables?
     reader = tf.contrib.framework.load_checkpoint(ckpt_dir)

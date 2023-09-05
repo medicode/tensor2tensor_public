@@ -49,8 +49,9 @@ from tensorflow.python.ops import variable_scope
 
 # Fathom
 from fathomt2t_dependencies.common_t2t_utils import combine_shards, FATHOM_DICT_FORMAT
-#from fathomtf.services.model_management import INVALID_CHARS
 
+
+# TF2 does not support these characters in model path
 INVALID_CHARS = frozenset({"[", "]", "+"})
 
 _no_problem_err_str = (

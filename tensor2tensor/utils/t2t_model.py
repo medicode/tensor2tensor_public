@@ -50,6 +50,10 @@ from tensorflow.python.ops import variable_scope
 # Fathom
 from fathomt2t_dependencies.common_t2t_utils import combine_shards, FATHOM_DICT_FORMAT
 
+
+# TF2 does not support these characters in model path
+INVALID_CHARS = frozenset({"[", "]", "+"})
+
 _no_problem_err_str = (
     "The default implementation of %s requires that the "
     "model be used with a Problem. If using a Problem, augment the "
@@ -57,7 +61,6 @@ _no_problem_err_str = (
     "override %s.")
 _no_problem_err = (
     lambda method_name: _no_problem_err_str % (method_name, method_name))
-
 
 class T2TModel(base.Layer):
   """Abstract base class for models.
@@ -1392,6 +1395,19 @@ class T2TModel(base.Layer):
 
   def initialize_from_ckpt(self, ckpt_dir):
     model_dir = self._hparams.get("model_dir", None)
+
+    valid_tf2_dir = True
+
+    for char in INVALID_CHARS:
+      valid_tf2_dir = (valid_tf2_dir and (ckpt_dir is None or char not in ckpt_dir)
+                       and (model_dir is None or char not in model_dir))
+
+    assert valid_tf2_dir, (
+      f"Invalid character {INVALID_CHARS} present in model path. "
+      "Follow these steps to update model path: "
+      "https://docs.google.com/document/d/1vCxWfcxJrg9VFXSrXU5AXTuV-u4szkmtQgvmkhSKhj8/edit?pli=1#bookmark=id.hffvs0oi2we6"
+    )
+
     already_has_ckpt = (
         model_dir and tf.train.latest_checkpoint(model_dir) is not None)
     if already_has_ckpt:
@@ -1408,6 +1424,7 @@ class T2TModel(base.Layer):
       else:
         tf.logging.info(
             "Cannot find variable in checkpoint, skipping: %s", var_name)
+
     tf.train.init_from_checkpoint(ckpt_dir, variable_map)
 
   def estimator_spec_train(self, loss, num_async_replicas=1, use_tpu=False):

@@ -122,3 +122,8 @@ flags.DEFINE_string("decode_to_file", None,
 flags.DEFINE_string("decode_reference", None,
                     "Path to the reference file for decoding, used by "
                     "continuous_decode_from_file to compute BLEU score.")
+
+
+# beam-specific custom flags:
+flags.DEFINE_string("env_vars", None, "")
+flags.DEFINE_string("pipeline_options", None, "")

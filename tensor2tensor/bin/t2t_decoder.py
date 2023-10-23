@@ -75,7 +75,11 @@ flags.DEFINE_bool("use_original_input", False,
                   "Use the input that was used for validation during training?")
 # Fathom end
 flags.DEFINE_bool("decode_in_memory", False, "Decode in memory.")
-
+flags.DEFINE_string(
+    "output_raw_predictions_path",
+    "",
+    "Where to store raw predictions",
+)
 
 def create_hparams():
   return trainer_lib.create_hparams(
@@ -95,6 +99,29 @@ def create_decode_hparams():
   return decode_hp
 
 
+def fh_decode(
+  estimator,
+  hparams,
+  decode_hp,
+  problem,
+  decode_to_file,
+  dataset_split,
+  decode_output_file,
+  fathom_output_predictions,
+):
+  return decoding.decode_from_dataset(
+        estimator,
+        problem,
+        hparams,
+        decode_hp,
+        decode_to_file=decode_to_file,
+        dataset_split=dataset_to_t2t_mode(dataset_split),
+        return_generator=fathom_output_predictions,
+        # save logs/summaries to a directory with the same name as decode_output_file
+        # in situations where we are calling decode without write permissions
+        # to the model directory
+        output_dir=os.path.splitext(decode_output_file)[0])
+
 def decode(estimator, hparams, decode_hp):
   """Decode from estimator. Interactive, from file, or from dataset."""
   if FLAGS.decode_interactive:
@@ -112,23 +139,27 @@ def decode(estimator, hparams, decode_hp):
       ckpt_time = os.path.getmtime(FLAGS.checkpoint_path + ".index")
       os.utime(FLAGS.decode_to_file, (ckpt_time, ckpt_time))
   else:
+    # Fathom
+    if hasattr(hparams, 'problem'):
+      problem = hparams.problem
+    else:
+      problem = registry.problem(FLAGS.problems)
+    predictions = fh_decode(
+      estimator=estimator,
+      hparams=hparams,
+      decode_hp=decode_hp,
+      problem=problem,
+      decode_to_file=FLAGS.decode_to_file,
+      dataset_split=FLAGS.dataset_split,
+      decode_output_file=FLAGS.decode_output_file,
+      fathom_output_predictions=FLAGS.fathom_output_predictions,
+    )
 
     # Fathom
-    predictions = decoding.decode_from_dataset(
-        estimator,
-        FLAGS.problem,
-        hparams,
-        decode_hp,
-        decode_to_file=FLAGS.decode_to_file,
-        dataset_split=dataset_to_t2t_mode(FLAGS.dataset_split),
-        return_generator=FLAGS.fathom_output_predictions,
-        # save logs/summaries to a directory with the same name as decode_output_file
-        # in situations where we are calling decode without write permissions
-        # to the model directory
-        output_dir=os.path.splitext(FLAGS.decode_output_file)[0])
-
-    # Fathom
-    if FLAGS.fathom_output_predictions:
+    if FLAGS.output_raw_predictions_path:
+      print(f"assuming outputting raw predictions, destination: {FLAGS.output_raw_predictions_path}")
+      return predictions
+    elif FLAGS.fathom_output_predictions:
       print('Assuming only one problem...')
       assert '-' not in FLAGS.problems
       # if we already have built problem instance in hparams, no need to create
@@ -214,7 +245,6 @@ def main(_):
   checkpoint_path = fathom_t2t_model_setup()
   # Fathom end
   usr_dir.import_usr_dir(FLAGS.t2t_usr_dir)
-
 
   if FLAGS.score_file:
     filename = os.path.expanduser(FLAGS.score_file)

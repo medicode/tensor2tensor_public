@@ -13,6 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# t2t-lite notes:
+# commented out all references to bleu_hook and rouge
+
 """Utils for metrics used in eval."""
 from __future__ import absolute_import
 from __future__ import division
@@ -23,8 +26,8 @@ import numpy as np
 import six
 
 from tensor2tensor.layers import common_layers
-from tensor2tensor.utils import bleu_hook
-from tensor2tensor.utils import rouge
+# from tensor2tensor.utils import bleu_hook
+# from tensor2tensor.utils import rouge
 
 import tensorflow as tf
 
@@ -41,12 +44,12 @@ class Metrics(object):
   ACC_PER_SEQ = "accuracy_per_sequence"
   ACC_MULTILABEL_MATCH3 = "accuracy_multilabel_match3"
   NEG_LOG_PERPLEXITY = "neg_log_perplexity"
-  APPROX_BLEU = "approx_bleu_score"
+  # APPROX_BLEU = "approx_bleu_score"
   RMSE = "rmse"
   LOG_POISSON = "log_poisson"
   R2 = "r_squared"
-  ROUGE_2_F = "rouge_2_fscore"
-  ROUGE_L_F = "rouge_L_fscore"
+  # ROUGE_2_F = "rouge_2_fscore"
+  # ROUGE_L_F = "rouge_L_fscore"
   EDIT_DISTANCE = "edit_distance"
   SET_PRECISION = "set_precision"
   SET_RECALL = "set_recall"
@@ -688,12 +691,12 @@ METRICS_FNS = {
     Metrics.ACC_PER_SEQ: padded_sequence_accuracy,
     Metrics.ACC_MULTILABEL_MATCH3: multilabel_accuracy_match3,
     Metrics.NEG_LOG_PERPLEXITY: padded_neg_log_perplexity,
-    Metrics.APPROX_BLEU: bleu_hook.bleu_score,
+    # Metrics.APPROX_BLEU: bleu_hook.bleu_score,
     Metrics.RMSE: padded_rmse,
     Metrics.LOG_POISSON: padded_log_poisson,
     Metrics.R2: padded_variance_explained,
-    Metrics.ROUGE_2_F: rouge.rouge_2_fscore,
-    Metrics.ROUGE_L_F: rouge.rouge_l_fscore,
+    # Metrics.ROUGE_2_F: rouge.rouge_2_fscore,
+    # Metrics.ROUGE_L_F: rouge.rouge_l_fscore,
     Metrics.EDIT_DISTANCE: sequence_edit_distance,
     Metrics.SOFTMAX_CROSS_ENTROPY_ONE_HOT: softmax_cross_entropy_one_hot,
     Metrics.SIGMOID_ACCURACY_ONE_HOT: sigmoid_accuracy_one_hot,

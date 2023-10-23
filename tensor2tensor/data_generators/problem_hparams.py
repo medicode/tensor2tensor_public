@@ -13,6 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# t2t-lite notes:
+# commented out problems that are audio-related, since all audio processing
+# functions/files have been deleted.
+
 """Hyperparameters defining different problems.
 
 """
@@ -32,82 +36,82 @@ import tensorflow as tf
 # they only implement the hparams.
 
 
-class AudioTimitProblem(problem.Problem):
-  """Base class for TIMIT problems."""
+# class AudioTimitProblem(problem.Problem):
+#   """Base class for TIMIT problems."""
 
-  def example_reading_spec(self):
-    data_fields = {
-        "inputs": tf.VarLenFeature(tf.int64),
-        "audio/sample_count": tf.FixedLenFeature((), tf.int64),
-        "audio/sample_width": tf.FixedLenFeature((), tf.int64),
-        "targets": tf.VarLenFeature(tf.int64),
-    }
-    return data_fields, None
+#   def example_reading_spec(self):
+#     data_fields = {
+#         "inputs": tf.VarLenFeature(tf.int64),
+#         "audio/sample_count": tf.FixedLenFeature((), tf.int64),
+#         "audio/sample_width": tf.FixedLenFeature((), tf.int64),
+#         "targets": tf.VarLenFeature(tf.int64),
+#     }
+#     return data_fields, None
 
-  def preprocess_example(self, example, mode, hparams):
-    example = super(AudioTimitProblem, self).preprocess_example(
-        example, mode, hparams)
-    # Reshape audio to proper shape
-    sample_count = tf.to_int32(example.pop("audio/sample_count"))
-    sample_width = tf.to_int32(example.pop("audio/sample_width"))
-    channel_count = 1
-    example["inputs"] = tf.reshape(example["inputs"],
-                                   [sample_count, sample_width, channel_count])
-    return example
-
-
-@registry.register_problem
-class AudioTimitCharactersTune(AudioTimitProblem):
-  """TIMIT to characters."""
-
-  def feature_encoders(self, _):
-    return {
-        "inputs": text_encoder.TextEncoder(),
-        "targets": text_encoder.ByteTextEncoder(),
-    }
-
-  def hparams(self, defaults, model_hparams):
-    hp = defaults
-    hp.input_modality = {
-        "inputs": (registry.Modalities.AUDIO, None),
-    }
-    hp.target_modality = (registry.Modalities.SYMBOL, 256)
+#   def preprocess_example(self, example, mode, hparams):
+#     example = super(AudioTimitProblem, self).preprocess_example(
+#         example, mode, hparams)
+#     # Reshape audio to proper shape
+#     sample_count = tf.to_int32(example.pop("audio/sample_count"))
+#     sample_width = tf.to_int32(example.pop("audio/sample_width"))
+#     channel_count = 1
+#     example["inputs"] = tf.reshape(example["inputs"],
+#                                    [sample_count, sample_width, channel_count])
+#     return example
 
 
-@registry.register_problem
-class AudioTimitTokens8kTune(AudioTimitProblem):
-  """TIMIT to tokens."""
+# @registry.register_problem
+# class AudioTimitCharactersTune(AudioTimitProblem):
+#   """TIMIT to characters."""
 
-  @property
-  def target_vocab_size(self):
-    return 2**13  # 8192
+#   def feature_encoders(self, _):
+#     return {
+#         "inputs": text_encoder.TextEncoder(),
+#         "targets": text_encoder.ByteTextEncoder(),
+#     }
 
-  def feature_encoders(self, data_dir):
-    vocab_filename = os.path.join(data_dir,
-                                  "vocab.endefr.%d" % self.target_vocab_size)
-    subtokenizer = text_encoder.SubwordTextEncoder(vocab_filename)
-    return {
-        "inputs": text_encoder.TextEncoder(),
-        "targets": subtokenizer,
-    }
-
-  def hparams(self, defaults, model_hparams):
-    hp = defaults
-    hp.input_modality = {
-        "inputs": (registry.Modalities.AUDIO, None),
-    }
-    hp.target_modality = (registry.Modalities.SYMBOL,
-                          self.get_feature_encoders()["targets"].vocab_size)
-    hp.batch_size_multiplier = 256
-    hp.loss_multiplier = 2.0
-    hp.input_space_id = 13
-    hp.target_space_id = 3
+#   def hparams(self, defaults, model_hparams):
+#     hp = defaults
+#     hp.input_modality = {
+#         "inputs": (registry.Modalities.AUDIO, None),
+#     }
+#     hp.target_modality = (registry.Modalities.SYMBOL, 256)
 
 
-@registry.register_problem
-class AudioTimitTokens8kTest(AudioTimitTokens8kTune):
-  """TIMIT to tokens."""
-  pass
+# @registry.register_problem
+# class AudioTimitTokens8kTune(AudioTimitProblem):
+#   """TIMIT to tokens."""
+
+#   @property
+#   def target_vocab_size(self):
+#     return 2**13  # 8192
+
+#   def feature_encoders(self, data_dir):
+#     vocab_filename = os.path.join(data_dir,
+#                                   "vocab.endefr.%d" % self.target_vocab_size)
+#     subtokenizer = text_encoder.SubwordTextEncoder(vocab_filename)
+#     return {
+#         "inputs": text_encoder.TextEncoder(),
+#         "targets": subtokenizer,
+#     }
+
+#   def hparams(self, defaults, model_hparams):
+#     hp = defaults
+#     hp.input_modality = {
+#         "inputs": (registry.Modalities.AUDIO, None),
+#     }
+#     hp.target_modality = (registry.Modalities.SYMBOL,
+#                           self.get_feature_encoders()["targets"].vocab_size)
+#     hp.batch_size_multiplier = 256
+#     hp.loss_multiplier = 2.0
+#     hp.input_space_id = 13
+#     hp.target_space_id = 3
+
+
+# @registry.register_problem
+# class AudioTimitTokens8kTest(AudioTimitTokens8kTune):
+#   """TIMIT to tokens."""
+#   pass
 
 
 @registry.register_problem

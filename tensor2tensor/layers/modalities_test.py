@@ -13,6 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# t2t-lite notes:
+# commented out reference to video modalities
+
 """Tests for Modalities."""
 from __future__ import absolute_import
 from __future__ import division
@@ -125,9 +128,9 @@ class ModalityTest(tf.test.TestCase):
     modality = modalities.create_modality(modality_spec, model_hparams)
     self.assertIsInstance(modality, modalities.OneHotClassLabelModality)
 
-    modality_spec = (registry.Modalities.VIDEO + ":identity", None)
-    modality = modalities.create_modality(modality_spec, model_hparams)
-    self.assertIsInstance(modality, modalities.IdentityModality)
+    # modality_spec = (registry.Modalities.VIDEO + ":identity", None)
+    # modality = modalities.create_modality(modality_spec, model_hparams)
+    # self.assertIsInstance(modality, modalities.IdentityModality)
 
 
 if __name__ == "__main__":
